@@ -46,6 +46,15 @@ public class NotificationEventRoutes extends RouteBuilder {
     private final String pdfSignedTopic;
     private final String dlqTopic;
 
+    // Document-type-specific topics for statistics
+    private final String documentReceivedCountingTopic; // For counting (all documents before validation)
+    private final String taxInvoiceReceivedTopic;
+    private final String invoiceReceivedTopic;
+    private final String receiptReceivedTopic;
+    private final String debitCreditNoteReceivedTopic;
+    private final String cancellationReceivedTopic;
+    private final String abbreviatedReceivedTopic;
+
     public NotificationEventRoutes(
             NotificationService notificationService,
             @Value("${app.notification.default-recipient:admin@example.com}") String defaultRecipient,
@@ -56,7 +65,14 @@ public class NotificationEventRoutes extends RouteBuilder {
             @Value("${kafka.topics.taxinvoice-processed}") String taxInvoiceProcessedTopic,
             @Value("${kafka.topics.pdf-generated}") String pdfGeneratedTopic,
             @Value("${kafka.topics.pdf-signed}") String pdfSignedTopic,
-            @Value("${kafka.topics.notification-dlq:notification.dlq}") String dlqTopic) {
+            @Value("${kafka.topics.notification-dlq:notification.dlq}") String dlqTopic,
+            @Value("${kafka.topics.document-received:document.received}") String documentReceivedCountingTopic,
+            @Value("${kafka.topics.tax-invoice-received:document.received.tax-invoice}") String taxInvoiceReceivedTopic,
+            @Value("${kafka.topics.invoice-received:document.received.invoice}") String invoiceReceivedTopic,
+            @Value("${kafka.topics.receipt-received:document.received.receipt}") String receiptReceivedTopic,
+            @Value("${kafka.topics.debit-credit-note-received:document.received.debit-credit-note}") String debitCreditNoteReceivedTopic,
+            @Value("${kafka.topics.cancellation-received:document.received.cancellation}") String cancellationReceivedTopic,
+            @Value("${kafka.topics.abbreviated-received:document.received.abbreviated}") String abbreviatedReceivedTopic) {
         this.notificationService = notificationService;
         this.defaultRecipient = defaultRecipient;
         this.notificationEnabled = notificationEnabled;
@@ -67,6 +83,13 @@ public class NotificationEventRoutes extends RouteBuilder {
         this.pdfGeneratedTopic = pdfGeneratedTopic;
         this.pdfSignedTopic = pdfSignedTopic;
         this.dlqTopic = dlqTopic;
+        this.documentReceivedCountingTopic = documentReceivedCountingTopic;
+        this.taxInvoiceReceivedTopic = taxInvoiceReceivedTopic;
+        this.invoiceReceivedTopic = invoiceReceivedTopic;
+        this.receiptReceivedTopic = receiptReceivedTopic;
+        this.debitCreditNoteReceivedTopic = debitCreditNoteReceivedTopic;
+        this.cancellationReceivedTopic = cancellationReceivedTopic;
+        this.abbreviatedReceivedTopic = abbreviatedReceivedTopic;
     }
 
     @Override
@@ -140,6 +163,101 @@ public class NotificationEventRoutes extends RouteBuilder {
             .unmarshal().json(JsonLibrary.Jackson, PdfSignedEvent.class)
             .process(this::handlePdfSigned)
             .log("Created notification for PDF signed: ${header.invoiceNumber}");
+
+        // Route 5: Document Received Counting Events (before validation - all documents)
+        // This lightweight event tracks ALL received documents regardless of validation outcome
+        from("kafka:" + documentReceivedCountingTopic + kafkaOptions)
+            .routeId("notification-document-counting")
+            .log("Received DocumentReceivedCountingEvent from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping counting event")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, DocumentReceivedCountingEvent.class)
+            .process(this::handleDocumentReceivedCounting)
+            .log("Processed document counting event: documentId=${header.documentId}");
+
+        // Route 6: Tax Invoice Document Received Events (after validation)
+        // Statistics event for validated tax invoice documents
+        from("kafka:" + taxInvoiceReceivedTopic + kafkaOptions)
+            .routeId("notification-tax-invoice-received")
+            .log("Received DocumentReceivedEvent (TAX_INVOICE) from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping statistics event")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, DocumentReceivedEvent.class)
+            .process(this::handleDocumentReceivedStats)
+            .log("Processed tax invoice statistics event");
+
+        // Route 7: Invoice Document Received Events (after validation)
+        // Statistics event for validated invoice documents
+        from("kafka:" + invoiceReceivedTopic + kafkaOptions)
+            .routeId("notification-invoice-received")
+            .log("Received DocumentReceivedEvent (INVOICE) from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping statistics event")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, DocumentReceivedEvent.class)
+            .process(this::handleDocumentReceivedStats)
+            .log("Processed invoice statistics event");
+
+        // Additional routes for other document types follow the same pattern
+        // Route 8: Receipt Document Received Events (after validation)
+        from("kafka:" + receiptReceivedTopic + kafkaOptions)
+            .routeId("notification-receipt-received")
+            .log("Received DocumentReceivedEvent (RECEIPT) from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping statistics event")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, DocumentReceivedEvent.class)
+            .process(this::handleDocumentReceivedStats)
+            .log("Processed receipt statistics event");
+
+        // Route 9: Debit/Credit Note Document Received Events (after validation)
+        from("kafka:" + debitCreditNoteReceivedTopic + kafkaOptions)
+            .routeId("notification-debit-credit-note-received")
+            .log("Received DocumentReceivedEvent (DEBIT_CREDIT_NOTE) from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping statistics event")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, DocumentReceivedEvent.class)
+            .process(this::handleDocumentReceivedStats)
+            .log("Processed debit/credit note statistics event");
+
+        // Route 10: Cancellation Note Document Received Events (after validation)
+        from("kafka:" + cancellationReceivedTopic + kafkaOptions)
+            .routeId("notification-cancellation-received")
+            .log("Received DocumentReceivedEvent (CANCELLATION) from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping statistics event")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, DocumentReceivedEvent.class)
+            .process(this::handleDocumentReceivedStats)
+            .log("Processed cancellation note statistics event");
+
+        // Route 11: Abbreviated Tax Invoice Document Received Events (after validation)
+        from("kafka:" + abbreviatedReceivedTopic + kafkaOptions)
+            .routeId("notification-abbreviated-received")
+            .log("Received DocumentReceivedEvent (ABBREVIATED) from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping statistics event")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, DocumentReceivedEvent.class)
+            .process(this::handleDocumentReceivedStats)
+            .log("Processed abbreviated tax invoice statistics event");
     }
 
     /**
@@ -310,5 +428,46 @@ public class NotificationEventRoutes extends RouteBuilder {
         } else {
             return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
         }
+    }
+
+    /**
+     * Process DocumentReceivedCountingEvent and track total received count.
+     * This lightweight event is published BEFORE validation, so ALL documents are counted.
+     *
+     * Future enhancement: Persist to database for accurate total received count tracking.
+     */
+    private void handleDocumentReceivedCounting(Exchange exchange) {
+        DocumentReceivedCountingEvent event = exchange.getIn().getBody(DocumentReceivedCountingEvent.class);
+
+        log.info("Processing DocumentReceivedCountingEvent: documentId={}, correlationId={}",
+            event.getDocumentId(), event.getCorrelationId());
+
+        // For now, just log the event. Future: persist to database for statistics
+        // This counts ALL received documents regardless of validation outcome
+
+        // Set headers for logging
+        exchange.getIn().setHeader("documentId", event.getDocumentId());
+        exchange.getIn().setHeader("correlationId", event.getCorrelationId());
+    }
+
+    /**
+     * Process DocumentReceivedEvent and track type-specific statistics.
+     * This event is published AFTER validation, so only VALIDATED documents are tracked.
+     *
+     * Future enhancement: Persist to database for type-specific statistics.
+     */
+    private void handleDocumentReceivedStats(Exchange exchange) {
+        DocumentReceivedEvent event = exchange.getIn().getBody(DocumentReceivedEvent.class);
+
+        log.info("Processing DocumentReceivedEvent (statistics): documentId={}, documentType={}, correlationId={}",
+            event.getDocumentId(), event.getDocumentType(), event.getCorrelationId());
+
+        // For now, just log the event. Future: persist to database for statistics
+        // This tracks validated documents by type
+
+        // Set headers for logging
+        exchange.getIn().setHeader("documentId", event.getDocumentId());
+        exchange.getIn().setHeader("documentType", event.getDocumentType());
+        exchange.getIn().setHeader("correlationId", event.getCorrelationId());
     }
 }

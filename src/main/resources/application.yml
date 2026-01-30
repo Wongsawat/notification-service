@@ -96,6 +96,14 @@ kafka:
     pdf-generated: pdf.generated
     pdf-signed: pdf.signed
     notification-dlq: notification.dlq
+    # Document-type-specific topics for statistics (after validation)
+    document-received: document.received
+    tax-invoice-received: document.received.tax-invoice
+    invoice-received: document.received.invoice
+    receipt-received: document.received.receipt
+    debit-credit-note-received: document.received.debit-credit-note
+    cancellation-received: document.received.cancellation
+    abbreviated-received: document.received.abbreviated
 
 # Application configuration
 app:
