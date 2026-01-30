@@ -1,8 +1,9 @@
 package com.invoice.notification.infrastructure.config;
 
 import com.invoice.notification.infrastructure.messaging.InvoiceProcessedEvent;
-import com.invoice.notification.infrastructure.messaging.InvoiceReceivedEvent;
 import com.invoice.notification.infrastructure.messaging.PdfGeneratedEvent;
+import com.invoice.notification.infrastructure.messaging.PdfSignedEvent;
+import com.invoice.notification.infrastructure.messaging.TaxInvoiceProcessedEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,24 +47,24 @@ public class KafkaConfig {
     }
 
     /**
-     * Consumer factory for InvoiceReceivedEvent
+     * Consumer factory for TaxInvoiceProcessedEvent
      */
     @Bean
-    public ConsumerFactory<String, InvoiceReceivedEvent> invoiceReceivedConsumerFactory() {
+    public ConsumerFactory<String, TaxInvoiceProcessedEvent> taxInvoiceProcessedConsumerFactory() {
         Map<String, Object> config = consumerConfig();
-        config.put(JsonDeserializer.VALUE_DEFAULT_TYPE, InvoiceReceivedEvent.class.getName());
+        config.put(JsonDeserializer.VALUE_DEFAULT_TYPE, TaxInvoiceProcessedEvent.class.getName());
         return new DefaultKafkaConsumerFactory<>(config);
     }
 
     /**
-     * Listener container factory for InvoiceReceivedEvent
+     * Listener container factory for TaxInvoiceProcessedEvent
      */
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, InvoiceReceivedEvent>
-    invoiceReceivedKafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, InvoiceReceivedEvent> factory =
+    public ConcurrentKafkaListenerContainerFactory<String, TaxInvoiceProcessedEvent>
+    taxInvoiceProcessedKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, TaxInvoiceProcessedEvent> factory =
             new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(invoiceReceivedConsumerFactory());
+        factory.setConsumerFactory(taxInvoiceProcessedConsumerFactory());
         factory.setConcurrency(2);
         factory.getContainerProperties().setAckMode(
             org.springframework.kafka.listener.ContainerProperties.AckMode.MANUAL_IMMEDIATE
@@ -116,6 +117,32 @@ public class KafkaConfig {
         ConcurrentKafkaListenerContainerFactory<String, PdfGeneratedEvent> factory =
             new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(pdfGeneratedConsumerFactory());
+        factory.setConcurrency(2);
+        factory.getContainerProperties().setAckMode(
+            org.springframework.kafka.listener.ContainerProperties.AckMode.MANUAL_IMMEDIATE
+        );
+        return factory;
+    }
+
+    /**
+     * Consumer factory for PdfSignedEvent
+     */
+    @Bean
+    public ConsumerFactory<String, PdfSignedEvent> pdfSignedConsumerFactory() {
+        Map<String, Object> config = consumerConfig();
+        config.put(JsonDeserializer.VALUE_DEFAULT_TYPE, PdfSignedEvent.class.getName());
+        return new DefaultKafkaConsumerFactory<>(config);
+    }
+
+    /**
+     * Listener container factory for PdfSignedEvent
+     */
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, PdfSignedEvent>
+    pdfSignedKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, PdfSignedEvent> factory =
+            new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(pdfSignedConsumerFactory());
         factory.setConcurrency(2);
         factory.getContainerProperties().setAckMode(
             org.springframework.kafka.listener.ContainerProperties.AckMode.MANUAL_IMMEDIATE

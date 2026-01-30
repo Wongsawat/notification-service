@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Signed</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background-color: #f9f9f9; }
+        .footer { padding: 20px; text-align: center; font-size: 12px; color: #666; }
+        .invoice-details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #4CAF50; }
+        .detail-row { margin: 10px 0; }
+        .label { font-weight: bold; display: inline-block; width: 180px; }
+        .button { display: inline-block; padding: 12px 24px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; margin: 10px 0; }
+        .button:hover { background-color: #388E3C; }
+        .signature-info { background-color: #E8F5E9; padding: 15px; margin: 15px 0; border-radius: 4px; border: 1px solid #4CAF50; }
+        .signature-info h3 { margin-top: 0; color: #2E7D32; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✓ PDF Invoice Digitally Signed</h1>
+        </div>
+
+        <div class="content">
+            <p>Dear Valued Customer,</p>
+
+            <p>Your invoice PDF has been successfully digitally signed and is now available for download.</p>
+
+            <div class="invoice-details">
+                <div class="detail-row">
+                    <span class="label">Invoice Number:</span>
+                    <span th:text="${invoiceNumber}">INV-2025-001</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Document Type:</span>
+                    <span th:text="${documentType}">INVOICE</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Signed Document ID:</span>
+                    <span th:text="${signedDocumentId}">signed-doc-uuid</span>
+                </div>
+                <div class="detail-row" th:if="${signedPdfSize}">
+                    <span class="label">File Size:</span>
+                    <span th:text="${signedPdfSize}">125 KB</span>
+                </div>
+                <div class="detail-row" th:if="${signatureTimestamp}">
+                    <span class="label">Signed At:</span>
+                    <span th:text="${signatureTimestamp}">2025-12-03 10:45:00</span>
+                </div>
+            </div>
+
+            <div class="signature-info">
+                <h3>Digital Signature Details</h3>
+                <div class="detail-row">
+                    <span class="label">Signature Level:</span>
+                    <span th:text="${signatureLevel}">PAdES-BASELINE-T</span>
+                </div>
+                <div class="detail-row" th:if="${transactionId}">
+                    <span class="label">Transaction ID:</span>
+                    <span th:text="${transactionId}">transaction-uuid</span>
+                </div>
+                <p style="margin-top: 15px; font-size: 14px;">
+                    This document has been digitally signed in accordance with Thai e-Tax regulations.
+                    The signature ensures document authenticity and integrity.
+                </p>
+            </div>
+
+            <div style="text-align: center;" th:if="${signedPdfUrl}">
+                <a th:href="${signedPdfUrl}" class="button">Download Signed PDF Invoice</a>
+            </div>
+
+            <p><strong>Note:</strong> The signed PDF is legally binding and compliant with Thai e-Tax requirements.
+            The digital signature can be verified using any PDF viewer that supports PAdES signatures.</p>
+
+            <p>Thank you for using our e-Tax invoice system.</p>
+        </div>
+
+        <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>&copy; 2025 Thai e-Tax Invoice System. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

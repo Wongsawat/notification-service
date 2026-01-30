@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice Received</title>
+    <title>Tax Invoice Processed</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -13,35 +13,44 @@
         .invoice-details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #4CAF50; }
         .detail-row { margin: 10px 0; }
         .label { font-weight: bold; display: inline-block; width: 150px; }
+        .success { color: #4CAF50; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Invoice Received Successfully</h1>
+            <h1>Tax Invoice Processing Complete</h1>
         </div>
 
         <div class="content">
             <p>Dear Valued Customer,</p>
 
-            <p>Your invoice has been successfully received and is being processed.</p>
+            <p class="success">Your tax invoice has been successfully processed!</p>
 
             <div class="invoice-details">
                 <div class="detail-row">
                     <span class="label">Invoice Number:</span>
-                    <span th:text="${invoiceNumber}">INV-2025-001</span>
+                    <span th:text="${invoiceNumber}">TINV-2025-001</span>
                 </div>
                 <div class="detail-row">
                     <span class="label">Invoice ID:</span>
                     <span th:text="${invoiceId}">uuid-here</span>
                 </div>
-                <div class="detail-row" th:if="${receivedAt}">
-                    <span class="label">Received At:</span>
-                    <span th:text="${receivedAt}">2025-12-03 10:30:00</span>
+                <div class="detail-row" th:if="${totalAmount}">
+                    <span class="label">Total Amount:</span>
+                    <span th:text="${totalAmount}">1,500.00</span>
+                </div>
+                <div class="detail-row" th:if="${currency}">
+                    <span class="label">Currency:</span>
+                    <span th:text="${currency}">THB</span>
+                </div>
+                <div class="detail-row" th:if="${processedAt}">
+                    <span class="label">Processed At:</span>
+                    <span th:text="${processedAt}">2025-12-03 10:35:00</span>
                 </div>
             </div>
 
-            <p>Your invoice is now in the validation queue. You will receive another notification once validation is complete.</p>
+            <p>A PDF version of your tax invoice is being generated and will be available shortly.</p>
 
             <p>Thank you for using our e-Tax invoice system.</p>
         </div>
