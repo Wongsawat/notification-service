@@ -72,6 +72,12 @@ spring:
     prefix: classpath:/templates/
     suffix: .html
 
+# Apache Camel
+camel:
+  springboot:
+    name: notification-camel
+    main-run-controller: true
+
 # Eureka service discovery
 eureka:
   client:
@@ -89,6 +95,7 @@ kafka:
     taxinvoice-processed: taxinvoice.processed
     pdf-generated: pdf.generated
     pdf-signed: pdf.signed
+    notification-dlq: notification.dlq
 
 # Application configuration
 app:
@@ -116,7 +123,8 @@ management:
 logging:
   level:
     com.invoice.notification: DEBUG
-    org.springframework.kafka: INFO
+    org.apache.camel: INFO
+    org.apache.camel.component.kafka: DEBUG
     org.springframework.mail: DEBUG
     org.hibernate.SQL: INFO
   pattern:
