@@ -9,6 +9,7 @@ public enum NotificationType {
     PDF_GENERATED,              // PDF generation completed
     PDF_SIGNED,                 // PDF signing completed
     DOCUMENT_STORED,            // Document stored successfully
+    EBMS_SENT,                  // Document submitted to TRD via ebMS
     PROCESSING_FAILED,          // General processing failure
     SYSTEM_ALERT               // System-level alerts
 }

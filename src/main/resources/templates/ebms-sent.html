@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Submitted to TRD</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #6A1B9A; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background-color: #f9f9f9; }
+        .footer { padding: 20px; text-align: center; font-size: 12px; color: #666; }
+        .document-details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #6A1B9A; }
+        .detail-row { margin: 10px 0; }
+        .label { font-weight: bold; display: inline-block; width: 180px; }
+        .ebms-info { background-color: #F3E5F5; padding: 15px; margin: 15px 0; border-radius: 4px; border: 1px solid #6A1B9A; }
+        .ebms-info h3 { margin-top: 0; color: #4A148C; }
+        .success-icon { font-size: 48px; text-align: center; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Document Successfully Submitted to Thailand Revenue Department</h1>
+        </div>
+
+        <div class="content">
+            <div class="success-icon">✓</div>
+
+            <p>Dear Valued Customer,</p>
+
+            <p>Your document has been successfully submitted to the Thailand Revenue Department via the ebMS (electronic business using eXtensible Markup Language) protocol.</p>
+
+            <div class="document-details">
+                <div class="detail-row">
+                    <span class="label">Document ID:</span>
+                    <span th:text="${documentId}">doc-uuid</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Document Type:</span>
+                    <span th:text="${documentType}">TAX_INVOICE</span>
+                </div>
+                <div class="detail-row" th:if="${invoiceId != null and invoiceId != 'N/A'}">
+                    <span class="label">Invoice ID:</span>
+                    <span th:text="${invoiceId}">invoice-uuid</span>
+                </div>
+                <div class="detail-row" th:if="${invoiceNumber != null and invoiceNumber != 'N/A'}">
+                    <span class="label">Invoice Number:</span>
+                    <span th:text="${invoiceNumber}">INV-2025-001</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Submitted At:</span>
+                    <span th:text="${sentAt}">2025-12-03 10:45:00</span>
+                </div>
+                <div class="detail-row" th:if="${correlationId}">
+                    <span class="label">Correlation ID:</span>
+                    <span th:text="${correlationId}">correlation-uuid</span>
+                </div>
+            </div>
+
+            <div class="ebms-info">
+                <h3>ebMS Submission Details</h3>
+                <div class="detail-row">
+                    <span class="label">ebMS Message ID:</span>
+                    <span th:text="${ebmsMessageId}">ebms-msg-uuid</span>
+                </div>
+                <p style="margin-top: 15px; font-size: 14px;">
+                    The ebMS protocol ensures secure and reliable document exchange with the Thailand Revenue Department.
+                    Your document has been digitally signed and transmitted in compliance with Thai e-Tax regulations.
+                </p>
+                <p style="font-size: 14px;">
+                    The ebMS Message ID can be used to track the delivery status and for troubleshooting purposes.
+                </p>
+            </div>
+
+            <p><strong>Note:</strong> The submission to the Thailand Revenue Department is now complete.
+            You may receive additional notifications regarding the processing status of your document from the TRD system.</p>
+
+            <p>Thank you for using our e-Tax invoice system.</p>
+        </div>
+
+        <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>&copy; 2025 Thai e-Tax Invoice System. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

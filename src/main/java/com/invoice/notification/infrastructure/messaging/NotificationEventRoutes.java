@@ -4,6 +4,7 @@ import com.invoice.notification.application.service.NotificationService;
 import com.invoice.notification.domain.model.Notification;
 import com.invoice.notification.domain.model.NotificationChannel;
 import com.invoice.notification.domain.model.NotificationType;
+import com.invoice.notification.infrastructure.messaging.EbmsSentEvent;
 import com.invoice.notification.infrastructure.messaging.InvoiceProcessedEvent;
 import com.invoice.notification.infrastructure.messaging.PdfGeneratedEvent;
 import com.invoice.notification.infrastructure.messaging.PdfSignedEvent;
@@ -44,6 +45,7 @@ public class NotificationEventRoutes extends RouteBuilder {
     private final String taxInvoiceProcessedTopic;
     private final String pdfGeneratedTopic;
     private final String pdfSignedTopic;
+    private final String ebmsSentTopic;
     private final String dlqTopic;
 
     // Document-type-specific topics for statistics
@@ -65,6 +67,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             @Value("${kafka.topics.taxinvoice-processed}") String taxInvoiceProcessedTopic,
             @Value("${kafka.topics.pdf-generated}") String pdfGeneratedTopic,
             @Value("${kafka.topics.pdf-signed}") String pdfSignedTopic,
+            @Value("${kafka.topics.ebms-sent:ebms.sent}") String ebmsSentTopic,
             @Value("${kafka.topics.notification-dlq:notification.dlq}") String dlqTopic,
             @Value("${kafka.topics.document-received:document.received}") String documentReceivedCountingTopic,
             @Value("${kafka.topics.tax-invoice-received:document.received.tax-invoice}") String taxInvoiceReceivedTopic,
@@ -82,6 +85,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         this.taxInvoiceProcessedTopic = taxInvoiceProcessedTopic;
         this.pdfGeneratedTopic = pdfGeneratedTopic;
         this.pdfSignedTopic = pdfSignedTopic;
+        this.ebmsSentTopic = ebmsSentTopic;
         this.dlqTopic = dlqTopic;
         this.documentReceivedCountingTopic = documentReceivedCountingTopic;
         this.taxInvoiceReceivedTopic = taxInvoiceReceivedTopic;
@@ -258,6 +262,19 @@ public class NotificationEventRoutes extends RouteBuilder {
             .unmarshal().json(JsonLibrary.Jackson, DocumentReceivedEvent.class)
             .process(this::handleDocumentReceivedStats)
             .log("Processed abbreviated tax invoice statistics event");
+
+        // Route 12: ebMS Sent Events
+        from("kafka:" + ebmsSentTopic + kafkaOptions)
+            .routeId("notification-ebms-sent")
+            .log("Received EbmsSentEvent from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping message")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, EbmsSentEvent.class)
+            .process(this::handleEbmsSent)
+            .log("Created notification for ebMS sent: ${header.invoiceNumber}");
     }
 
     /**
@@ -469,5 +486,47 @@ public class NotificationEventRoutes extends RouteBuilder {
         exchange.getIn().setHeader("documentId", event.getDocumentId());
         exchange.getIn().setHeader("documentType", event.getDocumentType());
         exchange.getIn().setHeader("correlationId", event.getCorrelationId());
+    }
+
+    /**
+     * Process EbmsSentEvent and create notification
+     */
+    private void handleEbmsSent(Exchange exchange) {
+        EbmsSentEvent event = exchange.getIn().getBody(EbmsSentEvent.class);
+
+        log.info("Processing EbmsSentEvent: documentId={}, documentType={}, ebmsMessageId={}",
+            event.getDocumentId(), event.getDocumentType(), event.getEbmsMessageId());
+
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("invoiceId", event.getInvoiceId() != null ? event.getInvoiceId() : "N/A");
+        templateVariables.put("invoiceNumber", event.getInvoiceNumber() != null ? event.getInvoiceNumber() : "N/A");
+        templateVariables.put("documentType", event.getDocumentType());
+        templateVariables.put("ebmsMessageId", event.getEbmsMessageId());
+        templateVariables.put("sentAt", event.getSentAt().format(DATE_FORMATTER));
+        templateVariables.put("correlationId", event.getCorrelationId());
+
+        String displayNumber = event.getInvoiceNumber() != null ? event.getInvoiceNumber() : event.getDocumentId();
+        String subject = "Document Submitted to TRD: " + displayNumber;
+
+        Notification notification = Notification.createFromTemplate(
+            NotificationType.EBMS_SENT,
+            NotificationChannel.EMAIL,
+            defaultRecipient,
+            "ebms-sent",
+            templateVariables
+        );
+
+        notification.setSubject(subject);
+        notification.setInvoiceId(event.getInvoiceId());
+        notification.setInvoiceNumber(event.getInvoiceNumber());
+        notification.setCorrelationId(event.getCorrelationId());
+        notification.addMetadata("ebmsMessageId", event.getEbmsMessageId());
+        notification.addMetadata("documentType", event.getDocumentType());
+
+        notificationService.sendNotificationAsync(notification);
+
+        // Set header for logging
+        exchange.getIn().setHeader("invoiceNumber", displayNumber);
     }
 }
