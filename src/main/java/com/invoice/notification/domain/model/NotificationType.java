@@ -11,5 +11,11 @@ public enum NotificationType {
     DOCUMENT_STORED,            // Document stored successfully
     EBMS_SENT,                  // Document submitted to TRD via ebMS
     PROCESSING_FAILED,          // General processing failure
-    SYSTEM_ALERT               // System-level alerts
+    SYSTEM_ALERT,              // System-level alerts
+
+    // Saga lifecycle notification types
+    SAGA_STARTED,              // Saga orchestration started
+    SAGA_STEP_COMPLETED,       // Saga step completed (logged only, no email)
+    SAGA_COMPLETED,            // Saga orchestration completed
+    SAGA_FAILED                // Saga orchestration failed
 }

@@ -9,6 +9,10 @@ import com.invoice.notification.infrastructure.messaging.InvoiceProcessedEvent;
 import com.invoice.notification.infrastructure.messaging.PdfGeneratedEvent;
 import com.invoice.notification.infrastructure.messaging.PdfSignedEvent;
 import com.invoice.notification.infrastructure.messaging.TaxInvoiceProcessedEvent;
+import com.invoice.notification.infrastructure.messaging.saga.SagaCompletedEvent;
+import com.invoice.notification.infrastructure.messaging.saga.SagaFailedEvent;
+import com.invoice.notification.infrastructure.messaging.saga.SagaStartedEvent;
+import com.invoice.notification.infrastructure.messaging.saga.SagaStepCompletedEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
@@ -57,6 +61,12 @@ public class NotificationEventRoutes extends RouteBuilder {
     private final String cancellationReceivedTopic;
     private final String abbreviatedReceivedTopic;
 
+    // Saga lifecycle topics
+    private final String sagaLifecycleStartedTopic;
+    private final String sagaLifecycleStepCompletedTopic;
+    private final String sagaLifecycleCompletedTopic;
+    private final String sagaLifecycleFailedTopic;
+
     public NotificationEventRoutes(
             NotificationService notificationService,
             @Value("${app.notification.default-recipient:admin@example.com}") String defaultRecipient,
@@ -75,7 +85,11 @@ public class NotificationEventRoutes extends RouteBuilder {
             @Value("${kafka.topics.receipt-received:document.received.receipt}") String receiptReceivedTopic,
             @Value("${kafka.topics.debit-credit-note-received:document.received.debit-credit-note}") String debitCreditNoteReceivedTopic,
             @Value("${kafka.topics.cancellation-received:document.received.cancellation}") String cancellationReceivedTopic,
-            @Value("${kafka.topics.abbreviated-received:document.received.abbreviated}") String abbreviatedReceivedTopic) {
+            @Value("${kafka.topics.abbreviated-received:document.received.abbreviated}") String abbreviatedReceivedTopic,
+            @Value("${kafka.topics.saga-lifecycle-started}") String sagaLifecycleStartedTopic,
+            @Value("${kafka.topics.saga-lifecycle-step-completed}") String sagaLifecycleStepCompletedTopic,
+            @Value("${kafka.topics.saga-lifecycle-completed}") String sagaLifecycleCompletedTopic,
+            @Value("${kafka.topics.saga-lifecycle-failed}") String sagaLifecycleFailedTopic) {
         this.notificationService = notificationService;
         this.defaultRecipient = defaultRecipient;
         this.notificationEnabled = notificationEnabled;
@@ -94,6 +108,10 @@ public class NotificationEventRoutes extends RouteBuilder {
         this.debitCreditNoteReceivedTopic = debitCreditNoteReceivedTopic;
         this.cancellationReceivedTopic = cancellationReceivedTopic;
         this.abbreviatedReceivedTopic = abbreviatedReceivedTopic;
+        this.sagaLifecycleStartedTopic = sagaLifecycleStartedTopic;
+        this.sagaLifecycleStepCompletedTopic = sagaLifecycleStepCompletedTopic;
+        this.sagaLifecycleCompletedTopic = sagaLifecycleCompletedTopic;
+        this.sagaLifecycleFailedTopic = sagaLifecycleFailedTopic;
     }
 
     @Override
@@ -275,6 +293,58 @@ public class NotificationEventRoutes extends RouteBuilder {
             .unmarshal().json(JsonLibrary.Jackson, EbmsSentEvent.class)
             .process(this::handleEbmsSent)
             .log("Created notification for ebMS sent: ${header.invoiceNumber}");
+
+        // Route 13: Saga Started Events (logging only)
+        from("kafka:" + sagaLifecycleStartedTopic + kafkaOptions)
+            .routeId("notification-saga-started")
+            .log("Received SagaStartedEvent from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping saga event")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, SagaStartedEvent.class)
+            .process(this::handleSagaStarted)
+            .log("Processed saga started: sagaId=${header.sagaId}");
+
+        // Route 14: Saga Step Completed Events (logging only - no notifications)
+        from("kafka:" + sagaLifecycleStepCompletedTopic + kafkaOptions)
+            .routeId("notification-saga-step-completed")
+            .log("Received SagaStepCompletedEvent from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping saga event")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, SagaStepCompletedEvent.class)
+            .process(this::handleSagaStepCompleted)
+            .log("Processed saga step completed: step=${header.completedStep}");
+
+        // Route 15: Saga Completed Events (creates email notification)
+        from("kafka:" + sagaLifecycleCompletedTopic + kafkaOptions)
+            .routeId("notification-saga-completed")
+            .log("Received SagaCompletedEvent from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping saga event")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, SagaCompletedEvent.class)
+            .process(this::handleSagaCompleted)
+            .log("Created notification for saga completed: sagaId=${header.sagaId}");
+
+        // Route 16: Saga Failed Events (creates urgent email notification)
+        from("kafka:" + sagaLifecycleFailedTopic + kafkaOptions)
+            .routeId("notification-saga-failed")
+            .log("Received SagaFailedEvent from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping saga event")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, SagaFailedEvent.class)
+            .process(this::handleSagaFailed)
+            .log("Created notification for saga failed: sagaId=${header.sagaId}");
     }
 
     /**
@@ -528,5 +598,103 @@ public class NotificationEventRoutes extends RouteBuilder {
 
         // Set header for logging
         exchange.getIn().setHeader("invoiceNumber", displayNumber);
+    }
+
+    /**
+     * Process SagaStartedEvent (logging only, no notification)
+     */
+    private void handleSagaStarted(Exchange exchange) {
+        SagaStartedEvent event = exchange.getIn().getBody(SagaStartedEvent.class);
+        log.info("Saga started: sagaId={}, documentType={}, invoiceNumber={}",
+            event.getSagaId(), event.getDocumentType(), event.getInvoiceNumber());
+        // Just log - no notification created
+        exchange.getIn().setHeader("sagaId", event.getSagaId());
+    }
+
+    /**
+     * Process SagaStepCompletedEvent (logging only, no notification)
+     */
+    private void handleSagaStepCompleted(Exchange exchange) {
+        SagaStepCompletedEvent event = exchange.getIn().getBody(SagaStepCompletedEvent.class);
+        log.info("Saga step completed: sagaId={}, step={}, nextStep={}",
+            event.getSagaId(), event.getCompletedStep(), event.getNextStep());
+        // Just log - no notification created (per user requirement)
+        exchange.getIn().setHeader("completedStep", event.getCompletedStep());
+    }
+
+    /**
+     * Process SagaCompletedEvent and create success notification
+     */
+    private void handleSagaCompleted(Exchange exchange) {
+        SagaCompletedEvent event = exchange.getIn().getBody(SagaCompletedEvent.class);
+
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put("sagaId", event.getSagaId());
+        templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("invoiceNumber", event.getInvoiceNumber() != null ? event.getInvoiceNumber() : "N/A");
+        templateVariables.put("documentType", event.getDocumentType());
+        templateVariables.put("stepsExecuted", event.getStepsExecuted());
+        templateVariables.put("durationMs", event.getDurationMs());
+        templateVariables.put("durationSec", String.format("%.2f", event.getDurationMs() / 1000.0));
+        templateVariables.put("completedAt", event.getCompletedAt() != null
+            ? DATE_FORMATTER.format(event.getCompletedAt().atZone(ZoneId.systemDefault()))
+            : "N/A");
+
+        Notification notification = Notification.createFromTemplate(
+            NotificationType.SAGA_COMPLETED,
+            NotificationChannel.EMAIL,
+            defaultRecipient,
+            "saga-completed",
+            templateVariables
+        );
+
+        notification.setSubject("Saga Completed: " +
+            (event.getInvoiceNumber() != null ? event.getInvoiceNumber() : event.getDocumentId()));
+        notification.setInvoiceId(event.getDocumentId());
+        notification.setInvoiceNumber(event.getInvoiceNumber());
+        notification.setCorrelationId(event.getCorrelationId());
+        notification.addMetadata("sagaId", event.getSagaId());
+
+        notificationService.sendNotificationAsync(notification);
+        exchange.getIn().setHeader("sagaId", event.getSagaId());
+    }
+
+    /**
+     * Process SagaFailedEvent and create urgent notification
+     */
+    private void handleSagaFailed(Exchange exchange) {
+        SagaFailedEvent event = exchange.getIn().getBody(SagaFailedEvent.class);
+
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put("sagaId", event.getSagaId());
+        templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("invoiceNumber", event.getInvoiceNumber() != null ? event.getInvoiceNumber() : "N/A");
+        templateVariables.put("documentType", event.getDocumentType());
+        templateVariables.put("failedStep", event.getFailedStep());
+        templateVariables.put("errorMessage", event.getErrorMessage());
+        templateVariables.put("retryCount", event.getRetryCount());
+        templateVariables.put("compensationInitiated", event.getCompensationInitiated() != null && event.getCompensationInitiated());
+        templateVariables.put("failedAt", event.getFailedAt() != null
+            ? DATE_FORMATTER.format(event.getFailedAt().atZone(ZoneId.systemDefault()))
+            : "N/A");
+
+        Notification notification = Notification.createFromTemplate(
+            NotificationType.SAGA_FAILED,
+            NotificationChannel.EMAIL,
+            defaultRecipient,
+            "saga-failed",
+            templateVariables
+        );
+
+        notification.setSubject("URGENT: Saga Failed - " +
+            (event.getInvoiceNumber() != null ? event.getInvoiceNumber() : event.getDocumentId()));
+        notification.setInvoiceId(event.getDocumentId());
+        notification.setInvoiceNumber(event.getInvoiceNumber());
+        notification.setCorrelationId(event.getCorrelationId());
+        notification.addMetadata("sagaId", event.getSagaId());
+        notification.addMetadata("failedStep", event.getFailedStep());
+
+        notificationService.sendNotificationAsync(notification);
+        exchange.getIn().setHeader("sagaId", event.getSagaId());
     }
 }

@@ -106,6 +106,12 @@ kafka:
     cancellation-received: document.received.cancellation
     abbreviated-received: document.received.abbreviated
 
+    # Saga lifecycle topics from orchestrator-service
+    saga-lifecycle-started: saga.lifecycle.started
+    saga-lifecycle-step-completed: saga.lifecycle.step-completed
+    saga-lifecycle-completed: saga.lifecycle.completed
+    saga-lifecycle-failed: saga.lifecycle.failed
+
 # Application configuration
 app:
   notification:
