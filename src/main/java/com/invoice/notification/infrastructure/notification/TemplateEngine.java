@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * Template rendering engine using Thymeleaf
  */
-@Component
+@Component("notificationTemplateEngine")
 @RequiredArgsConstructor
 @Slf4j
 public class TemplateEngine {

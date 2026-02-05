@@ -7,9 +7,9 @@ CREATE TABLE notifications (
     recipient VARCHAR(500) NOT NULL,
     subject VARCHAR(500),
     body TEXT,
-    metadata JSONB,
+    metadata TEXT,
     template_name VARCHAR(100),
-    template_variables JSONB,
+    template_variables TEXT,
     invoice_id VARCHAR(100),
     invoice_number VARCHAR(100),
     correlation_id VARCHAR(100),
@@ -34,6 +34,6 @@ CREATE INDEX idx_notifications_failed_retry ON notifications(status, retry_count
 
 -- Comments
 COMMENT ON TABLE notifications IS 'Notification records for email, SMS, and webhook notifications';
-COMMENT ON COLUMN notifications.metadata IS 'Additional metadata as JSON';
-COMMENT ON COLUMN notifications.template_variables IS 'Template variable values as JSON';
+COMMENT ON COLUMN notifications.metadata IS 'Additional metadata as JSON text';
+COMMENT ON COLUMN notifications.template_variables IS 'Template variable values as JSON text';
 COMMENT ON COLUMN notifications.retry_count IS 'Number of retry attempts';

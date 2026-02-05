@@ -5,8 +5,6 @@ import com.invoice.notification.domain.model.NotificationStatus;
 import com.invoice.notification.domain.model.NotificationType;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -55,15 +53,15 @@ public class NotificationEntity {
     @Column(columnDefinition = "TEXT")
     private String body;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
+    @Convert(converter = JsonMapConverter.class)
+    @Column(columnDefinition = "TEXT")
     private Map<String, Object> metadata;
 
     @Column(name = "template_name", length = 100)
     private String templateName;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "template_variables", columnDefinition = "jsonb")
+    @Convert(converter = JsonMapConverter.class)
+    @Column(name = "template_variables", columnDefinition = "TEXT")
     private Map<String, Object> templateVariables;
 
     @Column(name = "invoice_id", length = 100)
