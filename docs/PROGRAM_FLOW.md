@@ -4,19 +4,22 @@ This document describes the notification processing flows in the Notification Se
 
 ## Overview
 
-The service processes notifications through two entry points:
-1. **Kafka Events** - Automatic notifications triggered by invoice processing events
-2. **REST API** - Manual notification requests
+The service processes notifications through three entry points:
+1. **Kafka Events** (via Apache Camel routes) - Automatic notifications triggered by invoice processing events
+2. **Saga Lifecycle Events** (via Apache Camel routes) - Notifications for saga orchestration completion/failure
+3. **REST API** - Manual notification requests
+
+**Technology**: All Kafka consumption uses **Apache Camel 4.14.4** RouteBuilder (16 routes total), not Spring Kafka.
 
 ## Flow 1: Kafka Event-Driven Notifications
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         KAFKA EVENT FLOW                                     │
+│                    KAFKA EVENT FLOW (Apache Camel)                          │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-  Kafka Topics                    InvoiceEventListener              NotificationService
-  ────────────                    ────────────────────              ───────────────────
+  Kafka Topics               NotificationEventRoutes              NotificationService
+  ────────────               ───────────────────────              ───────────────────
        │                                  │                                │
        │  invoice.received                │                                │
        │  invoice.processed               │                                │
@@ -51,11 +54,27 @@ The service processes notifications through two entry points:
 
 ### Event-to-Template Mapping
 
-| Kafka Topic | Event Class | Template | Subject Pattern |
-|-------------|-------------|----------|-----------------|
-| `invoice.received` | InvoiceReceivedEvent | invoice-received.html | "Invoice Received: {invoiceNumber}" |
-| `invoice.processed` | InvoiceProcessedEvent | invoice-processed.html | "Invoice Processed: {invoiceNumber}" |
-| `pdf.generated` | PdfGeneratedEvent | pdf-generated.html | "PDF Invoice Ready: {invoiceNumber}" |
+**Processing Events (Creates Email Notifications):**
+
+| Kafka Topic | Event Class | Camel Route | Template | Subject Pattern |
+|-------------|-------------|-------------|----------|-----------------|
+| `invoice.processed` | InvoiceProcessedEvent | notification-invoice-processed | invoice-processed.html | "Invoice Processed: {invoiceNumber}" |
+| `taxinvoice.processed` | TaxInvoiceProcessedEvent | notification-taxinvoice-processed | taxinvoice-processed.html | "Tax Invoice Processed: {invoiceNumber}" |
+| `pdf.generated` | PdfGeneratedEvent | notification-pdf-generated | pdf-generated.html | "PDF Invoice Ready: {invoiceNumber}" |
+| `pdf.signed` | PdfSignedEvent | notification-pdf-signed | pdf-signed.html | "Signed PDF Ready: {invoiceNumber}" |
+| `ebms.sent` | EbmsSentEvent | notification-ebms-sent | ebms-sent.html | "Document Submitted to TRD: {invoiceNumber}" |
+
+**Saga Lifecycle Events:**
+
+| Kafka Topic | Event Class | Camel Route | Template | Action |
+|-------------|-------------|-------------|----------|--------|
+| `saga.lifecycle.started` | SagaStartedEvent | notification-saga-started | N/A | Logging only |
+| `saga.lifecycle.step-completed` | SagaStepCompletedEvent | notification-saga-step-completed | N/A | Logging only |
+| `saga.lifecycle.completed` | SagaCompletedEvent | notification-saga-completed | saga-completed.html | Email notification (success theme) |
+| `saga.lifecycle.failed` | SagaFailedEvent | notification-saga-failed | saga-failed.html | URGENT email notification (alert theme) |
+
+**Statistics Events (Logging Only):**
+- `document.received.*` topics → 7 Camel routes for document counting and statistics
 
 ### Template Variables by Event Type
 
@@ -67,6 +86,12 @@ The service processes notifications through two entry points:
 
 **PdfGeneratedEvent:**
 - `invoiceId`, `invoiceNumber`, `documentId`, `documentUrl`, `fileSize`, `generatedAt`, `xmlEmbedded`, `digitallySigned`
+
+**SagaCompletedEvent:**
+- `sagaId`, `documentId`, `invoiceNumber`, `documentType`, `stepsExecuted`, `durationSec`, `completedAt`
+
+**SagaFailedEvent:**
+- `sagaId`, `documentId`, `invoiceNumber`, `documentType`, `failedStep`, `errorMessage`, `retryCount`, `compensationInitiated`, `failedAt`
 
 ---
 
@@ -444,14 +469,94 @@ State Transitions:
 │  └─────────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │
 │  ┌─────────────────────────────────────────────────────────────────────────┐ │
-│  │                           MESSAGING                                      │ │
-│  │  InvoiceEventListener ◄── Kafka Consumer ◄── Kafka Topics               │ │
-│  │  - invoice.received                                                      │ │
-│  │  - invoice.processed                                                     │ │
-│  │  - pdf.generated                                                         │ │
+│  │                    MESSAGING (Apache Camel)                              │ │
+│  │  NotificationEventRoutes (16 Camel RouteBuilders)                        │ │
+│  │  ◄── Kafka Consumer ◄── Kafka Topics                                    │ │
+│  │  - Processing events: invoice.processed, pdf.generated, pdf.signed, etc. │ │
+│  │  - Saga lifecycle: saga.lifecycle.completed, saga.lifecycle.failed       │ │
+│  │  - Statistics: document.received.* (7 topics)                            │ │
+│  └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────────┐ │
+│  │              OUTBOX PATTERN (Future Event Publishing)                    │ │
+│  │  OutboxEventEntity ──► outbox_events table ──► Debezium CDC ──► Kafka   │ │
+│  │  (Currently acts as consumer only; publishing capability ready)          │ │
 │  └─────────────────────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Flow 6: Saga Lifecycle Event Processing
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                  SAGA LIFECYCLE EVENT FLOW (Apache Camel)                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+ orchestrator-service        Kafka Topics            NotificationEventRoutes
+ ────────────────────        ────────────            ───────────────────────
+        │                          │                            │
+        │ Saga orchestration       │                            │
+        │ completed/failed         │                            │
+        │                          │                            │
+        ├─────────────────────────►│  saga.lifecycle.completed  │
+        │                          │  saga.lifecycle.failed     │
+        │                          │                            │
+        │                          ├───────────────────────────►│
+        │                          │                            │
+        │                          │                    ┌───────┴───────┐
+        │                          │                    │ Camel route   │
+        │                          │                    │ unmarshals    │
+        │                          │                    │ JSON to event │
+        │                          │                    └───────┬───────┘
+        │                          │                            │
+        │                          │                    ┌───────┴───────┐
+        │                          │                    │ handleSaga    │
+        │                          │                    │ Completed/    │
+        │                          │                    │ Failed()      │
+        │                          │                    └───────┬───────┘
+        │                          │                            │
+        │                          │                    ┌───────┴───────┐
+        │                          │                    │ Create        │
+        │                          │                    │ Notification  │
+        │                          │                    │ with saga     │
+        │                          │                    │ template vars │
+        │                          │                    └───────┬───────┘
+        │                          │                            │
+        │                          │                            ├────────►
+        │                          │                            │  sendNotificationAsync()
+        │                          │                            │
+        │                          │                            │  [Proceeds to Flow 3]
+```
+
+### Saga Event Handlers
+
+**SagaStartedEvent** (`notification-saga-started` route):
+- **Action**: Logging only (no email sent)
+- **Purpose**: Audit trail for saga orchestration start
+- **Log Level**: INFO
+
+**SagaStepCompletedEvent** (`notification-saga-step-completed` route):
+- **Action**: Logging only (no email sent)
+- **Purpose**: Track individual step completion
+- **Log Level**: INFO
+- **Note**: Too noisy for email notifications
+
+**SagaCompletedEvent** (`notification-saga-completed` route):
+- **Action**: Create email notification with **success theme** (green)
+- **Template**: `saga-completed.html`
+- **Subject**: "Saga Completed: {invoiceNumber}"
+- **Variables**: sagaId, documentId, invoiceNumber, documentType, stepsExecuted, durationSec, completedAt
+- **Notification Type**: `SAGA_COMPLETED`
+
+**SagaFailedEvent** (`notification-saga-failed` route):
+- **Action**: Create **URGENT** email notification with **alert theme** (red)
+- **Template**: `saga-failed.html`
+- **Subject**: "URGENT: Saga Failed - {invoiceNumber}"
+- **Variables**: sagaId, documentId, invoiceNumber, documentType, failedStep, errorMessage, retryCount, compensationInitiated, failedAt
+- **Notification Type**: `SAGA_FAILED`
+- **Special**: Includes compensation status badge if compensation initiated
 
 ---
 

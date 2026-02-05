@@ -6,13 +6,15 @@ Microservice for sending notifications via multiple channels (email, SMS, webhoo
 
 The Notification Service:
 
-- ✅ **Listens** to Kafka events from invoice processing pipeline
+- ✅ **Listens** to Kafka events from invoice processing pipeline via Apache Camel routes
+- ✅ **Observes** saga orchestrator lifecycle events (started, completed, failed)
 - ✅ **Sends** notifications via email, webhooks (SMS support planned)
 - ✅ **Renders** HTML email templates using Thymeleaf
 - ✅ **Tracks** notification status and delivery
 - ✅ **Retries** failed notifications with exponential backoff
 - ✅ **Provides** REST API for manual notification triggering
 - ✅ **Supports** correlation IDs for distributed tracing
+- ✅ **Implements** transactional outbox pattern for reliable event publishing
 
 ## Architecture
 
@@ -23,7 +25,9 @@ The Notification Service:
 | Language | Java 21 |
 | Framework | Spring Boot 3.2.5 |
 | Database | PostgreSQL 16 |
-| Messaging | Apache Kafka |
+| Messaging | Apache Kafka via Apache Camel 4.14.4 |
+| Saga Pattern | saga-commons (Outbox + CDC) |
+| CDC | Debezium for outbox pattern |
 | Email | Spring Mail (SMTP) |
 | Templates | Thymeleaf |
 | HTTP Client | WebFlux WebClient |
@@ -83,6 +87,29 @@ The Notification Service:
 - **Template**: `pdf-generated.html`
 - **Channel**: Email
 - **Variables**: invoiceId, invoiceNumber, documentUrl, fileSize, generatedAt
+
+### Saga Lifecycle Notifications
+
+#### Saga Completed
+- **Trigger**: Saga orchestration completed successfully
+- **Template**: `saga-completed.html`
+- **Channel**: Email
+- **Variables**: sagaId, documentId, invoiceNumber, documentType, stepsExecuted, durationSec, completedAt
+- **Subject**: "Saga Completed: {invoiceNumber}"
+- **Theme**: Green success theme
+
+#### Saga Failed
+- **Trigger**: Saga orchestration failed
+- **Template**: `saga-failed.html`
+- **Channel**: Email
+- **Variables**: sagaId, documentId, invoiceNumber, documentType, failedStep, errorMessage, retryCount, compensationInitiated, failedAt
+- **Subject**: "URGENT: Saga Failed - {invoiceNumber}"
+- **Theme**: Red alert theme with compensation status
+
+#### Saga Started / Step Completed
+- **Trigger**: Saga started or step completed
+- **Action**: Logged only (no email notification sent)
+- **Purpose**: Monitoring and audit trail
 
 ## REST API
 
@@ -180,13 +207,43 @@ Response: 200 OK
 
 ## Kafka Integration
 
+**Important**: This service uses **Apache Camel 4.14.4** for Kafka consumption, not Spring Kafka's `@KafkaListener`.
+
+### Apache Camel Routes
+
+All Kafka consumption is defined in `NotificationEventRoutes.java` with **16 total routes**:
+
+**Processing Events (12 routes):**
+- `notification-invoice-processed` → `invoice.processed`
+- `notification-taxinvoice-processed` → `taxinvoice.processed`
+- `notification-pdf-generated` → `pdf.generated`
+- `notification-pdf-signed` → `pdf.signed`
+- `notification-ebms-sent` → `ebms.sent`
+- `notification-document-counting` → `document.received` (logging)
+- `notification-tax-invoice-received` → `document.received.tax-invoice` (logging)
+- `notification-invoice-received` → `document.received.invoice` (logging)
+- `notification-receipt-received` → `document.received.receipt` (logging)
+- `notification-debit-credit-note-received` → `document.received.debit-credit-note` (logging)
+- `notification-cancellation-received` → `document.received.cancellation` (logging)
+- `notification-abbreviated-received` → `document.received.abbreviated` (logging)
+
+**Saga Lifecycle Events (4 routes):**
+- `notification-saga-started` → `saga.lifecycle.started` (logging only)
+- `notification-saga-step-completed` → `saga.lifecycle.step-completed` (logging only)
+- `notification-saga-completed` → `saga.lifecycle.completed` (creates email)
+- `notification-saga-failed` → `saga.lifecycle.failed` (creates urgent email)
+
 ### Consumed Topics
 
-| Topic | Event | Handler |
-|-------|-------|---------|
-| `invoice.received` | InvoiceReceivedEvent | InvoiceEventListener |
-| `invoice.processed` | InvoiceProcessedEvent | InvoiceEventListener |
-| `pdf.generated` | PdfGeneratedEvent | InvoiceEventListener |
+| Topic | Event | Route | Action |
+|-------|-------|-------|--------|
+| `invoice.processed` | InvoiceProcessedEvent | notification-invoice-processed | Email notification |
+| `pdf.generated` | PdfGeneratedEvent | notification-pdf-generated | Email notification |
+| `pdf.signed` | PdfSignedEvent | notification-pdf-signed | Email notification |
+| `saga.lifecycle.completed` | SagaCompletedEvent | notification-saga-completed | Email notification |
+| `saga.lifecycle.failed` | SagaFailedEvent | notification-saga-failed | Urgent email notification |
+| `saga.lifecycle.started` | SagaStartedEvent | notification-saga-started | Logging only |
+| `saga.lifecycle.step-completed` | SagaStepCompletedEvent | notification-saga-step-completed | Logging only |
 
 ### Event Schemas
 
@@ -231,6 +288,47 @@ Response: 200 OK
 }
 ```
 
+**SagaCompletedEvent** (from orchestrator-service)
+```json
+{
+  "eventId": "uuid",
+  "occurredAt": "2026-02-05T14:00:00Z",
+  "eventType": "SagaCompletedEvent",
+  "version": 1,
+  "sagaId": "saga-uuid",
+  "correlationId": "trace-id",
+  "documentType": "TAX_INVOICE",
+  "documentId": "doc-uuid",
+  "invoiceNumber": "INV-2026-001",
+  "stepsExecuted": 6,
+  "startedAt": "2026-02-05T13:59:30Z",
+  "completedAt": "2026-02-05T14:00:00Z",
+  "durationMs": 30000
+}
+```
+
+**SagaFailedEvent** (from orchestrator-service)
+```json
+{
+  "eventId": "uuid",
+  "occurredAt": "2026-02-05T14:00:00Z",
+  "eventType": "SagaFailedEvent",
+  "version": 1,
+  "sagaId": "saga-uuid",
+  "correlationId": "trace-id",
+  "documentType": "TAX_INVOICE",
+  "documentId": "doc-uuid",
+  "invoiceNumber": "INV-2026-001",
+  "failedStep": "SIGN_XML",
+  "errorMessage": "CSC API connection timeout",
+  "retryCount": 3,
+  "compensationInitiated": true,
+  "startedAt": "2026-02-05T13:59:30Z",
+  "failedAt": "2026-02-05T14:00:00Z",
+  "durationMs": 30000
+}
+```
+
 ## Email Templates
 
 Templates are located in `src/main/resources/templates/` and use Thymeleaf syntax.
@@ -256,6 +354,26 @@ Templates are located in `src/main/resources/templates/` and use Thymeleaf synta
 - `documentUrl` - Download URL
 - `fileSize` - Human-readable size (e.g., "125 KB")
 - `generatedAt` - Generation timestamp
+
+**saga-completed.html** (green success theme)
+- `sagaId` - Saga orchestration ID
+- `documentId` - Document UUID
+- `invoiceNumber` - Invoice number
+- `documentType` - Document type (TAX_INVOICE, INVOICE, etc.)
+- `stepsExecuted` - Number of steps completed
+- `durationSec` - Duration in seconds (formatted)
+- `completedAt` - Completion timestamp
+
+**saga-failed.html** (red alert theme)
+- `sagaId` - Saga orchestration ID
+- `documentId` - Document UUID
+- `invoiceNumber` - Invoice number
+- `documentType` - Document type
+- `failedStep` - Step that failed (e.g., "SIGN_XML")
+- `errorMessage` - Error details
+- `retryCount` - Number of retry attempts
+- `compensationInitiated` - Whether compensation started (boolean)
+- `failedAt` - Failure timestamp
 
 ### Creating Custom Templates
 
@@ -287,9 +405,9 @@ Example:
 | recipient | VARCHAR(500) | Email/phone/webhook URL |
 | subject | VARCHAR(500) | Email subject |
 | body | TEXT | Email body (if not template-based) |
-| metadata | JSONB | Additional metadata |
+| metadata | TEXT | Additional metadata (JSON via AttributeConverter) |
 | template_name | VARCHAR(100) | Template file name |
-| template_variables | JSONB | Template variable values |
+| template_variables | TEXT | Template variable values (JSON via AttributeConverter) |
 | invoice_id | VARCHAR(100) | Related invoice ID |
 | invoice_number | VARCHAR(100) | Related invoice number |
 | correlation_id | VARCHAR(100) | Distributed trace ID |
@@ -305,6 +423,36 @@ Example:
 - `idx_notifications_recipient` - Recipient searches
 - `idx_notifications_created_at` - Time-based queries
 - `idx_notifications_failed_retry` - Failed notification retries
+
+### outbox_events Table (Saga Pattern)
+
+Implements the Transactional Outbox Pattern for reliable event publishing via Debezium CDC.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| aggregate_type | VARCHAR(100) | Business entity type (e.g., "Notification") |
+| aggregate_id | VARCHAR(100) | Business entity ID |
+| event_type | VARCHAR(100) | Event class name |
+| payload | TEXT | JSON serialized event |
+| topic | VARCHAR(255) | Target Kafka topic (for CDC routing) |
+| partition_key | VARCHAR(255) | Kafka partition key |
+| headers | TEXT | Additional Kafka headers (JSON) |
+| status | VARCHAR(20) | PENDING, PUBLISHED, FAILED |
+| retry_count | INTEGER | Publication retry attempts |
+| error_message | VARCHAR(1000) | Publication error details |
+| created_at | TIMESTAMP | Event creation time |
+| published_at | TIMESTAMP | Successful publication time |
+
+### Outbox Indexes
+- `idx_outbox_status` - Status queries
+- `idx_outbox_created` - Chronological processing
+- `idx_outbox_debezium` - Partial index (status='PENDING') for CDC optimization
+- `idx_outbox_aggregate` - Aggregate queries
+
+### Migrations
+- **V1**: `create_notifications_table.sql` - Main notifications table
+- **V2**: `create_outbox_events_table.sql` - Outbox pattern for saga integration
 
 ## Configuration
 
@@ -364,12 +512,20 @@ spring:
 ## Running the Service
 
 ### Prerequisites
-1. PostgreSQL 16+ running
-2. Kafka broker running
+1. PostgreSQL 16+ running with `notification_db` database
+2. Kafka broker running (port 9092 or 9093 for Docker test environment)
 3. SMTP server credentials (Gmail, SendGrid, AWS SES, etc.)
+4. **saga-commons library** installed: `cd ../../../saga-commons && mvn clean install`
+5. **Debezium Connect** running (port 8083) for CDC-based event publishing (optional but recommended)
 
 ### Build
 ```bash
+# Install saga-commons dependency first
+cd ../../../saga-commons
+mvn clean install
+
+# Build notification-service
+cd ../invoice-microservices/services/notification-service
 mvn clean package
 ```
 
@@ -585,6 +741,48 @@ kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group notification-
 ```bash
 # Check application.yml
 grep "invoice.received" src/main/resources/application.yml
+```
+
+### Saga Events Not Processing
+
+**Jackson Instant Deserialization Error:**
+```
+Java 8 date/time type `java.time.Instant` not supported by default
+```
+
+**Solution**: Ensure `jackson-datatype-jsr310` dependency is present in `pom.xml`.
+
+**Check Camel Routes:**
+```bash
+# Verify all 16 routes are running
+curl http://localhost:8085/actuator/camel/routes | jq '.[] | select(.routeId | startswith("notification-saga"))'
+
+# Expected: 4 saga routes in "Started" state
+```
+
+**Debezium Connector Issues:**
+```bash
+# Check connector status
+curl http://localhost:8083/connectors/outbox-connector-notification/status | jq
+
+# Expected: connector.state = "RUNNING", tasks[0].state = "RUNNING"
+
+# Verify PostgreSQL replication slot
+psql -h localhost -p 5433 -U postgres -d notification_db \
+  -c "SELECT slot_name, active FROM pg_replication_slots WHERE slot_name='notification_outbox_slot';"
+
+# Expected: active = t
+```
+
+**Consumer Group Not Assigned:**
+```bash
+# Check consumer group assignments
+docker exec test-kafka kafka-consumer-groups \
+  --bootstrap-server localhost:9093 \
+  --group notification-service \
+  --describe | grep saga.lifecycle
+
+# Expected: Consumer assigned to all 3 partitions of each saga topic
 ```
 
 ## Future Enhancements
