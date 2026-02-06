@@ -15,6 +15,7 @@ The Notification Service:
 - ✅ **Provides** REST API for manual notification triggering
 - ✅ **Supports** correlation IDs for distributed tracing
 - ✅ **Implements** transactional outbox pattern for reliable event publishing
+- ✅ **Standardizes** event structure via `IntegrationEvent` base class from saga-commons
 
 ## Architecture
 
@@ -26,7 +27,7 @@ The Notification Service:
 | Framework | Spring Boot 3.2.5 |
 | Database | PostgreSQL 16 |
 | Messaging | Apache Kafka via Apache Camel 4.14.4 |
-| Saga Pattern | saga-commons (Outbox + CDC) |
+| Saga Pattern | saga-commons (Outbox + CDC + IntegrationEvent base class) |
 | CDC | Debezium for outbox pattern |
 | Email | Spring Mail (SMTP) |
 | Templates | Thymeleaf |
@@ -48,45 +49,69 @@ The Notification Service:
 - `EmailNotificationSender` - Email implementation
 - `WebhookNotificationSender` - Webhook implementation
 
+### Event Standardization
+
+All event DTOs extend `IntegrationEvent` from saga-commons, providing:
+- **eventId** (UUID) - Unique event identifier
+- **occurredAt** (Instant) - Event timestamp
+- **eventType** (String) - Event type name
+- **version** (int) - Event schema version
+
+This ensures consistent event structure across all microservices in the invoice processing ecosystem.
+
 ## Notification Flow
 
 ```
 1. Invoice event published to Kafka (invoice.received, invoice.processed, pdf.generated)
    ↓
-2. InvoiceEventListener consumes event
+2. Camel route consumes event (via NotificationEventRoutes)
    ↓
-3. Create Notification aggregate with template variables
+3. Event unmarshalled to DTO (extends IntegrationEvent)
    ↓
-4. NotificationService orchestrates sending
+4. Create Notification aggregate with template variables
    ↓
-5. TemplateEngine renders email HTML (if template-based)
+5. NotificationService orchestrates sending
    ↓
-6. NotificationSender sends via appropriate channel
+6. TemplateEngine renders email HTML (if template-based)
    ↓
-7. Update notification status (SENT or FAILED)
+7. NotificationSender sends via appropriate channel
    ↓
-8. (If failed) Scheduled retry task attempts redelivery
+8. Update notification status (SENT or FAILED)
+   ↓
+9. (If failed) Scheduled retry task attempts redelivery
 ```
 
 ## Supported Notification Types
-
-### Invoice Received
-- **Trigger**: Invoice intake completed
-- **Template**: `invoice-received.html`
-- **Channel**: Email
-- **Variables**: invoiceId, invoiceNumber, receivedAt, source
 
 ### Invoice Processed
 - **Trigger**: Invoice processing completed
 - **Template**: `invoice-processed.html`
 - **Channel**: Email
-- **Variables**: invoiceId, invoiceNumber, totalAmount, currency, processedAt
+- **Variables**: invoiceId, invoiceNumber, totalAmount, currency, processedAt (from occurredAt)
+
+### Tax Invoice Processed
+- **Trigger**: Tax invoice processing completed
+- **Template**: `taxinvoice-processed.html`
+- **Channel**: Email
+- **Variables**: invoiceId, invoiceNumber, total, currency, processedAt (from occurredAt)
 
 ### PDF Generated
 - **Trigger**: PDF generation completed
 - **Template**: `pdf-generated.html`
 - **Channel**: Email
-- **Variables**: invoiceId, invoiceNumber, documentUrl, fileSize, generatedAt
+- **Variables**: invoiceId, invoiceNumber, documentId, documentUrl, fileSize, generatedAt (from occurredAt), xmlEmbedded, digitallySigned
+
+### PDF Signed
+- **Trigger**: PDF signing completed
+- **Template**: `pdf-signed.html`
+- **Channel**: Email
+- **Variables**: invoiceId, invoiceNumber, documentType, signedDocumentId, signedPdfUrl, signedPdfSize, transactionId, signatureLevel, signatureTimestamp
+
+### ebMS Sent
+- **Trigger**: Document submitted to Thailand Revenue Department
+- **Template**: `ebms-sent.html`
+- **Channel**: Email
+- **Variables**: documentId, invoiceId, invoiceNumber, documentType, ebmsMessageId, sentAt, correlationId
 
 ### Saga Lifecycle Notifications
 
@@ -119,18 +144,18 @@ POST /api/v1/notifications
 Content-Type: application/json
 
 {
-  "type": "INVOICE_RECEIVED",
+  "type": "INVOICE_PROCESSED",
   "channel": "EMAIL",
   "recipient": "user@example.com",
-  "subject": "Invoice Received",
-  "templateName": "invoice-received",
+  "subject": "Invoice Processed",
+  "templateName": "invoice-processed",
   "templateVariables": {
-    "invoiceNumber": "INV-2025-001",
+    "invoiceNumber": "INV-2026-001",
     "invoiceId": "uuid",
-    "receivedAt": "2025-12-03 10:30:00"
+    "processedAt": "2026-02-06 10:30:00"
   },
   "invoiceId": "uuid",
-  "invoiceNumber": "INV-2025-001",
+  "invoiceNumber": "INV-2026-001",
   "correlationId": "trace-id"
 }
 
@@ -138,8 +163,8 @@ Response: 200 OK
 {
   "notificationId": "uuid",
   "status": "SENT",
-  "createdAt": "2025-12-03T10:30:00",
-  "sentAt": "2025-12-03T10:30:05"
+  "createdAt": "2026-02-06T10:30:00",
+  "sentAt": "2026-02-06T10:30:05"
 }
 ```
 
@@ -150,13 +175,13 @@ GET /api/v1/notifications/{id}
 Response: 200 OK
 {
   "id": "uuid",
-  "type": "INVOICE_RECEIVED",
+  "type": "INVOICE_PROCESSED",
   "channel": "EMAIL",
   "status": "SENT",
   "recipient": "user@example.com",
-  "subject": "Invoice Received",
-  "createdAt": "2025-12-03T10:30:00",
-  "sentAt": "2025-12-03T10:30:05"
+  "subject": "Invoice Processed",
+  "createdAt": "2026-02-06T10:30:00",
+  "sentAt": "2026-02-06T10:30:05"
 }
 ```
 
@@ -168,15 +193,15 @@ Response: 200 OK
 [
   {
     "id": "uuid1",
-    "type": "INVOICE_RECEIVED",
+    "type": "INVOICE_PROCESSED",
     "status": "SENT",
-    "sentAt": "2025-12-03T10:30:05"
+    "sentAt": "2026-02-06T10:30:05"
   },
   {
     "id": "uuid2",
-    "type": "INVOICE_PROCESSED",
+    "type": "PDF_GENERATED",
     "status": "SENT",
-    "sentAt": "2025-12-03T10:35:10"
+    "sentAt": "2026-02-06T10:35:10"
   }
 ]
 ```
@@ -238,8 +263,10 @@ All Kafka consumption is defined in `NotificationEventRoutes.java` with **16 tot
 | Topic | Event | Route | Action |
 |-------|-------|-------|--------|
 | `invoice.processed` | InvoiceProcessedEvent | notification-invoice-processed | Email notification |
+| `taxinvoice.processed` | TaxInvoiceProcessedEvent | notification-taxinvoice-processed | Email notification |
 | `pdf.generated` | PdfGeneratedEvent | notification-pdf-generated | Email notification |
 | `pdf.signed` | PdfSignedEvent | notification-pdf-signed | Email notification |
+| `ebms.sent` | EbmsSentEvent | notification-ebms-sent | Email notification |
 | `saga.lifecycle.completed` | SagaCompletedEvent | notification-saga-completed | Email notification |
 | `saga.lifecycle.failed` | SagaFailedEvent | notification-saga-failed | Urgent email notification |
 | `saga.lifecycle.started` | SagaStartedEvent | notification-saga-started | Logging only |
@@ -247,52 +274,97 @@ All Kafka consumption is defined in `NotificationEventRoutes.java` with **16 tot
 
 ### Event Schemas
 
-**InvoiceReceivedEvent**
+**InvoiceProcessedEvent** (extends IntegrationEvent)
 ```json
 {
   "eventId": "uuid",
+  "occurredAt": "2026-02-06T10:35:00Z",
+  "eventType": "InvoiceProcessedEvent",
+  "version": 1,
   "invoiceId": "uuid",
-  "invoiceNumber": "INV-2025-001",
-  "source": "REST",
-  "receivedAt": "2025-12-03T10:30:00",
-  "correlationId": "trace-id"
-}
-```
-
-**InvoiceProcessedEvent**
-```json
-{
-  "eventId": "uuid",
-  "invoiceId": "uuid",
-  "invoiceNumber": "INV-2025-001",
+  "invoiceNumber": "INV-2026-001",
   "totalAmount": 1500.00,
   "currency": "THB",
-  "processedAt": "2025-12-03T10:35:00",
   "correlationId": "trace-id"
 }
 ```
 
-**PdfGeneratedEvent**
+**TaxInvoiceProcessedEvent** (extends IntegrationEvent)
 ```json
 {
   "eventId": "uuid",
+  "occurredAt": "2026-02-06T10:35:00Z",
+  "eventType": "TaxInvoiceProcessedEvent",
+  "version": 1,
   "invoiceId": "uuid",
-  "invoiceNumber": "INV-2025-001",
+  "invoiceNumber": "TAX-2026-001",
+  "total": 1500.00,
+  "currency": "THB",
+  "correlationId": "trace-id"
+}
+```
+
+**PdfGeneratedEvent** (extends IntegrationEvent)
+```json
+{
+  "eventId": "uuid",
+  "occurredAt": "2026-02-06T10:40:00Z",
+  "eventType": "PdfGeneratedEvent",
+  "version": 1,
+  "invoiceId": "uuid",
+  "invoiceNumber": "INV-2026-001",
   "documentId": "doc-uuid",
   "documentUrl": "http://storage:8084/api/v1/documents/doc-uuid",
   "fileSize": 125000,
   "xmlEmbedded": true,
   "digitallySigned": false,
-  "generatedAt": "2025-12-03T10:40:00",
   "correlationId": "trace-id"
 }
 ```
 
-**SagaCompletedEvent** (from orchestrator-service)
+**PdfSignedEvent** (extends IntegrationEvent)
 ```json
 {
   "eventId": "uuid",
-  "occurredAt": "2026-02-05T14:00:00Z",
+  "occurredAt": "2026-02-06T10:45:00Z",
+  "eventType": "PdfSignedEvent",
+  "version": 1,
+  "correlationId": "trace-id",
+  "invoiceId": "uuid",
+  "invoiceNumber": "INV-2026-001",
+  "documentType": "INVOICE",
+  "signedDocumentId": "doc-signed-uuid",
+  "signedPdfUrl": "http://storage:8084/api/v1/documents/doc-signed-uuid",
+  "signedPdfSize": 130000,
+  "transactionId": "txn-uuid",
+  "certificate": "base64-cert",
+  "signatureLevel": "PAdES-BASELINE-T",
+  "signatureTimestamp": "2026-02-06T10:45:00Z"
+}
+```
+
+**EbmsSentEvent** (extends IntegrationEvent)
+```json
+{
+  "eventId": "uuid",
+  "occurredAt": "2026-02-06T10:50:00Z",
+  "eventType": "EbmsSentEvent",
+  "version": 1,
+  "documentId": "doc-uuid",
+  "invoiceId": "uuid",
+  "invoiceNumber": "INV-2026-001",
+  "documentType": "TAX_INVOICE",
+  "ebmsMessageId": "ebms-msg-id",
+  "sentAt": "2026-02-06T10:50:00Z",
+  "correlationId": "trace-id"
+}
+```
+
+**SagaCompletedEvent** (from orchestrator-service, extends IntegrationEvent)
+```json
+{
+  "eventId": "uuid",
+  "occurredAt": "2026-02-06T14:00:00Z",
   "eventType": "SagaCompletedEvent",
   "version": 1,
   "sagaId": "saga-uuid",
@@ -301,17 +373,17 @@ All Kafka consumption is defined in `NotificationEventRoutes.java` with **16 tot
   "documentId": "doc-uuid",
   "invoiceNumber": "INV-2026-001",
   "stepsExecuted": 6,
-  "startedAt": "2026-02-05T13:59:30Z",
-  "completedAt": "2026-02-05T14:00:00Z",
+  "startedAt": "2026-02-06T13:59:30Z",
+  "completedAt": "2026-02-06T14:00:00Z",
   "durationMs": 30000
 }
 ```
 
-**SagaFailedEvent** (from orchestrator-service)
+**SagaFailedEvent** (from orchestrator-service, extends IntegrationEvent)
 ```json
 {
   "eventId": "uuid",
-  "occurredAt": "2026-02-05T14:00:00Z",
+  "occurredAt": "2026-02-06T14:00:00Z",
   "eventType": "SagaFailedEvent",
   "version": 1,
   "sagaId": "saga-uuid",
@@ -323,8 +395,8 @@ All Kafka consumption is defined in `NotificationEventRoutes.java` with **16 tot
   "errorMessage": "CSC API connection timeout",
   "retryCount": 3,
   "compensationInitiated": true,
-  "startedAt": "2026-02-05T13:59:30Z",
-  "failedAt": "2026-02-05T14:00:00Z",
+  "startedAt": "2026-02-06T13:59:30Z",
+  "failedAt": "2026-02-06T14:00:00Z",
   "durationMs": 30000
 }
 ```
@@ -335,25 +407,47 @@ Templates are located in `src/main/resources/templates/` and use Thymeleaf synta
 
 ### Template Variables
 
-**invoice-received.html**
-- `invoiceNumber` - Invoice number
-- `invoiceId` - Invoice UUID
-- `receivedAt` - Timestamp of receipt
-- `source` - Source channel (REST, Kafka)
-
 **invoice-processed.html**
 - `invoiceNumber` - Invoice number
 - `invoiceId` - Invoice UUID
 - `totalAmount` - Formatted total (e.g., "1,500.00")
 - `currency` - Currency code (e.g., "THB")
-- `processedAt` - Processing timestamp
+- `processedAt` - Processing timestamp (from event's occurredAt)
+
+**taxinvoice-processed.html**
+- `invoiceNumber` - Tax invoice number
+- `invoiceId` - Tax invoice UUID
+- `total` - Formatted total
+- `currency` - Currency code
+- `processedAt` - Processing timestamp (from event's occurredAt)
 
 **pdf-generated.html**
 - `invoiceNumber` - Invoice number
 - `documentId` - Document UUID
 - `documentUrl` - Download URL
 - `fileSize` - Human-readable size (e.g., "125 KB")
-- `generatedAt` - Generation timestamp
+- `generatedAt` - Generation timestamp (from event's occurredAt)
+- `xmlEmbedded` - Whether XML is embedded in PDF
+- `digitallySigned` - Whether PDF is signed
+
+**pdf-signed.html**
+- `invoiceNumber` - Invoice number
+- `documentType` - Document type (INVOICE, TAX_INVOICE, etc.)
+- `signedDocumentId` - Signed document UUID
+- `signedPdfUrl` - Download URL for signed PDF
+- `signedPdfSize` - File size
+- `transactionId` - Signing transaction ID
+- `signatureLevel` - Signature level (e.g., "PAdES-BASELINE-T")
+- `signatureTimestamp` - Signature timestamp
+
+**ebms-sent.html**
+- `documentId` - Document UUID
+- `invoiceId` - Invoice UUID (nullable)
+- `invoiceNumber` - Invoice number (nullable)
+- `documentType` - Document type
+- `ebmsMessageId` - ebMS message ID
+- `sentAt` - Submission timestamp
+- `correlationId` - Correlation ID
 
 **saga-completed.html** (green success theme)
 - `sagaId` - Saga orchestration ID
@@ -594,7 +688,7 @@ Set notification channel to `WEBHOOK` and provide webhook URL as recipient:
   "channel": "WEBHOOK",
   "recipient": "https://your-api.com/webhooks/invoice",
   "templateVariables": {
-    "invoiceNumber": "INV-2025-001",
+    "invoiceNumber": "INV-2026-001",
     "totalAmount": "1,500.00"
   }
 }
@@ -605,15 +699,15 @@ Set notification channel to `WEBHOOK` and provide webhook URL as recipient:
 {
   "notificationId": "uuid",
   "type": "INVOICE_PROCESSED",
-  "subject": "Invoice Processed: INV-2025-001",
+  "subject": "Invoice Processed: INV-2026-001",
   "body": null,
   "invoiceId": "uuid",
-  "invoiceNumber": "INV-2025-001",
+  "invoiceNumber": "INV-2026-001",
   "correlationId": "trace-id",
-  "timestamp": "2025-12-03T10:35:00",
+  "timestamp": "2026-02-06T10:35:00",
   "metadata": {},
   "data": {
-    "invoiceNumber": "INV-2025-001",
+    "invoiceNumber": "INV-2026-001",
     "totalAmount": "1,500.00",
     "currency": "THB"
   }
@@ -661,15 +755,15 @@ mvn verify
 curl -X POST http://localhost:8085/api/v1/notifications \
   -H "Content-Type: application/json" \
   -d '{
-    "type": "INVOICE_RECEIVED",
+    "type": "INVOICE_PROCESSED",
     "channel": "EMAIL",
     "recipient": "test@example.com",
     "subject": "Test Notification",
-    "templateName": "invoice-received",
+    "templateName": "invoice-processed",
     "templateVariables": {
       "invoiceNumber": "TEST-001",
       "invoiceId": "test-uuid",
-      "receivedAt": "2025-12-03 10:30:00"
+      "processedAt": "2026-02-06 10:30:00"
     }
   }'
 ```
@@ -714,7 +808,7 @@ docker logs notification-service | grep "mail"
 **Check scheduled tasks:**
 ```bash
 # Verify scheduled tasks are enabled
-grep "EnableScheduling" src/main/java/com/invoice/notification/NotificationServiceApplication.java
+grep "EnableScheduling" src/main/java/com/wpanther/notification/NotificationServiceApplication.java
 
 # Check task configuration
 grep "processing-interval" src/main/resources/application.yml
@@ -740,7 +834,7 @@ kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group notification-
 **Verify topic subscription:**
 ```bash
 # Check application.yml
-grep "invoice.received" src/main/resources/application.yml
+grep "invoice.processed" src/main/resources/application.yml
 ```
 
 ### Saga Events Not Processing
@@ -809,7 +903,7 @@ docker exec test-kafka kafka-consumer-groups \
 ## Project Structure
 
 ```
-src/main/java/com/invoice/notification/
+src/main/java/com/wpanther/notification/
 ├── NotificationServiceApplication.java
 ├── domain/
 │   ├── model/              # Notification, NotificationType, NotificationChannel, NotificationStatus
@@ -821,7 +915,7 @@ src/main/java/com/invoice/notification/
 └── infrastructure/
     ├── persistence/        # JPA entities, repositories
     ├── notification/       # Email, webhook senders, TemplateEngine
-    ├── messaging/          # Kafka listeners, event DTOs
+    ├── messaging/          # Kafka routes, event DTOs (all extend IntegrationEvent)
     └── config/             # Kafka, WebClient configuration
 
 src/main/resources/

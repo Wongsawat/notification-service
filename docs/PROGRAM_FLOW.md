@@ -56,8 +56,8 @@ The service processes notifications through three entry points:
 
 **Processing Events (Creates Email Notifications):**
 
-| Kafka Topic | Event Class | Camel Route | Template | Subject Pattern |
-|-------------|-------------|-------------|----------|-----------------|
+| Kafka Topic | Event Class (extends IntegrationEvent) | Camel Route | Template | Subject Pattern |
+|-------------|----------------------------------------|-------------|----------|-----------------|
 | `invoice.processed` | InvoiceProcessedEvent | notification-invoice-processed | invoice-processed.html | "Invoice Processed: {invoiceNumber}" |
 | `taxinvoice.processed` | TaxInvoiceProcessedEvent | notification-taxinvoice-processed | taxinvoice-processed.html | "Tax Invoice Processed: {invoiceNumber}" |
 | `pdf.generated` | PdfGeneratedEvent | notification-pdf-generated | pdf-generated.html | "PDF Invoice Ready: {invoiceNumber}" |
@@ -66,8 +66,8 @@ The service processes notifications through three entry points:
 
 **Saga Lifecycle Events:**
 
-| Kafka Topic | Event Class | Camel Route | Template | Action |
-|-------------|-------------|-------------|----------|--------|
+| Kafka Topic | Event Class (extends IntegrationEvent) | Camel Route | Template | Action |
+|-------------|----------------------------------------|-------------|----------|--------|
 | `saga.lifecycle.started` | SagaStartedEvent | notification-saga-started | N/A | Logging only |
 | `saga.lifecycle.step-completed` | SagaStepCompletedEvent | notification-saga-step-completed | N/A | Logging only |
 | `saga.lifecycle.completed` | SagaCompletedEvent | notification-saga-completed | saga-completed.html | Email notification (success theme) |
@@ -82,10 +82,10 @@ The service processes notifications through three entry points:
 - `invoiceId`, `invoiceNumber`, `receivedAt`, `source`
 
 **InvoiceProcessedEvent:**
-- `invoiceId`, `invoiceNumber`, `totalAmount`, `currency`, `processedAt`
+- `invoiceId`, `invoiceNumber`, `totalAmount`, `currency`, `processedAt` (from occurredAt)
 
 **PdfGeneratedEvent:**
-- `invoiceId`, `invoiceNumber`, `documentId`, `documentUrl`, `fileSize`, `generatedAt`, `xmlEmbedded`, `digitallySigned`
+- `invoiceId`, `invoiceNumber`, `documentId`, `documentUrl`, `fileSize`, `generatedAt` (from occurredAt), `xmlEmbedded`, `digitallySigned`
 
 **SagaCompletedEvent:**
 - `sagaId`, `documentId`, `invoiceNumber`, `documentType`, `stepsExecuted`, `durationSec`, `completedAt`

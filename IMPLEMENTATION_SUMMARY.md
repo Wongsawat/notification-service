@@ -188,6 +188,7 @@ PENDING ──────────────────> SENDING ──�
 - Dead Letter Channel with exponential backoff (3 retries, max 30s)
 - Manual offset control (`autoCommitEnable=false`)
 - Route-specific error handling
+- All event DTOs extend `IntegrationEvent` from saga-commons for standardization
 
 **Trade-off**: Additional dependency (camel-kafka-starter), but provides better enterprise integration capabilities.
 
@@ -214,8 +215,67 @@ PENDING ──────────────────> SENDING ──�
 - **Future**: Can publish `NotificationSentEvent` via outbox pattern
 
 **Dependencies:**
-- `saga-commons` (1.0.0-SNAPSHOT) - Outbox infrastructure
+- `saga-commons` (1.0.0-SNAPSHOT) - Outbox infrastructure + IntegrationEvent base class
 - `jackson-datatype-jsr310` - Java 8 Date/Time API support for `Instant` fields
+
+### 9. Event Standardization via IntegrationEvent
+
+**Decision:** All event DTOs extend `IntegrationEvent` from saga-commons
+
+**Rationale:**
+- **Consistency**: Standard event structure across all microservices
+- **Type Safety**: eventId as UUID (not String), timestamps as Instant (not String/LocalDateTime)
+- **Metadata**: Built-in eventId, occurredAt, eventType, version fields
+- **Serialization**: Jackson-friendly with @JsonCreator for deserialization
+- **Immutability**: All fields are final with @Getter (no @Data/@Builder)
+
+**Implementation:**
+```java
+@Getter
+public class InvoiceProcessedEvent extends IntegrationEvent {
+    private final String invoiceId;
+    private final String invoiceNumber;
+    private final BigDecimal totalAmount;
+    private final String currency;
+    private final String correlationId;
+
+    // Constructor 1: For creating new events (auto-generates metadata)
+    public InvoiceProcessedEvent(String invoiceId, String invoiceNumber,
+                                  BigDecimal totalAmount, String currency,
+                                  String correlationId) {
+        super();
+        this.invoiceId = invoiceId;
+        // ...
+    }
+
+    // Constructor 2: @JsonCreator for deserialization
+    @JsonCreator
+    public InvoiceProcessedEvent(
+        @JsonProperty("eventId") UUID eventId,
+        @JsonProperty("occurredAt") Instant occurredAt,
+        @JsonProperty("eventType") String eventType,
+        @JsonProperty("version") int version,
+        @JsonProperty("invoiceId") String invoiceId,
+        // ... other fields
+    ) {
+        super(eventId, occurredAt, eventType, version);
+        this.invoiceId = invoiceId;
+        // ...
+    }
+}
+```
+
+**Refactored Events (11 total):**
+- Processing Events (7): InvoiceProcessedEvent, TaxInvoiceProcessedEvent, PdfGeneratedEvent, PdfSignedEvent, EbmsSentEvent, DocumentReceivedEvent, DocumentReceivedCountingEvent
+- Saga Events (4): SagaStartedEvent, SagaStepCompletedEvent, SagaCompletedEvent, SagaFailedEvent
+
+**Benefits:**
+- Consistent event metadata across microservices
+- Immutable event objects
+- Type-safe UUID eventId
+- Instant timestamps (ISO-8601 compatible)
+- Schema versioning support (version field)
+- Jackson serialization/deserialization handled correctly
 
 ## Implementation Details
 
