@@ -44,7 +44,7 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: "com.invoice.*"
+        spring.json.trusted.packages: "com.wpanther.*"
 
   # Mail configuration
   mail:
@@ -137,7 +137,7 @@ management:
 # Logging
 logging:
   level:
-    com.invoice.notification: DEBUG
+    com.wpanther.notification: DEBUG
     org.apache.camel: INFO
     org.apache.camel.component.kafka: DEBUG
     org.springframework.mail: DEBUG
