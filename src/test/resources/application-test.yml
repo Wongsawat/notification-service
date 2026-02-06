@@ -1,0 +1,102 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: notification-service-test
+
+  main:
+    allow-bean-definition-overriding: true
+
+  # H2 in-memory database
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+    hikari:
+      maximum-pool-size: 10
+
+  # JPA with H2 dialect
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  # Disable Flyway (use DDL auto-create)
+  flyway:
+    enabled: false
+
+  # Kafka configuration (mock for unit tests)
+  kafka:
+    bootstrap-servers: localhost:9093
+    consumer:
+      group-id: notification-service-test
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+
+  # Mail configuration (mock SMTP)
+  mail:
+    host: localhost
+    port: 25
+    username: test
+    password: test
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false
+
+  # Thymeleaf
+  thymeleaf:
+    cache: false
+
+# Apache Camel
+camel:
+  springboot:
+    name: notification-camel-test
+    main-run-controller: false
+
+# Disable Eureka for tests
+eureka:
+  client:
+    enabled: false
+
+# Kafka topics
+kafka:
+  topics:
+    invoice-processed: invoice.processed
+    taxinvoice-processed: taxinvoice.processed
+    pdf-generated: pdf.generated
+    pdf-signed: pdf.signed
+    ebms-sent: ebms.sent
+    saga-lifecycle-completed: saga.lifecycle.completed
+    saga-lifecycle-failed: saga.lifecycle.failed
+
+# Application config
+app:
+  notification:
+    enabled: true
+    default-recipient: test@example.com
+    max-retries: 3
+    retry-interval: 60000
+    processing-interval: 10000
+
+# Actuator (minimal for tests)
+management:
+  endpoints:
+    enabled-by-default: false
+    web:
+      exposure:
+        include: health
+
+# Logging
+logging:
+  level:
+    root: WARN
+    com.wpanther.notification: DEBUG
+    org.apache.camel: INFO
+    org.springframework.mail: INFO
+    org.hibernate.SQL: WARN

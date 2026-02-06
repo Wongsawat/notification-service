@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Template</title>
+</head>
+<body>
+    <h1 th:text="${title}">Default Title</h1>
+    <p th:text="${message}">Default message</p>
+    <p th:if="${optional}" th:text="${optional}">Optional content</p>
+</body>
+</html>
