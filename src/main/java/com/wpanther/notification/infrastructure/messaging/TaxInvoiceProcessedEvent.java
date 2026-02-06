@@ -1,11 +1,10 @@
 package com.wpanther.notification.infrastructure.messaging;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.wpanther.saga.domain.model.IntegrationEvent;
+import lombok.Getter;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -13,19 +12,60 @@ import java.util.UUID;
 /**
  * Event published when tax invoice processing is completed
  */
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class TaxInvoiceProcessedEvent implements Serializable {
+@Getter
+public class TaxInvoiceProcessedEvent extends IntegrationEvent {
 
-    private UUID eventId;
-    private Instant occurredAt;
-    private String eventType;
-    private int version;
-    private String invoiceId;
-    private String invoiceNumber;
-    private BigDecimal total;
-    private String currency;
-    private String correlationId;
+    @JsonProperty("invoiceId")
+    private final String invoiceId;
+
+    @JsonProperty("invoiceNumber")
+    private final String invoiceNumber;
+
+    @JsonProperty("total")
+    private final BigDecimal total;
+
+    @JsonProperty("currency")
+    private final String currency;
+
+    @JsonProperty("correlationId")
+    private final String correlationId;
+
+    /**
+     * Constructor for creating new events.
+     * Generates eventId, occurredAt, eventType, and version automatically.
+     */
+    public TaxInvoiceProcessedEvent(String invoiceId, String invoiceNumber,
+                                     BigDecimal total, String currency,
+                                     String correlationId) {
+        super();
+        this.invoiceId = invoiceId;
+        this.invoiceNumber = invoiceNumber;
+        this.total = total;
+        this.currency = currency;
+        this.correlationId = correlationId;
+    }
+
+    /**
+     * Constructor for deserialization from JSON.
+     * Used by Jackson when reading events from Kafka.
+     */
+    @JsonCreator
+    public TaxInvoiceProcessedEvent(
+        @JsonProperty("eventId") UUID eventId,
+        @JsonProperty("occurredAt") Instant occurredAt,
+        @JsonProperty("eventType") String eventType,
+        @JsonProperty("version") int version,
+        @JsonProperty("invoiceId") String invoiceId,
+        @JsonProperty("invoiceNumber") String invoiceNumber,
+        @JsonProperty("total") BigDecimal total,
+        @JsonProperty("currency") String currency,
+        @JsonProperty("correlationId") String correlationId
+    ) {
+        super(eventId, occurredAt, eventType, version);
+        this.invoiceId = invoiceId;
+        this.invoiceNumber = invoiceNumber;
+        this.total = total;
+        this.currency = currency;
+        this.correlationId = correlationId;
+    }
 }

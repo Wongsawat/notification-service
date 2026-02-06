@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,7 +33,7 @@ class SagaStepCompletedEventTest {
             // Arrange
             String json = """
                 {
-                    "eventId": "evt-step-001",
+                    "eventId": "00000000-0000-0000-0000-000000000002",
                     "occurredAt": "2024-01-15T10:26:00Z",
                     "eventType": "SagaStepCompleted",
                     "version": 1,
@@ -52,7 +53,7 @@ class SagaStepCompletedEventTest {
 
             // Assert
             assertThat(event).isNotNull();
-            assertThat(event.getEventId()).isEqualTo("evt-step-001");
+            assertThat(event.getEventId()).isEqualTo(UUID.fromString("00000000-0000-0000-0000-000000000002"));
             assertThat(event.getEventType()).isEqualTo("SagaStepCompleted");
             assertThat(event.getVersion()).isEqualTo(1);
             assertThat(event.getSagaId()).isEqualTo("saga-step-123");
@@ -71,7 +72,7 @@ class SagaStepCompletedEventTest {
             // Arrange
             String json = """
                 {
-                    "eventId": "evt-step-001",
+                    "eventId": "00000000-0000-0000-0000-000000000002",
                     "occurredAt": "2024-01-15T10:26:00Z",
                     "eventType": "SagaStepCompleted",
                     "version": 1,
@@ -91,7 +92,7 @@ class SagaStepCompletedEventTest {
 
             // Assert
             assertThat(event).isNotNull();
-            assertThat(event.getEventId()).isEqualTo("evt-step-001");
+            assertThat(event.getEventId()).isEqualTo(UUID.fromString("00000000-0000-0000-0000-000000000002"));
             assertThat(event.getCorrelationId()).isNull();
             assertThat(event.getCompletedStep()).isNull();
             assertThat(event.getNextStep()).isNull();
@@ -102,60 +103,54 @@ class SagaStepCompletedEventTest {
         @DisplayName("Should serialize to JSON correctly")
         void testSerializeToJson() throws Exception {
             // Arrange
-            SagaStepCompletedEvent event = SagaStepCompletedEvent.builder()
-                .eventId("evt-step-001")
-                .eventType("SagaStepCompleted")
-                .sagaId("saga-step-123")
-                .completedStep("xml_signing")
-                .nextStep("pdf_generation")
-                .invoiceNumber("INV-2024-005")
-                .stepDurationMs(10000L)
-                .build();
+            SagaStepCompletedEvent event = new SagaStepCompletedEvent(
+                "saga-step-123",
+                "corr-step-789",
+                "INVOICE",
+                "doc-step-002",
+                "xml_signing",
+                "pdf_generation",
+                "INV-2024-005",
+                10000L
+            );
 
             // Act
             String json = objectMapper.writeValueAsString(event);
 
             // Assert
-            assertThat(json).contains("\"eventId\":\"evt-step-001\"");
+            assertThat(json).contains("\"sagaId\":\"saga-step-123\"");
             assertThat(json).contains("\"completedStep\":\"xml_signing\"");
             assertThat(json).contains("\"nextStep\":\"pdf_generation\"");
             assertThat(json).contains("\"stepDurationMs\":10000");
-        }
-    }
-
-    @Nested
-    @DisplayName("Builder Tests")
-    class BuilderTests {
-
-        @Test
-        @DisplayName("Should build event with all fields")
-        void testBuildEventWithAllFields() {
-            // Act
-            SagaStepCompletedEvent event = SagaStepCompletedEvent.builder()
-                .eventId("evt-step-001")
-                .eventType("SagaStepCompleted")
-                .sagaId("saga-step-123")
-                .completedStep("pdf_generation")
-                .nextStep("pdf_signing")
-                .invoiceNumber("INV-2024-006")
-                .stepDurationMs(15000L)
-                .build();
-
-            // Assert
-            assertThat(event.getEventId()).isEqualTo("evt-step-001");
-            assertThat(event.getCompletedStep()).isEqualTo("pdf_generation");
-            assertThat(event.getNextStep()).isEqualTo("pdf_signing");
-            assertThat(event.getStepDurationMs()).isEqualTo(15000L);
+            assertThat(json).contains("\"eventId\"");
+            assertThat(json).contains("\"occurredAt\"");
+            assertThat(json).contains("\"version\":1");
         }
 
         @Test
-        @DisplayName("Should create event with no-args constructor")
-        void testCreateEventWithNoArgsConstructor() {
+        @DisplayName("Should create event with constructor")
+        void testCreateEventWithConstructor() {
             // Act
-            SagaStepCompletedEvent event = new SagaStepCompletedEvent();
+            SagaStepCompletedEvent event = new SagaStepCompletedEvent(
+                "saga-step-123",
+                "corr-step-789",
+                "TAX_INVOICE",
+                "doc-step-003",
+                "pdf_generation",
+                "pdf_signing",
+                "TAX-2024-001",
+                15000L
+            );
 
             // Assert
             assertThat(event).isNotNull();
+            assertThat(event.getSagaId()).isEqualTo("saga-step-123");
+            assertThat(event.getCompletedStep()).isEqualTo("pdf_generation");
+            assertThat(event.getNextStep()).isEqualTo("pdf_signing");
+            assertThat(event.getStepDurationMs()).isEqualTo(15000L);
+            assertThat(event.getEventId()).isNotNull();
+            assertThat(event.getOccurredAt()).isNotNull();
+            assertThat(event.getVersion()).isEqualTo(1);
         }
     }
 }

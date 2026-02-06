@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,7 +33,7 @@ class SagaFailedEventTest {
             // Arrange
             String json = """
                 {
-                    "eventId": "evt-456",
+                    "eventId": "00000000-0000-0000-0000-000000000004",
                     "occurredAt": "2024-01-15T10:35:00Z",
                     "eventType": "SagaFailed",
                     "version": 1,
@@ -56,7 +57,7 @@ class SagaFailedEventTest {
 
             // Assert
             assertThat(event).isNotNull();
-            assertThat(event.getEventId()).isEqualTo("evt-456");
+            assertThat(event.getEventId()).isEqualTo(UUID.fromString("00000000-0000-0000-0000-000000000004"));
             assertThat(event.getEventType()).isEqualTo("SagaFailed");
             assertThat(event.getVersion()).isEqualTo(1);
             assertThat(event.getSagaId()).isEqualTo("saga-failed-123");
@@ -77,7 +78,7 @@ class SagaFailedEventTest {
             // Arrange
             String json = """
                 {
-                    "eventId": "evt-456",
+                    "eventId": "00000000-0000-0000-0000-000000000004",
                     "occurredAt": "2024-01-15T10:35:00Z",
                     "eventType": "SagaFailed",
                     "version": 1,
@@ -101,7 +102,7 @@ class SagaFailedEventTest {
 
             // Assert
             assertThat(event).isNotNull();
-            assertThat(event.getEventId()).isEqualTo("evt-456");
+            assertThat(event.getEventId()).isEqualTo(UUID.fromString("00000000-0000-0000-0000-000000000004"));
             assertThat(event.getCorrelationId()).isNull();
             assertThat(event.getFailedStep()).isNull();
             assertThat(event.getErrorMessage()).isNull();
@@ -112,63 +113,63 @@ class SagaFailedEventTest {
         @DisplayName("Should serialize to JSON correctly")
         void testSerializeToJson() throws Exception {
             // Arrange
-            SagaFailedEvent event = SagaFailedEvent.builder()
-                .eventId("evt-456")
-                .eventType("SagaFailed")
-                .sagaId("saga-failed-123")
-                .failedStep("pdf_generation")
-                .errorMessage("PDF generation timeout")
-                .retryCount(1)
-                .compensationInitiated(false)
-                .durationMs(150000L)
-                .build();
+            SagaFailedEvent event = new SagaFailedEvent(
+                "saga-failed-123",
+                "corr-failed-789",
+                "INVOICE",
+                "doc-inv-001",
+                "INV-2024-001",
+                "pdf_generation",
+                "PDF generation timeout",
+                1,
+                false,
+                Instant.parse("2024-01-15T10:30:00Z"),
+                Instant.parse("2024-01-15T10:35:00Z"),
+                150000L
+            );
 
             // Act
             String json = objectMapper.writeValueAsString(event);
 
             // Assert
-            assertThat(json).contains("\"eventId\":\"evt-456\"");
+            assertThat(json).contains("\"sagaId\":\"saga-failed-123\"");
             assertThat(json).contains("\"failedStep\":\"pdf_generation\"");
             assertThat(json).contains("\"errorMessage\":\"PDF generation timeout\"");
             assertThat(json).contains("\"retryCount\":1");
             assertThat(json).contains("\"compensationInitiated\":false");
-        }
-    }
-
-    @Nested
-    @DisplayName("Builder Tests")
-    class BuilderTests {
-
-        @Test
-        @DisplayName("Should build event with all fields")
-        void testBuildEventWithAllFields() {
-            // Act
-            SagaFailedEvent event = SagaFailedEvent.builder()
-                .eventId("evt-456")
-                .eventType("SagaFailed")
-                .sagaId("saga-failed-123")
-                .failedStep("xml_signing")
-                .errorMessage("Signing service unavailable")
-                .retryCount(3)
-                .compensationInitiated(true)
-                .durationMs(450000L)
-                .build();
-
-            // Assert
-            assertThat(event.getEventId()).isEqualTo("evt-456");
-            assertThat(event.getFailedStep()).isEqualTo("xml_signing");
-            assertThat(event.getErrorMessage()).isEqualTo("Signing service unavailable");
-            assertThat(event.getCompensationInitiated()).isTrue();
+            assertThat(json).contains("\"eventId\"");
+            assertThat(json).contains("\"occurredAt\"");
+            assertThat(json).contains("\"version\":1");
         }
 
         @Test
-        @DisplayName("Should create event with no-args constructor")
-        void testCreateEventWithNoArgsConstructor() {
+        @DisplayName("Should create event with constructor")
+        void testCreateEventWithConstructor() {
             // Act
-            SagaFailedEvent event = new SagaFailedEvent();
+            SagaFailedEvent event = new SagaFailedEvent(
+                "saga-failed-123",
+                "corr-failed-789",
+                "TAX_INVOICE",
+                "doc-tax-001",
+                "TAX-2024-001",
+                "xml_signing",
+                "Signing service unavailable",
+                3,
+                true,
+                Instant.parse("2024-01-15T10:30:00Z"),
+                Instant.parse("2024-01-15T10:35:00Z"),
+                450000L
+            );
 
             // Assert
             assertThat(event).isNotNull();
+            assertThat(event.getSagaId()).isEqualTo("saga-failed-123");
+            assertThat(event.getFailedStep()).isEqualTo("xml_signing");
+            assertThat(event.getErrorMessage()).isEqualTo("Signing service unavailable");
+            assertThat(event.getCompensationInitiated()).isTrue();
+            assertThat(event.getEventId()).isNotNull();
+            assertThat(event.getOccurredAt()).isNotNull();
+            assertThat(event.getVersion()).isEqualTo(1);
         }
     }
 }

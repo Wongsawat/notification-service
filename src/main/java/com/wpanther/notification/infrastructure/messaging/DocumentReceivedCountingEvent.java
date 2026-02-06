@@ -1,12 +1,12 @@
 package com.wpanther.notification.infrastructure.messaging;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.wpanther.saga.domain.model.IntegrationEvent;
+import lombok.Getter;
 
-import java.io.Serializable;
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Event published when a document is received (before validation).
@@ -14,17 +14,46 @@ import java.time.Instant;
  *
  * Consumed by notification-service to track total received document count.
  */
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class DocumentReceivedCountingEvent implements Serializable {
+@Getter
+public class DocumentReceivedCountingEvent extends IntegrationEvent {
 
-    private String eventId;
-    private String eventType;
-    private Instant occurredAt;
-    private int version;
-    private String documentId;
-    private String correlationId;
-    private Instant receivedAt;
+    @JsonProperty("documentId")
+    private final String documentId;
+
+    @JsonProperty("correlationId")
+    private final String correlationId;
+
+    @JsonProperty("receivedAt")
+    private final Instant receivedAt;
+
+    /**
+     * Constructor for creating new events.
+     * Generates eventId, occurredAt, eventType, and version automatically.
+     */
+    public DocumentReceivedCountingEvent(String documentId, String correlationId, Instant receivedAt) {
+        super();
+        this.documentId = documentId;
+        this.correlationId = correlationId;
+        this.receivedAt = receivedAt;
+    }
+
+    /**
+     * Constructor for deserialization from JSON.
+     * Used by Jackson when reading events from Kafka.
+     */
+    @JsonCreator
+    public DocumentReceivedCountingEvent(
+        @JsonProperty("eventId") UUID eventId,
+        @JsonProperty("occurredAt") Instant occurredAt,
+        @JsonProperty("eventType") String eventType,
+        @JsonProperty("version") int version,
+        @JsonProperty("documentId") String documentId,
+        @JsonProperty("correlationId") String correlationId,
+        @JsonProperty("receivedAt") Instant receivedAt
+    ) {
+        super(eventId, occurredAt, eventType, version);
+        this.documentId = documentId;
+        this.correlationId = correlationId;
+        this.receivedAt = receivedAt;
+    }
 }

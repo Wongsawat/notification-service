@@ -1,11 +1,12 @@
 package com.wpanther.notification.infrastructure.messaging;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.wpanther.saga.domain.model.IntegrationEvent;
+import lombok.Getter;
 
-import java.io.Serializable;
+import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Event published when a document is received and validated successfully.
@@ -15,19 +16,59 @@ import java.io.Serializable;
  * - notification-service: For tracking type-specific statistics
  * - invoice-processing-service / taxinvoice-processing-service: For downstream processing
  */
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class DocumentReceivedEvent implements Serializable {
+@Getter
+public class DocumentReceivedEvent extends IntegrationEvent {
 
-    private String eventId;
-    private String eventType;
-    private String occurredAt;
-    private int version;
-    private String documentId;
-    private String invoiceNumber;
-    private String xmlContent;
-    private String correlationId;
-    private String documentType;
+    @JsonProperty("documentId")
+    private final String documentId;
+
+    @JsonProperty("invoiceNumber")
+    private final String invoiceNumber;
+
+    @JsonProperty("xmlContent")
+    private final String xmlContent;
+
+    @JsonProperty("correlationId")
+    private final String correlationId;
+
+    @JsonProperty("documentType")
+    private final String documentType;
+
+    /**
+     * Constructor for creating new events.
+     * Generates eventId, occurredAt, eventType, and version automatically.
+     */
+    public DocumentReceivedEvent(String documentId, String invoiceNumber, String xmlContent,
+                                  String correlationId, String documentType) {
+        super();
+        this.documentId = documentId;
+        this.invoiceNumber = invoiceNumber;
+        this.xmlContent = xmlContent;
+        this.correlationId = correlationId;
+        this.documentType = documentType;
+    }
+
+    /**
+     * Constructor for deserialization from JSON.
+     * Used by Jackson when reading events from Kafka.
+     */
+    @JsonCreator
+    public DocumentReceivedEvent(
+        @JsonProperty("eventId") UUID eventId,
+        @JsonProperty("occurredAt") Instant occurredAt,
+        @JsonProperty("eventType") String eventType,
+        @JsonProperty("version") int version,
+        @JsonProperty("documentId") String documentId,
+        @JsonProperty("invoiceNumber") String invoiceNumber,
+        @JsonProperty("xmlContent") String xmlContent,
+        @JsonProperty("correlationId") String correlationId,
+        @JsonProperty("documentType") String documentType
+    ) {
+        super(eventId, occurredAt, eventType, version);
+        this.documentId = documentId;
+        this.invoiceNumber = invoiceNumber;
+        this.xmlContent = xmlContent;
+        this.correlationId = correlationId;
+        this.documentType = documentType;
+    }
 }

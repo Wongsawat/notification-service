@@ -1,12 +1,12 @@
 package com.wpanther.notification.infrastructure.messaging.saga;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.wpanther.saga.domain.model.IntegrationEvent;
+import lombok.Getter;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Saga lifecycle event: Saga orchestration failed.
@@ -15,57 +15,103 @@ import java.time.Instant;
  * Consumed by notification-service to create URGENT email notification.
  * This indicates a critical failure requiring immediate attention.
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class SagaFailedEvent {
-
-    @JsonProperty("eventId")
-    private String eventId;
-
-    @JsonProperty("occurredAt")
-    private Instant occurredAt;
-
-    @JsonProperty("eventType")
-    private String eventType;
-
-    @JsonProperty("version")
-    private Integer version;
+@Getter
+public class SagaFailedEvent extends IntegrationEvent {
 
     @JsonProperty("sagaId")
-    private String sagaId;
+    private final String sagaId;
 
     @JsonProperty("correlationId")
-    private String correlationId;
+    private final String correlationId;
 
     @JsonProperty("documentType")
-    private String documentType;
+    private final String documentType;
 
     @JsonProperty("documentId")
-    private String documentId;
+    private final String documentId;
 
     @JsonProperty("invoiceNumber")
-    private String invoiceNumber;
+    private final String invoiceNumber;
 
     @JsonProperty("failedStep")
-    private String failedStep;
+    private final String failedStep;
 
     @JsonProperty("errorMessage")
-    private String errorMessage;
+    private final String errorMessage;
 
     @JsonProperty("retryCount")
-    private Integer retryCount;
+    private final Integer retryCount;
 
     @JsonProperty("compensationInitiated")
-    private Boolean compensationInitiated;
+    private final Boolean compensationInitiated;
 
     @JsonProperty("startedAt")
-    private Instant startedAt;
+    private final Instant startedAt;
 
     @JsonProperty("failedAt")
-    private Instant failedAt;
+    private final Instant failedAt;
 
     @JsonProperty("durationMs")
-    private Long durationMs;
+    private final Long durationMs;
+
+    /**
+     * Constructor for creating new events.
+     * Generates eventId, occurredAt, eventType, and version automatically.
+     */
+    public SagaFailedEvent(String sagaId, String correlationId, String documentType,
+                           String documentId, String invoiceNumber, String failedStep,
+                           String errorMessage, Integer retryCount, Boolean compensationInitiated,
+                           Instant startedAt, Instant failedAt, Long durationMs) {
+        super();
+        this.sagaId = sagaId;
+        this.correlationId = correlationId;
+        this.documentType = documentType;
+        this.documentId = documentId;
+        this.invoiceNumber = invoiceNumber;
+        this.failedStep = failedStep;
+        this.errorMessage = errorMessage;
+        this.retryCount = retryCount;
+        this.compensationInitiated = compensationInitiated;
+        this.startedAt = startedAt;
+        this.failedAt = failedAt;
+        this.durationMs = durationMs;
+    }
+
+    /**
+     * Constructor for deserialization from JSON.
+     * Used by Jackson when reading events from Kafka.
+     */
+    @JsonCreator
+    public SagaFailedEvent(
+        @JsonProperty("eventId") UUID eventId,
+        @JsonProperty("occurredAt") Instant occurredAt,
+        @JsonProperty("eventType") String eventType,
+        @JsonProperty("version") int version,
+        @JsonProperty("sagaId") String sagaId,
+        @JsonProperty("correlationId") String correlationId,
+        @JsonProperty("documentType") String documentType,
+        @JsonProperty("documentId") String documentId,
+        @JsonProperty("invoiceNumber") String invoiceNumber,
+        @JsonProperty("failedStep") String failedStep,
+        @JsonProperty("errorMessage") String errorMessage,
+        @JsonProperty("retryCount") Integer retryCount,
+        @JsonProperty("compensationInitiated") Boolean compensationInitiated,
+        @JsonProperty("startedAt") Instant startedAt,
+        @JsonProperty("failedAt") Instant failedAt,
+        @JsonProperty("durationMs") Long durationMs
+    ) {
+        super(eventId, occurredAt, eventType, version);
+        this.sagaId = sagaId;
+        this.correlationId = correlationId;
+        this.documentType = documentType;
+        this.documentId = documentId;
+        this.invoiceNumber = invoiceNumber;
+        this.failedStep = failedStep;
+        this.errorMessage = errorMessage;
+        this.retryCount = retryCount;
+        this.compensationInitiated = compensationInitiated;
+        this.startedAt = startedAt;
+        this.failedAt = failedAt;
+        this.durationMs = durationMs;
+    }
 }

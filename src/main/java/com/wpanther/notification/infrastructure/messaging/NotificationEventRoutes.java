@@ -20,6 +20,7 @@ import org.apache.camel.model.dataformat.JsonLibrary;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -361,7 +362,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         templateVariables.put("invoiceNumber", event.getInvoiceNumber());
         templateVariables.put("totalAmount", String.format("%,.2f", event.getTotalAmount()));
         templateVariables.put("currency", event.getCurrency());
-        templateVariables.put("processedAt", event.getProcessedAt().format(DATE_FORMATTER));
+        templateVariables.put("processedAt", formatInstant(event.getOccurredAt()));
 
         Notification notification = Notification.createFromTemplate(
             NotificationType.INVOICE_PROCESSED,
@@ -396,9 +397,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         templateVariables.put("invoiceNumber", event.getInvoiceNumber());
         templateVariables.put("totalAmount", String.format("%,.2f", event.getTotal()));
         templateVariables.put("currency", event.getCurrency());
-        templateVariables.put("processedAt", event.getOccurredAt() != null
-            ? DATE_FORMATTER.format(event.getOccurredAt().atZone(ZoneId.systemDefault()))
-            : "N/A");
+        templateVariables.put("processedAt", formatInstant(event.getOccurredAt()));
 
         Notification notification = Notification.createFromTemplate(
             NotificationType.TAXINVOICE_PROCESSED,
@@ -434,7 +433,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         templateVariables.put("documentId", event.getDocumentId());
         templateVariables.put("documentUrl", event.getDocumentUrl());
         templateVariables.put("fileSize", formatFileSize(event.getFileSize()));
-        templateVariables.put("generatedAt", event.getGeneratedAt().format(DATE_FORMATTER));
+        templateVariables.put("generatedAt", formatInstant(event.getOccurredAt()));
         templateVariables.put("xmlEmbedded", event.isXmlEmbedded());
         templateVariables.put("digitallySigned", event.isDigitallySigned());
 
@@ -477,7 +476,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         templateVariables.put("signedPdfSize", formatFileSize(event.getSignedPdfSize()));
         templateVariables.put("transactionId", event.getTransactionId());
         templateVariables.put("signatureLevel", event.getSignatureLevel());
-        templateVariables.put("signatureTimestamp", event.getSignatureTimestamp().format(DATE_FORMATTER));
+        templateVariables.put("signatureTimestamp", formatInstant(event.getSignatureTimestamp()));
 
         Notification notification = Notification.createFromTemplate(
             NotificationType.PDF_SIGNED,
@@ -515,6 +514,15 @@ public class NotificationEventRoutes extends RouteBuilder {
         } else {
             return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
         }
+    }
+
+    /**
+     * Format Instant to string for template variables
+     */
+    private String formatInstant(Instant instant) {
+        return instant != null
+            ? DATE_FORMATTER.format(instant.atZone(ZoneId.systemDefault()))
+            : "N/A";
     }
 
     /**
@@ -573,7 +581,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         templateVariables.put("invoiceNumber", event.getInvoiceNumber() != null ? event.getInvoiceNumber() : "N/A");
         templateVariables.put("documentType", event.getDocumentType());
         templateVariables.put("ebmsMessageId", event.getEbmsMessageId());
-        templateVariables.put("sentAt", event.getSentAt().format(DATE_FORMATTER));
+        templateVariables.put("sentAt", formatInstant(event.getSentAt()));
         templateVariables.put("correlationId", event.getCorrelationId());
 
         String displayNumber = event.getInvoiceNumber() != null ? event.getInvoiceNumber() : event.getDocumentId();
@@ -636,9 +644,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         templateVariables.put("stepsExecuted", event.getStepsExecuted());
         templateVariables.put("durationMs", event.getDurationMs());
         templateVariables.put("durationSec", String.format("%.2f", event.getDurationMs() / 1000.0));
-        templateVariables.put("completedAt", event.getCompletedAt() != null
-            ? DATE_FORMATTER.format(event.getCompletedAt().atZone(ZoneId.systemDefault()))
-            : "N/A");
+        templateVariables.put("completedAt", formatInstant(event.getCompletedAt()));
 
         Notification notification = Notification.createFromTemplate(
             NotificationType.SAGA_COMPLETED,
@@ -674,9 +680,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         templateVariables.put("errorMessage", event.getErrorMessage());
         templateVariables.put("retryCount", event.getRetryCount());
         templateVariables.put("compensationInitiated", event.getCompensationInitiated() != null && event.getCompensationInitiated());
-        templateVariables.put("failedAt", event.getFailedAt() != null
-            ? DATE_FORMATTER.format(event.getFailedAt().atZone(ZoneId.systemDefault()))
-            : "N/A");
+        templateVariables.put("failedAt", formatInstant(event.getFailedAt()));
 
         Notification notification = Notification.createFromTemplate(
             NotificationType.SAGA_FAILED,

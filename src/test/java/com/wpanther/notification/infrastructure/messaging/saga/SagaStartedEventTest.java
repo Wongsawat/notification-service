@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,7 +33,7 @@ class SagaStartedEventTest {
             // Arrange
             String json = """
                 {
-                    "eventId": "evt-789",
+                    "eventId": "00000000-0000-0000-0000-000000000001",
                     "occurredAt": "2024-01-15T10:20:00.000000000Z",
                     "eventType": "SagaStarted",
                     "version": 1,
@@ -51,7 +52,7 @@ class SagaStartedEventTest {
 
             // Assert
             assertThat(event).isNotNull();
-            assertThat(event.getEventId()).isEqualTo("evt-789");
+            assertThat(event.getEventId()).isEqualTo(UUID.fromString("00000000-0000-0000-0000-000000000001"));
             assertThat(event.getEventType()).isEqualTo("SagaStarted");
             assertThat(event.getVersion()).isEqualTo(1);
             assertThat(event.getSagaId()).isEqualTo("saga-start-123");
@@ -68,7 +69,7 @@ class SagaStartedEventTest {
             // Arrange
             String json = """
                 {
-                    "eventId": "evt-789",
+                    "eventId": "00000000-0000-0000-0000-000000000001",
                     "occurredAt": "2024-01-15T10:20:00.000000000Z",
                     "eventType": "SagaStarted",
                     "version": 1,
@@ -87,7 +88,7 @@ class SagaStartedEventTest {
 
             // Assert
             assertThat(event).isNotNull();
-            assertThat(event.getEventId()).isEqualTo("evt-789");
+            assertThat(event.getEventId()).isEqualTo(UUID.fromString("00000000-0000-0000-0000-000000000001"));
             assertThat(event.getCorrelationId()).isNull();
             assertThat(event.getCurrentStep()).isNull();
             assertThat(event.getInvoiceNumber()).isNull();
@@ -97,54 +98,50 @@ class SagaStartedEventTest {
         @DisplayName("Should serialize to JSON correctly")
         void testSerializeToJson() throws Exception {
             // Arrange
-            SagaStartedEvent event = SagaStartedEvent.builder()
-                .eventId("evt-789")
-                .eventType("SagaStarted")
-                .sagaId("saga-start-123")
-                .currentStep("invoice_processing")
-                .invoiceNumber("INV-2024-002")
-                .build();
+            SagaStartedEvent event = new SagaStartedEvent(
+                "saga-start-123",
+                "corr-start-789",
+                "INVOICE",
+                "doc-inv-001",
+                "invoice_processing",
+                "INV-2024-002",
+                Instant.parse("2024-01-15T10:20:00Z")
+            );
 
             // Act
             String json = objectMapper.writeValueAsString(event);
 
             // Assert
-            assertThat(json).contains("\"eventId\":\"evt-789\"");
+            assertThat(json).contains("\"sagaId\":\"saga-start-123\"");
             assertThat(json).contains("\"currentStep\":\"invoice_processing\"");
             assertThat(json).contains("\"invoiceNumber\":\"INV-2024-002\"");
-        }
-    }
-
-    @Nested
-    @DisplayName("Builder Tests")
-    class BuilderTests {
-
-        @Test
-        @DisplayName("Should build event with all fields")
-        void testBuildEventWithAllFields() {
-            // Act
-            SagaStartedEvent event = SagaStartedEvent.builder()
-                .eventId("evt-789")
-                .eventType("SagaStarted")
-                .sagaId("saga-start-123")
-                .currentStep("validation")
-                .invoiceNumber("INV-2024-003")
-                .build();
-
-            // Assert
-            assertThat(event.getEventId()).isEqualTo("evt-789");
-            assertThat(event.getCurrentStep()).isEqualTo("validation");
-            assertThat(event.getInvoiceNumber()).isEqualTo("INV-2024-003");
+            assertThat(json).contains("\"eventId\"");
+            assertThat(json).contains("\"occurredAt\"");
+            assertThat(json).contains("\"version\":1");
         }
 
         @Test
-        @DisplayName("Should create event with no-args constructor")
-        void testCreateEventWithNoArgsConstructor() {
+        @DisplayName("Should create event with constructor")
+        void testCreateEventWithConstructor() {
             // Act
-            SagaStartedEvent event = new SagaStartedEvent();
+            SagaStartedEvent event = new SagaStartedEvent(
+                "saga-start-123",
+                "corr-start-789",
+                "TAX_INVOICE",
+                "doc-tax-001",
+                "validation",
+                "TAX-2024-001",
+                Instant.now()
+            );
 
             // Assert
             assertThat(event).isNotNull();
+            assertThat(event.getSagaId()).isEqualTo("saga-start-123");
+            assertThat(event.getCurrentStep()).isEqualTo("validation");
+            assertThat(event.getInvoiceNumber()).isEqualTo("TAX-2024-001");
+            assertThat(event.getEventId()).isNotNull();
+            assertThat(event.getOccurredAt()).isNotNull();
+            assertThat(event.getVersion()).isEqualTo(1);
         }
     }
 }
