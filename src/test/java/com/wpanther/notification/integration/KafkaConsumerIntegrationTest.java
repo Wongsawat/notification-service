@@ -1,6 +1,7 @@
 package com.wpanther.notification.integration;
 
 import com.wpanther.notification.infrastructure.messaging.InvoiceProcessedEvent;
+import com.wpanther.notification.infrastructure.messaging.TaxInvoiceProcessedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,40 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
         assertThat((String) notification.get("subject")).contains(invoiceNumber);
 
         // template_variables stored as JSON TEXT — verify key values present
+        String templateVars = (String) notification.get("template_variables");
+        assertThat(templateVars).contains(invoiceId);
+        assertThat(templateVars).contains(invoiceNumber);
+        assertThat(templateVars).contains("THB");
+    }
+
+    @Test
+    @DisplayName("Should consume TaxInvoiceProcessedEvent and create notification")
+    void shouldConsumeTaxInvoiceProcessedEvent() {
+        // Given
+        String invoiceId = "TINV-" + UUID.randomUUID();
+        String invoiceNumber = "TI0001-" + System.currentTimeMillis();
+        String correlationId = UUID.randomUUID().toString();
+
+        TaxInvoiceProcessedEvent event = new TaxInvoiceProcessedEvent(
+            invoiceId, invoiceNumber, new BigDecimal("25000.00"), "THB", correlationId
+        );
+
+        // When
+        sendEvent("taxinvoice.processed", invoiceId, event);
+
+        // Then
+        Map<String, Object> notification = awaitNotificationByInvoiceId(invoiceId);
+
+        assertThat(notification.get("type")).isEqualTo("TAXINVOICE_PROCESSED");
+        assertThat(notification.get("channel")).isEqualTo("EMAIL");
+        assertThat(notification.get("status")).isEqualTo("SENT");
+        assertThat(notification.get("recipient")).isEqualTo("test-integration@example.com");
+        assertThat(notification.get("template_name")).isEqualTo("taxinvoice-processed");
+        assertThat(notification.get("invoice_id")).isEqualTo(invoiceId);
+        assertThat(notification.get("invoice_number")).isEqualTo(invoiceNumber);
+        assertThat(notification.get("correlation_id")).isEqualTo(correlationId);
+        assertThat((String) notification.get("subject")).contains(invoiceNumber);
+
         String templateVars = (String) notification.get("template_variables");
         assertThat(templateVars).contains(invoiceId);
         assertThat(templateVars).contains(invoiceNumber);

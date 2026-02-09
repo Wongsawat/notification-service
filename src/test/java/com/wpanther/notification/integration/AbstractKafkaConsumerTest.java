@@ -127,4 +127,11 @@ public abstract class AbstractKafkaConsumerTest {
             "SELECT * FROM notifications WHERE correlation_id = ?", correlationId);
         return results.isEmpty() ? null : results.get(0);
     }
+
+    protected void assertNoNotificationCreatedAfterWait() {
+        await().during(15, TimeUnit.SECONDS)
+               .atMost(20, TimeUnit.SECONDS)
+               .pollInterval(1, TimeUnit.SECONDS)
+               .until(() -> getNotificationCount() == 0);
+    }
 }
