@@ -5,6 +5,7 @@ import com.wpanther.notification.infrastructure.messaging.InvoiceProcessedEvent;
 import com.wpanther.notification.infrastructure.messaging.PdfGeneratedEvent;
 import com.wpanther.notification.infrastructure.messaging.PdfSignedEvent;
 import com.wpanther.notification.infrastructure.messaging.TaxInvoiceProcessedEvent;
+import com.wpanther.notification.infrastructure.messaging.saga.SagaCompletedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -232,5 +233,52 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
         assertThat(templateVars).contains(documentType);
         assertThat(templateVars).contains(ebmsMessageId);
         assertThat(templateVars).contains(correlationId);
+    }
+
+    @Test
+    @DisplayName("Should consume SagaCompletedEvent and create notification")
+    void shouldConsumeSagaCompletedEvent() {
+        // Given
+        String sagaId = "SAGA-" + UUID.randomUUID();
+        String correlationId = UUID.randomUUID().toString();
+        String documentType = "INVOICE";
+        String documentId = "DOC-" + UUID.randomUUID();
+        String invoiceNumber = "T0001-" + System.currentTimeMillis();
+        Integer stepsExecuted = 7;
+        Instant startedAt = Instant.now().minusSeconds(120); // 2 minutes ago
+        Instant completedAt = Instant.now();
+        Long durationMs = 120000L; // 2 minutes
+
+        SagaCompletedEvent event = new SagaCompletedEvent(
+            sagaId, correlationId, documentType, documentId, invoiceNumber,
+            stepsExecuted, startedAt, completedAt, durationMs
+        );
+
+        // When
+        sendEvent("saga.lifecycle.completed", documentId, event);
+
+        // Then - handler sets invoiceId to documentId, so use documentId for lookup
+        Map<String, Object> notification = awaitNotificationByInvoiceId(documentId);
+
+        assertThat(notification.get("type")).isEqualTo("SAGA_COMPLETED");
+        assertThat(notification.get("channel")).isEqualTo("EMAIL");
+        assertThat(notification.get("status")).isEqualTo("SENT");
+        assertThat(notification.get("recipient")).isEqualTo("test-integration@example.com");
+        assertThat(notification.get("template_name")).isEqualTo("saga-completed");
+        assertThat(notification.get("invoice_id")).isEqualTo(documentId);
+        assertThat(notification.get("invoice_number")).isEqualTo(invoiceNumber);
+        assertThat(notification.get("correlation_id")).isEqualTo(correlationId);
+        assertThat((String) notification.get("subject")).contains("Saga Completed");
+        assertThat((String) notification.get("subject")).contains(invoiceNumber);
+
+        String templateVars = (String) notification.get("template_variables");
+        assertThat(templateVars).contains(sagaId);
+        assertThat(templateVars).contains(documentId);
+        assertThat(templateVars).contains(invoiceNumber);
+        assertThat(templateVars).contains(documentType);
+        assertThat(templateVars).contains(stepsExecuted.toString());
+        assertThat(templateVars).contains(durationMs.toString());
+        // Duration is formatted in seconds (e.g., "120.00")
+        assertThat(templateVars).contains("durationSec");
     }
 }
