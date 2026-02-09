@@ -1,6 +1,7 @@
 package com.wpanther.notification.integration;
 
 import com.wpanther.notification.infrastructure.messaging.InvoiceProcessedEvent;
+import com.wpanther.notification.infrastructure.messaging.PdfGeneratedEvent;
 import com.wpanther.notification.infrastructure.messaging.TaxInvoiceProcessedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -85,5 +86,52 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
         assertThat(templateVars).contains(invoiceId);
         assertThat(templateVars).contains(invoiceNumber);
         assertThat(templateVars).contains("THB");
+    }
+
+    @Test
+    @DisplayName("Should consume PdfGeneratedEvent and create notification")
+    void shouldConsumePdfGeneratedEvent() {
+        // Given
+        String invoiceId = "INV-" + UUID.randomUUID();
+        String invoiceNumber = "T0001-" + System.currentTimeMillis();
+        String documentId = "DOC-" + UUID.randomUUID();
+        String documentUrl = "http://localhost:8084/api/v1/documents/" + documentId;
+        String correlationId = UUID.randomUUID().toString();
+        long fileSize = 125000; // 125 KB
+
+        PdfGeneratedEvent event = new PdfGeneratedEvent(
+            invoiceId, invoiceNumber, documentId, documentUrl, fileSize,
+            true,  // xmlEmbedded
+            false, // digitallySigned
+            correlationId
+        );
+
+        // When
+        sendEvent("pdf.generated", invoiceId, event);
+
+        // Then
+        Map<String, Object> notification = awaitNotificationByInvoiceId(invoiceId);
+
+        assertThat(notification.get("type")).isEqualTo("PDF_GENERATED");
+        assertThat(notification.get("channel")).isEqualTo("EMAIL");
+        assertThat(notification.get("status")).isEqualTo("SENT");
+        assertThat(notification.get("recipient")).isEqualTo("test-integration@example.com");
+        assertThat(notification.get("template_name")).isEqualTo("pdf-generated");
+        assertThat(notification.get("invoice_id")).isEqualTo(invoiceId);
+        assertThat(notification.get("invoice_number")).isEqualTo(invoiceNumber);
+        assertThat(notification.get("correlation_id")).isEqualTo(correlationId);
+        assertThat((String) notification.get("subject")).contains(invoiceNumber);
+        assertThat((String) notification.get("subject")).contains("PDF Invoice Ready");
+
+        String templateVars = (String) notification.get("template_variables");
+        assertThat(templateVars).contains(invoiceId);
+        assertThat(templateVars).contains(invoiceNumber);
+        assertThat(templateVars).contains(documentId);
+        assertThat(templateVars).contains(documentUrl);
+        // File size is formatted (e.g., "125 KB")
+        assertThat(templateVars).contains("KB");
+        // xmlEmbedded and digitallySigned are booleans
+        assertThat(templateVars).contains("true");  // xmlEmbedded
+        assertThat(templateVars).contains("false"); // digitallySigned
     }
 }
