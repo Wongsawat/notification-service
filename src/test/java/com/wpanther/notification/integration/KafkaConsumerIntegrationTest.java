@@ -1,5 +1,6 @@
 package com.wpanther.notification.integration;
 
+import com.wpanther.notification.infrastructure.messaging.EbmsSentEvent;
 import com.wpanther.notification.infrastructure.messaging.InvoiceProcessedEvent;
 import com.wpanther.notification.infrastructure.messaging.PdfGeneratedEvent;
 import com.wpanther.notification.infrastructure.messaging.PdfSignedEvent;
@@ -188,5 +189,48 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
         assertThat(templateVars).contains(signatureLevel);
         // Signature timestamp is formatted
         assertThat(templateVars).contains("signatureTimestamp");
+    }
+
+    @Test
+    @DisplayName("Should consume EbmsSentEvent and create notification")
+    void shouldConsumeEbmsSentEvent() {
+        // Given
+        String documentId = "DOC-" + UUID.randomUUID();
+        String invoiceId = "INV-" + UUID.randomUUID();
+        String invoiceNumber = "T0001-" + System.currentTimeMillis();
+        String documentType = "INVOICE";
+        String ebmsMessageId = "EBMS-" + UUID.randomUUID();
+        Instant sentAt = Instant.now();
+        String correlationId = UUID.randomUUID().toString();
+
+        EbmsSentEvent event = new EbmsSentEvent(
+            documentId, invoiceId, invoiceNumber, documentType,
+            ebmsMessageId, sentAt, correlationId
+        );
+
+        // When
+        sendEvent("ebms.sent", documentId, event);
+
+        // Then - use correlationId for lookup since ebms events may not always have invoiceId
+        Map<String, Object> notification = awaitNotificationByCorrelationId(correlationId);
+
+        assertThat(notification.get("type")).isEqualTo("EBMS_SENT");
+        assertThat(notification.get("channel")).isEqualTo("EMAIL");
+        assertThat(notification.get("status")).isEqualTo("SENT");
+        assertThat(notification.get("recipient")).isEqualTo("test-integration@example.com");
+        assertThat(notification.get("template_name")).isEqualTo("ebms-sent");
+        assertThat(notification.get("invoice_id")).isEqualTo(invoiceId);
+        assertThat(notification.get("invoice_number")).isEqualTo(invoiceNumber);
+        assertThat(notification.get("correlation_id")).isEqualTo(correlationId);
+        assertThat((String) notification.get("subject")).contains("Document Submitted to TRD");
+        assertThat((String) notification.get("subject")).contains(invoiceNumber);
+
+        String templateVars = (String) notification.get("template_variables");
+        assertThat(templateVars).contains(documentId);
+        assertThat(templateVars).contains(invoiceId);
+        assertThat(templateVars).contains(invoiceNumber);
+        assertThat(templateVars).contains(documentType);
+        assertThat(templateVars).contains(ebmsMessageId);
+        assertThat(templateVars).contains(correlationId);
     }
 }
