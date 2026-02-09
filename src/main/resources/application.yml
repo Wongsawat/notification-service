@@ -77,6 +77,9 @@ camel:
   springboot:
     name: notification-camel
     main-run-controller: true
+  dataformat:
+    jackson:
+      auto-discover-object-mapper: true
 
 # Eureka service discovery
 eureka:
