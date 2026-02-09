@@ -6,6 +6,7 @@ import com.wpanther.notification.infrastructure.messaging.PdfGeneratedEvent;
 import com.wpanther.notification.infrastructure.messaging.PdfSignedEvent;
 import com.wpanther.notification.infrastructure.messaging.TaxInvoiceProcessedEvent;
 import com.wpanther.notification.infrastructure.messaging.saga.SagaCompletedEvent;
+import com.wpanther.notification.infrastructure.messaging.saga.SagaFailedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -280,5 +281,58 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
         assertThat(templateVars).contains(durationMs.toString());
         // Duration is formatted in seconds (e.g., "120.00")
         assertThat(templateVars).contains("durationSec");
+    }
+
+    @Test
+    @DisplayName("Should consume SagaFailedEvent and create notification")
+    void shouldConsumeSagaFailedEvent() {
+        // Given
+        String sagaId = "SAGA-" + UUID.randomUUID();
+        String correlationId = UUID.randomUUID().toString();
+        String documentType = "INVOICE";
+        String documentId = "DOC-" + UUID.randomUUID();
+        String invoiceNumber = "T0001-" + System.currentTimeMillis();
+        String failedStep = "xml-signing";
+        String errorMessage = "Failed to sign XML document: Connection timeout";
+        Integer retryCount = 2;
+        Boolean compensationInitiated = true;
+        Instant startedAt = Instant.now().minusSeconds(60); // 1 minute ago
+        Instant failedAt = Instant.now();
+        Long durationMs = 60000L; // 1 minute
+
+        SagaFailedEvent event = new SagaFailedEvent(
+            sagaId, correlationId, documentType, documentId, invoiceNumber,
+            failedStep, errorMessage, retryCount, compensationInitiated,
+            startedAt, failedAt, durationMs
+        );
+
+        // When
+        sendEvent("saga.lifecycle.failed", documentId, event);
+
+        // Then - handler sets invoiceId to documentId, so use documentId for lookup
+        Map<String, Object> notification = awaitNotificationByInvoiceId(documentId);
+
+        assertThat(notification.get("type")).isEqualTo("SAGA_FAILED");
+        assertThat(notification.get("channel")).isEqualTo("EMAIL");
+        assertThat(notification.get("status")).isEqualTo("SENT");
+        assertThat(notification.get("recipient")).isEqualTo("test-integration@example.com");
+        assertThat(notification.get("template_name")).isEqualTo("saga-failed");
+        assertThat(notification.get("invoice_id")).isEqualTo(documentId);
+        assertThat(notification.get("invoice_number")).isEqualTo(invoiceNumber);
+        assertThat(notification.get("correlation_id")).isEqualTo(correlationId);
+        assertThat((String) notification.get("subject")).contains("URGENT: Saga Failed");
+        assertThat((String) notification.get("subject")).contains(invoiceNumber);
+
+        String templateVars = (String) notification.get("template_variables");
+        assertThat(templateVars).contains(sagaId);
+        assertThat(templateVars).contains(documentId);
+        assertThat(templateVars).contains(invoiceNumber);
+        assertThat(templateVars).contains(documentType);
+        assertThat(templateVars).contains(failedStep);
+        assertThat(templateVars).contains(errorMessage);
+        assertThat(templateVars).contains(retryCount.toString());
+        // compensationInitiated is a boolean
+        assertThat(templateVars).contains("true");  // compensationInitiated
+        assertThat(templateVars).contains("failedAt"); // formatted timestamp
     }
 }
