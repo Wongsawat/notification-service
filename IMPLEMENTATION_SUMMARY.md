@@ -780,15 +780,76 @@ notification-service:
 - Service for internal communication
 - Ingress for external API access (if needed)
 
+## Testing Infrastructure
+
+### Unit Tests (147 tests)
+
+Comprehensive test coverage across all layers:
+- **Domain model tests (4):** Notification, NotificationStatus, NotificationChannel, NotificationType
+- **Application layer tests (2):** NotificationService, NotificationController
+- **Infrastructure tests (5):** NotificationRepositoryImpl, JsonMapConverter, EmailNotificationSender, WebhookNotificationSender, TemplateEngine
+- **Saga event tests (4):** SagaStartedEvent, SagaStepCompletedEvent, SagaCompletedEvent, SagaFailedEvent
+- **Application test (1):** NotificationServiceApplicationTest
+
+**Run unit tests:**
+```bash
+mvn test
+```
+
+### Integration Tests (2 tests)
+
+Integration tests verify end-to-end Kafka event consumption using Apache Camel routes with Testcontainers.
+
+**Test Infrastructure:**
+- **AbstractKafkaConsumerTest** - Base class with shared infrastructure:
+  - TestContainers configuration (PostgreSQL port 5433, Kafka port 9093)
+  - Mock EmailNotificationSender and WebhookNotificationSender
+  - Helper methods for awaiting notification status changes
+  - Database cleanup between tests
+  - ObjectMapper configured for JavaTimeModule (Instant support)
+- **Test Configuration:** `consumer-test` profile, `TestKafkaProducerConfig`, `ConsumerTestConfiguration`
+
+**Integration Test Coverage:**
+1. **shouldConsumeInvoiceProcessedEvent()** - Tests `invoice.processed` topic consumption
+2. **shouldConsumeTaxInvoiceProcessedEvent()** - Tests `taxinvoice.processed` topic consumption
+
+**Run integration tests:**
+```bash
+# Start test containers first
+cd ../../../invoice-microservices
+./scripts/test-containers-start.sh
+
+# Run all integration tests
+cd services/notification-service
+mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest
+
+# Run specific test
+mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumeTaxInvoiceProcessedEvent
+```
+
+**Test Validation:**
+- Event unmarshalling from Kafka JSON (Camel + Jackson)
+- Notification aggregate creation with correct type and template
+- Template variables populated correctly
+- Async processing completion (status reaches SENT)
+- Database persistence of all notification fields
+- Correct subject, recipient, and correlation ID
+
+### JaCoCo Coverage
+
+90% line coverage requirement per package (enforced via `mvn verify`)
+
 ## Future Enhancements
 
 ### Short-Term (Next Sprint)
 
-1. **Unit Tests**: Comprehensive test coverage
-2. **Integration Tests**: Testcontainers-based tests
-3. **SMS Support**: Twilio or AWS SNS integration
-4. **Webhook Signatures**: HMAC-SHA256 for security
-5. **Delivery Reports**: Track email opens and clicks
+1. ~~**Unit Tests**: Comprehensive test coverage~~ **COMPLETED** (147 tests)
+2. ~~**Integration Tests**: Testcontainers-based tests~~ **COMPLETED** (2 tests)
+3. **Additional Integration Tests**: Add tests for remaining event types (PdfGeneratedEvent, PdfSignedEvent, SagaCompletedEvent, SagaFailedEvent)
+4. **Camel Route Unit Tests**: Add unit tests for individual Camel routes
+5. **SMS Support**: Twilio or AWS SNS integration
+6. **Webhook Signatures**: HMAC-SHA256 for security
+7. **Delivery Reports**: Track email opens and clicks
 
 ### Medium-Term (Next Quarter)
 

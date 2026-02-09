@@ -746,9 +746,34 @@ mvn test
 ```
 
 ### Integration Tests
+
+Integration tests verify end-to-end Kafka event consumption using Apache Camel routes with Testcontainers.
+
+**Prerequisites:**
+- Start test containers (PostgreSQL on port 5433, Kafka on port 9093):
 ```bash
-mvn verify
+cd ../../../invoice-microservices
+./scripts/test-containers-start.sh
 ```
+
+**Run Integration Tests:**
+```bash
+# All integration tests
+mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest
+
+# Specific test method
+mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumeTaxInvoiceProcessedEvent
+```
+
+**Integration Test Coverage:**
+- `shouldConsumeInvoiceProcessedEvent()` - Verifies `invoice.processed` topic consumption and notification creation
+- `shouldConsumeTaxInvoiceProcessedEvent()` - Verifies `taxinvoice.processed` topic consumption and notification creation
+
+Both tests validate:
+- Event unmarshalling from Kafka JSON
+- Notification aggregate creation with correct type, template, and variables
+- Async processing completion (status reaches SENT)
+- Database persistence of all notification fields
 
 ### Manual Testing - Send Test Email
 ```bash
