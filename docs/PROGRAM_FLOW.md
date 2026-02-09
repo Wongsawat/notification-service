@@ -684,6 +684,7 @@ State Transitions:
 | `shouldConsumeInvoiceProcessedEvent()` | `invoice.processed` | InvoiceProcessedEvent | `invoice-processed.html` | Invoice processing flow |
 | `shouldConsumeTaxInvoiceProcessedEvent()` | `taxinvoice.processed` | TaxInvoiceProcessedEvent | `taxinvoice-processed.html` | Tax invoice processing flow |
 | `shouldConsumePdfGeneratedEvent()` | `pdf.generated` | PdfGeneratedEvent | `pdf-generated.html` | PDF generation flow |
+| `shouldConsumePdfSignedEvent()` | `pdf.signed` | PdfSignedEvent | `pdf-signed.html` | PDF signing flow |
 
 **Common Assertions:**
 - Notification type enum value matches event type
@@ -815,5 +816,128 @@ State Transitions:
 - Calls `formatFileSize(event.getFileSize())` to convert bytes to human-readable format
 - Sets `generatedAt` using `formatInstant(event.getOccurredAt())`
 - Adds metadata entries for `documentUrl` and `documentId`
+
+---
+
+## Flow 9: Integration Test Execution (PdfSignedEvent)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                  INTEGRATION TEST FLOW (PdfSignedEvent)                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  KafkaConsumerIntegrationTest    TestKafkaProducer          Kafka (9093)
+  ────────────────────────────    ─────────────────          ──────────────
+       │                                │                          │
+       │  1. Create PdfSignedEvent
+       │     - correlationId: UUID
+       │     - invoiceId: "INV-{UUID}"
+       │     - invoiceNumber: "T0001-{timestamp}"
+       │     - documentType: "INVOICE"
+       │     - signedDocumentId: "SIGNED-DOC-{UUID}"
+       │     - signedPdfUrl: "http://localhost:8084/api/v1/documents/{docId}"
+       │     - signedPdfSize: 130000 (130 KB)
+       │     - transactionId: "TXN-{UUID}"
+       │     - certificate: "MIIBIjANBgkqhkiG..."
+       │     - signatureLevel: "PAdES-BASELINE-T"
+       │     - signatureTimestamp: Instant.now()
+       │                                │                          │
+       │  2. sendEvent("pdf.signed", invoiceId, event)
+       ├──────────────────────────────►│                          │
+       │                                │  3. Serialize to JSON    │
+       │                                │     (ObjectMapper)       │
+       │                                ├─────────────────────────►│
+       │                                │                          │
+       │                                │                  ┌───────┴───────┐
+       │                                │                  │ PdfSigned     │
+       │                                │                  │ Event stored  │
+       │                                │                  │ on topic      │
+       │                                │                  └───────────────┘
+       │                                │                          │
+       │                                │◄─────────────────────────┤
+       │                                │  ACK sent                 │
+       │                                │                          │
+       │                                │                          │
+       │                     ┌──────────┴───────────┐
+       │                     │  Camel Route:        │
+       │                     │  notification-       │
+       │                     │  pdf-signed           │
+       │                     └──────────┬───────────┘
+       │                                │
+       │                                │  4. Unmarshal JSON to
+       │                                │     PdfSignedEvent
+       │                                │     (Jackson + JavaTimeModule)
+       │                                │
+       │                     ┌──────────┴───────────┐
+       │                     │  Handle PDF Signed    │
+       │                     │  Event                │
+       │                     │  - Create template    │
+       │                     │    variables          │
+       │                     │    (includes fileSize │
+       │                     │    and timestamp       │
+       │                     │    formatting)        │
+       │                     │  - Create Notification │
+       │                     │    aggregate          │
+       │                     └──────────┬───────────┘
+       │                                │
+       │                                │  5. sendNotificationAsync()
+       │                                │
+       │                                ├─────────────────────────────►
+       │                                │                          NotificationService
+       │                                │                          ───────────────────
+       │                                │                                │
+       │                                │                                │  6. Save (PENDING)
+       │                                │                                │  7. Mark (SENDING)
+       │                                │                                │  8. Mock sender sends
+       │                                │                                │  9. Mark (SENT)
+       │                                │                                │
+       │                                │◄────────────────────────────┘
+       │                                │
+       │  10. awaitNotificationByInvoiceId(invoiceId)
+       │      - Polls database every 1 second
+       │      - Waits up to 2 minutes
+       │      - Returns when status = SENT
+       │
+       │  11. Assertions:
+       │      - type == "PDF_SIGNED"
+       │      - channel == "EMAIL"
+       │      - status == "SENT"
+       │      - template_name == "pdf-signed"
+       │      - invoice_id, invoice_number, correlation_id match
+       │      - subject contains "PDF Invoice Signed" and invoiceNumber
+       │      - template_variables contains:
+       │        * invoiceId, invoiceNumber, documentType
+       │        * signedDocumentId, signedPdfUrl
+       │        * signedPdfSize formatted (e.g., "130 KB")
+       │        * transactionId, signatureLevel
+       │        * signatureTimestamp formatted
+```
+
+### PdfSignedEvent Test Specifics
+
+**Template Variables Created:**
+- `invoiceId` - Invoice UUID
+- `invoiceNumber` - Invoice number
+- `documentType` - Document type (INVOICE, TAX_INVOICE, etc.)
+- `signedDocumentId` - Signed document UUID
+- `signedPdfUrl` - Download URL for the signed PDF
+- `signedPdfSize` - Formatted human-readable size (e.g., "130 KB")
+- `transactionId` - Signing transaction ID
+- `signatureLevel` - Signature level (e.g., "PAdES-BASELINE-T")
+- `signatureTimestamp` - Timestamp formatted from `event.getSignatureTimestamp()`
+
+**Special Validations:**
+- Subject contains both "PDF Invoice Signed" and invoice number
+- File size is formatted (contains "KB" or "MB" suffix)
+- Document type is preserved (INVOICE, TAX_INVOICE, etc.)
+- Transaction ID is properly propagated
+- Signature level is included
+- Signature timestamp is formatted (contains formatted date/time string)
+
+**Camel Route Handler:**
+`NotificationEventRoutes.handlePdfSigned()` (lines 464-498)
+- Calls `formatFileSize(event.getSignedPdfSize())` to convert bytes to human-readable format
+- Sets `signatureTimestamp` using `formatInstant(event.getSignatureTimestamp())`
+- Adds metadata entries for `signedPdfUrl`, `signedDocumentId`, and `signatureLevel`
 
 ---

@@ -769,6 +769,7 @@ mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumeTaxInvoi
 - `shouldConsumeInvoiceProcessedEvent()` - Verifies `invoice.processed` topic consumption and notification creation
 - `shouldConsumeTaxInvoiceProcessedEvent()` - Verifies `taxinvoice.processed` topic consumption and notification creation
 - `shouldConsumePdfGeneratedEvent()` - Verifies `pdf.generated` topic consumption and notification creation
+- `shouldConsumePdfSignedEvent()` - Verifies `pdf.signed` topic consumption and notification creation
 
 All tests validate:
 - Event unmarshalling from Kafka JSON

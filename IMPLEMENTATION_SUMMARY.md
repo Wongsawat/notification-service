@@ -813,6 +813,7 @@ Integration tests verify end-to-end Kafka event consumption using Apache Camel r
 1. **shouldConsumeInvoiceProcessedEvent()** - Tests `invoice.processed` topic consumption
 2. **shouldConsumeTaxInvoiceProcessedEvent()** - Tests `taxinvoice.processed` topic consumption
 3. **shouldConsumePdfGeneratedEvent()** - Tests `pdf.generated` topic consumption
+4. **shouldConsumePdfSignedEvent()** - Tests `pdf.signed` topic consumption
 
 **Run integration tests:**
 ```bash
@@ -825,7 +826,7 @@ cd services/notification-service
 mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest
 
 # Run specific test
-mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumePdfGeneratedEvent
+mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumePdfSignedEvent
 ```
 
 **Test Validation:**
@@ -836,6 +837,7 @@ mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumePdfGener
 - Database persistence of all notification fields
 - Correct subject, recipient, and correlation ID
 - Special validation for PdfGeneratedEvent: fileSize formatting, boolean fields (xmlEmbedded, digitallySigned)
+- Special validation for PdfSignedEvent: documentType, signedDocumentId, signedPdfUrl, signedPdfSize formatting, transactionId, signatureLevel, signatureTimestamp formatting
 
 ### JaCoCo Coverage
 
@@ -846,8 +848,8 @@ mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumePdfGener
 ### Short-Term (Next Sprint)
 
 1. ~~**Unit Tests**: Comprehensive test coverage~~ **COMPLETED** (147 tests)
-2. ~~**Integration Tests**: Testcontainers-based tests~~ **COMPLETED** (3 tests)
-3. **Additional Integration Tests**: Add tests for remaining event types (PdfSignedEvent, EbmsSentEvent, SagaCompletedEvent, SagaFailedEvent)
+2. ~~**Integration Tests**: Testcontainers-based tests~~ **COMPLETED** (4 tests)
+3. **Additional Integration Tests**: Add tests for remaining event types (EbmsSentEvent, SagaCompletedEvent, SagaFailedEvent)
 4. **Logging-Only Route Tests**: Add tests for routes that don't create notifications (use `assertNoNotificationCreatedAfterWait()`)
 5. **Camel Route Unit Tests**: Add unit tests for individual Camel routes
 6. **SMS Support**: Twilio or AWS SNS integration
