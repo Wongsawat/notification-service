@@ -683,6 +683,7 @@ State Transitions:
 |-------------|-------|------------|----------|-----------|
 | `shouldConsumeInvoiceProcessedEvent()` | `invoice.processed` | InvoiceProcessedEvent | `invoice-processed.html` | Invoice processing flow |
 | `shouldConsumeTaxInvoiceProcessedEvent()` | `taxinvoice.processed` | TaxInvoiceProcessedEvent | `taxinvoice-processed.html` | Tax invoice processing flow |
+| `shouldConsumePdfGeneratedEvent()` | `pdf.generated` | PdfGeneratedEvent | `pdf-generated.html` | PDF generation flow |
 
 **Common Assertions:**
 - Notification type enum value matches event type
@@ -699,5 +700,120 @@ State Transitions:
 - `InvoiceProcessedEvent` uses `totalAmount` field
 - `TaxInvoiceProcessedEvent` uses `total` field
 - Both map to template variable `totalAmount` for consistency
+
+---
+
+## Flow 8: Integration Test Execution (PdfGeneratedEvent)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                  INTEGRATION TEST FLOW (PdfGeneratedEvent)                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  KafkaConsumerIntegrationTest    TestKafkaProducer          Kafka (9093)
+  ────────────────────────────    ─────────────────          ──────────────
+       │                                │                          │
+       │  1. Create PdfGeneratedEvent
+       │     - invoiceId: "INV-{UUID}"
+       │     - invoiceNumber: "T0001-{timestamp}"
+       │     - documentId: "DOC-{UUID}"
+       │     - documentUrl: "http://localhost:8084/api/v1/documents/{docId}"
+       │     - fileSize: 125000 (125 KB)
+       │     - xmlEmbedded: true
+       │     - digitallySigned: false
+       │     - correlationId: UUID
+       │                                │                          │
+       │  2. sendEvent("pdf.generated", invoiceId, event)
+       ├──────────────────────────────►│                          │
+       │                                │  3. Serialize to JSON    │
+       │                                │     (ObjectMapper)       │
+       │                                ├─────────────────────────►│
+       │                                │                          │
+       │                                │                  ┌───────┴───────┐
+       │                                │                  │ PdfGenerated  │
+       │                                │                  │ Event stored  │
+       │                                │                  │ on topic      │
+       │                                │                  └───────────────┘
+       │                                │                          │
+       │                                │◄─────────────────────────┤
+       │                                │  ACK sent                 │
+       │                                │                          │
+       │                                │                          │
+       │                     ┌──────────┴───────────┐
+       │                     │  Camel Route:        │
+       │                     │  notification-       │
+       │                     │  pdf-generated        │
+       │                     └──────────┬───────────┘
+       │                                │
+       │                                │  4. Unmarshal JSON to
+       │                                │     PdfGeneratedEvent
+       │                                │     (Jackson + JavaTimeModule)
+       │                                │
+       │                     ┌──────────┴───────────┐
+       │                     │  Handle PDF          │
+       │                     │  Generated Event     │
+       │                     │  - Create template   │
+       │                     │    variables         │
+       │                     │    (includes fileSize│
+       │                     │    formatting)       │
+       │                     │  - Create Notification│
+       │                     │    aggregate         │
+       │                     └──────────┬───────────┘
+       │                                │
+       │                                │  5. sendNotificationAsync()
+       │                                │
+       │                                ├─────────────────────────────►
+       │                                │                          NotificationService
+       │                                │                          ───────────────────
+       │                                │                                │
+       │                                │                                │  6. Save (PENDING)
+       │                                │                                │  7. Mark (SENDING)
+       │                                │                                │  8. Mock sender sends
+       │                                │                                │  9. Mark (SENT)
+       │                                │                                │
+       │                                │◄────────────────────────────┘
+       │                                │
+       │  10. awaitNotificationByInvoiceId(invoiceId)
+       │      - Polls database every 1 second
+       │      - Waits up to 2 minutes
+       │      - Returns when status = SENT
+       │
+       │  11. Assertions:
+       │      - type == "PDF_GENERATED"
+       │      - channel == "EMAIL"
+       │      - status == "SENT"
+       │      - template_name == "pdf-generated"
+       │      - invoice_id, invoice_number, correlation_id match
+       │      - subject contains "PDF Invoice Ready" and invoiceNumber
+       │      - template_variables contains:
+       │        * invoiceId, invoiceNumber, documentId, documentUrl
+       │        * fileSize formatted (e.g., "125 KB")
+       │        * xmlEmbedded (boolean as string)
+       │        * digitallySigned (boolean as string)
+```
+
+### PdfGeneratedEvent Test Specifics
+
+**Template Variables Created:**
+- `invoiceId` - Invoice UUID
+- `invoiceNumber` - Invoice number
+- `documentId` - Document UUID
+- `documentUrl` - Download URL for the PDF
+- `fileSize` - Formatted human-readable size (e.g., "125 KB")
+- `generatedAt` - Timestamp formatted from `event.getOccurredAt()`
+- `xmlEmbedded` - Boolean indicating if XML is embedded in PDF
+- `digitallySigned` - Boolean indicating if PDF is signed
+
+**Special Validations:**
+- Subject contains both "PDF Invoice Ready" and invoice number
+- File size is formatted (contains "KB" or "MB" suffix)
+- Boolean fields are serialized as strings ("true"/"false")
+- Document URL and ID are properly propagated
+
+**Camel Route Handler:**
+`NotificationEventRoutes.handlePdfGenerated()` (lines 424-454)
+- Calls `formatFileSize(event.getFileSize())` to convert bytes to human-readable format
+- Sets `generatedAt` using `formatInstant(event.getOccurredAt())`
+- Adds metadata entries for `documentUrl` and `documentId`
 
 ---
