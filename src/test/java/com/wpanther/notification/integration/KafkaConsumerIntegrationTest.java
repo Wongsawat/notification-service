@@ -2,6 +2,7 @@ package com.wpanther.notification.integration;
 
 import com.wpanther.notification.infrastructure.messaging.InvoiceProcessedEvent;
 import com.wpanther.notification.infrastructure.messaging.PdfGeneratedEvent;
+import com.wpanther.notification.infrastructure.messaging.PdfSignedEvent;
 import com.wpanther.notification.infrastructure.messaging.TaxInvoiceProcessedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
@@ -133,5 +135,58 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
         // xmlEmbedded and digitallySigned are booleans
         assertThat(templateVars).contains("true");  // xmlEmbedded
         assertThat(templateVars).contains("false"); // digitallySigned
+    }
+
+    @Test
+    @DisplayName("Should consume PdfSignedEvent and create notification")
+    void shouldConsumePdfSignedEvent() {
+        // Given
+        String invoiceId = "INV-" + UUID.randomUUID();
+        String invoiceNumber = "T0001-" + System.currentTimeMillis();
+        String correlationId = UUID.randomUUID().toString();
+        String documentType = "INVOICE";
+        String signedDocumentId = "SIGNED-DOC-" + UUID.randomUUID();
+        String signedPdfUrl = "http://localhost:8084/api/v1/documents/" + signedDocumentId;
+        long signedPdfSize = 130000; // 130 KB
+        String transactionId = "TXN-" + UUID.randomUUID();
+        String certificate = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA";
+        String signatureLevel = "PAdES-BASELINE-T";
+        Instant signatureTimestamp = Instant.now();
+
+        PdfSignedEvent event = new PdfSignedEvent(
+            correlationId, invoiceId, invoiceNumber, documentType,
+            signedDocumentId, signedPdfUrl, signedPdfSize, transactionId,
+            certificate, signatureLevel, signatureTimestamp
+        );
+
+        // When
+        sendEvent("pdf.signed", invoiceId, event);
+
+        // Then
+        Map<String, Object> notification = awaitNotificationByInvoiceId(invoiceId);
+
+        assertThat(notification.get("type")).isEqualTo("PDF_SIGNED");
+        assertThat(notification.get("channel")).isEqualTo("EMAIL");
+        assertThat(notification.get("status")).isEqualTo("SENT");
+        assertThat(notification.get("recipient")).isEqualTo("test-integration@example.com");
+        assertThat(notification.get("template_name")).isEqualTo("pdf-signed");
+        assertThat(notification.get("invoice_id")).isEqualTo(invoiceId);
+        assertThat(notification.get("invoice_number")).isEqualTo(invoiceNumber);
+        assertThat(notification.get("correlation_id")).isEqualTo(correlationId);
+        assertThat((String) notification.get("subject")).contains(invoiceNumber);
+        assertThat((String) notification.get("subject")).contains("PDF Invoice Signed");
+
+        String templateVars = (String) notification.get("template_variables");
+        assertThat(templateVars).contains(invoiceId);
+        assertThat(templateVars).contains(invoiceNumber);
+        assertThat(templateVars).contains(documentType);
+        assertThat(templateVars).contains(signedDocumentId);
+        assertThat(templateVars).contains(signedPdfUrl);
+        // File size is formatted (e.g., "130 KB")
+        assertThat(templateVars).contains("KB");
+        assertThat(templateVars).contains(transactionId);
+        assertThat(templateVars).contains(signatureLevel);
+        // Signature timestamp is formatted
+        assertThat(templateVars).contains("signatureTimestamp");
     }
 }
