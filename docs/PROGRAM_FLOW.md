@@ -685,6 +685,7 @@ State Transitions:
 | `shouldConsumeTaxInvoiceProcessedEvent()` | `taxinvoice.processed` | TaxInvoiceProcessedEvent | `taxinvoice-processed.html` | Tax invoice processing flow |
 | `shouldConsumePdfGeneratedEvent()` | `pdf.generated` | PdfGeneratedEvent | `pdf-generated.html` | PDF generation flow |
 | `shouldConsumePdfSignedEvent()` | `pdf.signed` | PdfSignedEvent | `pdf-signed.html` | PDF signing flow |
+| `shouldConsumeEbmsSentEvent()` | `ebms.sent` | EbmsSentEvent | `ebms-sent.html` | ebMS submission flow |
 
 **Common Assertions:**
 - Notification type enum value matches event type
@@ -939,5 +940,119 @@ State Transitions:
 - Calls `formatFileSize(event.getSignedPdfSize())` to convert bytes to human-readable format
 - Sets `signatureTimestamp` using `formatInstant(event.getSignatureTimestamp())`
 - Adds metadata entries for `signedPdfUrl`, `signedDocumentId`, and `signatureLevel`
+
+---
+
+## Flow 10: Integration Test Execution (EbmsSentEvent)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                  INTEGRATION TEST FLOW (EbmsSentEvent)                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  KafkaConsumerIntegrationTest    TestKafkaProducer          Kafka (9093)
+  ────────────────────────────    ─────────────────          ──────────────
+       │                                │                          │
+       │  1. Create EbmsSentEvent
+       │     - documentId: "DOC-{UUID}"
+       │     - invoiceId: "INV-{UUID}"
+       │     - invoiceNumber: "T0001-{timestamp}"
+       │     - documentType: "INVOICE"
+       │     - ebmsMessageId: "EBMS-{UUID}"
+       │     - sentAt: Instant.now()
+       │     - correlationId: UUID
+       │                                │                          │
+       │  2. sendEvent("ebms.sent", documentId, event)
+       ├──────────────────────────────►│                          │
+       │                                │  3. Serialize to JSON    │
+       │                                │     (ObjectMapper)       │
+       │                                ├─────────────────────────►│
+       │                                │                          │
+       │                                │                  ┌───────┴───────┐
+       │                                │                  │ EbmsSent      │
+       │                                │                  │ Event stored  │
+       │                                │                  │ on topic      │
+       │                                │                  └───────────────┘
+       │                                │                          │
+       │                                │◄─────────────────────────┤
+       │                                │  ACK sent                 │
+       │                                │                          │
+       │                                │                          │
+       │                     ┌──────────┴───────────┐
+       │                     │  Camel Route:        │
+       │                     │  notification-       │
+       │                     │  ebms-sent            │
+       │                     └──────────┬───────────┘
+       │                                │
+       │                                │  4. Unmarshal JSON to
+       │                                │     EbmsSentEvent
+       │                                │     (Jackson + JavaTimeModule)
+       │                                │
+       │                     ┌──────────┴───────────┐
+       │                     │  Handle ebMS Sent    │
+       │                     │  Event                │
+       │                     │  - Create template    │
+       │                     │    variables          │
+       │                     │    (includes sentAt    │
+       │                     │    formatting)        │
+       │                     │  - Create Notification │
+       │                     │    aggregate          │
+       │                     └──────────┬───────────┘
+       │                                │
+       │                                │  5. sendNotificationAsync()
+       │                                │
+       │                                ├─────────────────────────────►
+       │                                │                          NotificationService
+       │                                │                          ───────────────────
+       │                                │                                │
+       │                                │                                │  6. Save (PENDING)
+       │                                │                                │  7. Mark (SENDING)
+       │                                │                                │  8. Mock sender sends
+       │                                │                                │  9. Mark (SENT)
+       │                                │                                │
+       │                                │◄────────────────────────────┘
+       │                                │
+       │  10. awaitNotificationByCorrelationId(correlationId)
+       │      - Uses correlationId for lookup (invoiceId may be null)
+       │      - Polls database every 1 second
+       │      - Waits up to 2 minutes
+       │      - Returns when status = SENT
+       │
+       │  11. Assertions:
+       │      - type == "EBMS_SENT"
+       │      - channel == "EMAIL"
+       │      - status == "SENT"
+       │      - template_name == "ebms-sent"
+       │      - invoice_id, invoice_number, correlation_id match
+       │      - subject contains "Document Submitted to TRD" and invoiceNumber
+       │      - template_variables contains:
+       │        * documentId, invoiceId, invoiceNumber, documentType
+       │        * ebmsMessageId, sentAt (formatted), correlationId
+```
+
+### EbmsSentEvent Test Specifics
+
+**Template Variables Created:**
+- `documentId` - Document UUID
+- `invoiceId` - Invoice UUID (or "N/A" if null)
+- `invoiceNumber` - Invoice number (or "N/A" if null)
+- `documentType` - Document type (INVOICE, TAX_INVOICE, etc.)
+- `ebmsMessageId` - ebMS message ID from Thailand Revenue Department
+- `sentAt` - Timestamp formatted from `event.getSentAt()`
+- `correlationId` - Correlation ID for tracking
+
+**Special Validations:**
+- Subject contains both "Document Submitted to TRD" and invoice number (or document ID if invoice number is null)
+- Document type is preserved (INVOICE, TAX_INVOICE, etc.)
+- ebMS message ID is properly propagated
+- Sent timestamp is formatted (contains formatted date/time string)
+- **Uses `awaitNotificationByCorrelationId()`** for lookup since invoiceId may be null for some document types
+
+**Camel Route Handler:**
+`NotificationEventRoutes.handleEbmsSent()` (lines 572-606)
+- Handles null values for invoiceId and invoiceNumber (uses "N/A" fallback)
+- Sets `sentAt` using `formatInstant(event.getSentAt())`
+- Uses invoiceNumber or documentId for subject display (whichever is available)
+- Adds metadata entries for `ebmsMessageId` and `documentType`
 
 ---
