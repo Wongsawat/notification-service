@@ -816,6 +816,11 @@ Integration tests verify end-to-end Kafka event consumption using Apache Camel r
 4. **shouldConsumePdfSignedEvent()** - Tests `pdf.signed` topic consumption
 5. **shouldConsumeEbmsSentEvent()** - Tests `ebms.sent` topic consumption
 6. **shouldConsumeSagaCompletedEvent()** - Tests `saga.lifecycle.completed` topic consumption
+7. **shouldConsumeSagaFailedEvent()** - Tests `saga.lifecycle.failed` topic consumption (URGENT notification)
+
+**Email Notification Integration Tests - COMPLETE:** All 7 email notification routes now have integration tests covering:
+- Processing events: InvoiceProcessed, TaxInvoiceProcessed, PdfGenerated, PdfSigned, EbmsSent
+- Saga lifecycle events: SagaCompleted, SagaFailed (urgent)
 
 **Run integration tests:**
 ```bash
@@ -828,7 +833,7 @@ cd services/notification-service
 mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest
 
 # Run specific test
-mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumeSagaCompletedEvent
+mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumeSagaFailedEvent
 ```
 
 **Test Validation:**
@@ -842,6 +847,7 @@ mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumeSagaComp
 - Special validation for PdfSignedEvent: documentType, signedDocumentId, signedPdfUrl, signedPdfSize formatting, transactionId, signatureLevel, signatureTimestamp formatting
 - Special validation for EbmsSentEvent: uses correlationId for lookup (invoiceId may be null), documentType, ebmsMessageId, sentAt formatting
 - Special validation for SagaCompletedEvent: uses documentId for lookup (handler sets invoiceId to documentId), sagaId, stepsExecuted, durationMs, durationSec formatting, completedAt formatting
+- Special validation for SagaFailedEvent: uses documentId for lookup (handler sets invoiceId to documentId), urgent notification with "URGENT:" prefix, sagaId, failedStep, errorMessage, retryCount, compensationInitiated (boolean), failedAt formatting
 
 ### JaCoCo Coverage
 
@@ -852,13 +858,12 @@ mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumeSagaComp
 ### Short-Term (Next Sprint)
 
 1. ~~**Unit Tests**: Comprehensive test coverage~~ **COMPLETED** (147 tests)
-2. ~~**Integration Tests**: Testcontainers-based tests~~ **COMPLETED** (6 tests)
-3. **Additional Integration Tests**: Add tests for remaining event types (SagaFailedEvent)
-4. **Logging-Only Route Tests**: Add tests for routes that don't create notifications (use `assertNoNotificationCreatedAfterWait()`)
-5. **Camel Route Unit Tests**: Add unit tests for individual Camel routes
-6. **SMS Support**: Twilio or AWS SNS integration
-7. **Webhook Signatures**: HMAC-SHA256 for security
-8. **Delivery Reports**: Track email opens and clicks
+2. ~~**Integration Tests**: Testcontainers-based tests~~ **COMPLETED** (7 tests - all email notification routes)
+3. **Logging-Only Route Tests**: Add tests for routes that don't create notifications (use `assertNoNotificationCreatedAfterWait()`)
+4. **Camel Route Unit Tests**: Add unit tests for individual Camel routes
+5. **SMS Support**: Twilio or AWS SNS integration
+6. **Webhook Signatures**: HMAC-SHA256 for security
+7. **Delivery Reports**: Track email opens and clicks
 
 ### Medium-Term (Next Quarter)
 

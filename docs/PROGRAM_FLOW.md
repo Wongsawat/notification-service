@@ -687,6 +687,9 @@ State Transitions:
 | `shouldConsumePdfSignedEvent()` | `pdf.signed` | PdfSignedEvent | `pdf-signed.html` | PDF signing flow |
 | `shouldConsumeEbmsSentEvent()` | `ebms.sent` | EbmsSentEvent | `ebms-sent.html` | ebMS submission flow |
 | `shouldConsumeSagaCompletedEvent()` | `saga.lifecycle.completed` | SagaCompletedEvent | `saga-completed.html` | Saga completion flow |
+| `shouldConsumeSagaFailedEvent()` | `saga.lifecycle.failed` | SagaFailedEvent | `saga-failed.html` | Saga failure flow (URGENT) |
+
+**Email Notification Integration Tests - COMPLETE:** All 7 email notification routes are covered by integration tests.
 
 **Common Assertions:**
 - Notification type enum value matches event type
@@ -1180,5 +1183,135 @@ State Transitions:
 - Sets `completedAt` using `formatInstant(event.getCompletedAt())`
 - Uses invoiceNumber or documentId for subject display (whichever is available)
 - Adds metadata entry for `sagaId`
+
+---
+
+## Flow 12: Integration Test Execution (SagaFailedEvent)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                  INTEGRATION TEST FLOW (SagaFailedEvent)                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  KafkaConsumerIntegrationTest    TestKafkaProducer          Kafka (9093)
+  ────────────────────────────    ─────────────────          ──────────────
+       │                                │                          │
+       │  1. Create SagaFailedEvent
+       │     - sagaId: "SAGA-{UUID}"
+       │     - correlationId: UUID
+       │     - documentType: "INVOICE"
+       │     - documentId: "DOC-{UUID}"
+       │     - invoiceNumber: "T0001-{timestamp}"
+       │     - failedStep: "xml-signing"
+       │     - errorMessage: "Failed to sign XML document: Connection timeout"
+       │     - retryCount: 2
+       │     - compensationInitiated: true
+       │     - startedAt: Instant.now().minusSeconds(60)
+       │     - failedAt: Instant.now()
+       │     - durationMs: 60000L (1 minute)
+       │                                │                          │
+       │  2. sendEvent("saga.lifecycle.failed", documentId, event)
+       ├──────────────────────────────►│                          │
+       │                                │  3. Serialize to JSON    │
+       │                                │     (ObjectMapper)       │
+       │                                ├─────────────────────────►│
+       │                                │                          │
+       │                                │                  ┌───────┴───────┐
+       │                                │                  │ SagaFailed    │
+       │                                │                  │ Event stored  │
+       │                                │                  │ on topic      │
+       │                                │                  └───────────────┘
+       │                                │                          │
+       │                                │◄─────────────────────────┤
+       │                                │  ACK sent                 │
+       │                                │                          │
+       │                                │                          │
+       │                     ┌──────────┴───────────┐
+       │                     │  Camel Route:        │
+       │                     │  notification-       │
+       │                     │  saga-failed           │
+       │                     └──────────┬───────────┘
+       │                                │
+       │                                │  4. Unmarshal JSON to
+       │                                │     SagaFailedEvent
+       │                                │     (Jackson + JavaTimeModule)
+       │                                │
+       │                     ┌──────────┴───────────┐
+       │                     │  Handle Saga Failed   │
+       │                     │  Event                │
+       │                     │  - Create URGENT       │
+       │                     │    notification       │
+       │                     │  - Create template     │
+       │                     │    variables           │
+       │                     │  - Set invoiceId =     │
+       │                     │    documentId          │
+       │                     └──────────┬───────────┘
+       │                                │
+       │                                │  5. sendNotificationAsync()
+       │                                │
+       │                                ├─────────────────────────────►
+       │                                │                          NotificationService
+       │                                │                          ───────────────────
+       │                                │                                │
+       │                                │                                │  6. Save (PENDING)
+       │                                │                                │  7. Mark (SENDING)
+       │                                │                                │  8. Mock sender sends
+       │                                │                                │  9. Mark (SENT)
+       │                                │                                │
+       │                                │◄────────────────────────────┘
+       │                                │
+       │  10. awaitNotificationByInvoiceId(documentId)
+       │      - Handler sets invoiceId to documentId
+       │      - Polls database every 1 second
+       │      - Waits up to 2 minutes
+       │      - Returns when status = SENT
+       │
+       │  11. Assertions:
+       │      - type == "SAGA_FAILED"
+       │      - channel == "EMAIL"
+       │      - status == "SENT"
+       │      - template_name == "saga-failed"
+       │      - invoice_id == documentId (handler sets this)
+       │      - invoice_number, correlation_id match
+       │      - subject contains "URGENT: Saga Failed" and invoiceNumber
+       │      - template_variables contains:
+       │        * sagaId, documentId, invoiceNumber, documentType
+       │        * failedStep, errorMessage, retryCount
+       │        * compensationInitiated (boolean)
+       │        * failedAt (formatted)
+```
+
+### SagaFailedEvent Test Specifics
+
+**Template Variables Created:**
+- `sagaId` - Saga orchestration UUID
+- `documentId` - Document UUID
+- `invoiceNumber` - Invoice number (or "N/A" if null)
+- `documentType` - Document type (INVOICE, TAX_INVOICE, etc.)
+- `failedStep` - Name of the step where saga failed
+- `errorMessage` - Error message describing the failure
+- `retryCount` - Number of retry attempts before failure
+- `compensationInitiated` - Boolean indicating if compensation was triggered
+- `failedAt` - Failure timestamp formatted from `event.getFailedAt()`
+
+**Special Validations:**
+- Subject contains both "URGENT: Saga Failed" and invoice number (or document ID if invoice number is null)
+- **URGENT notification** - marked for immediate attention
+- Failed step name is properly propagated
+- Error message is included for debugging
+- Retry count is tracked
+- Compensation initiated status is included (boolean value)
+- Failure timestamp is formatted (contains formatted date/time string)
+- **Uses `awaitNotificationByInvoiceId(documentId)`** for lookup since handler sets `invoiceId = documentId`
+
+**Camel Route Handler:**
+`NotificationEventRoutes.handleSagaFailed()` (lines 671-703)
+- Handles null invoiceNumber (uses "N/A" fallback in template variables)
+- Sets `invoiceId` to `documentId` for tracking purposes
+- Sets `compensationInitiated` using `event.getCompensationInitiated() != null && event.getCompensationInitiated()`
+- Sets `failedAt` using `formatInstant(event.getFailedAt())`
+- Subject is prefixed with "URGENT: Saga Failed - " for immediate attention
+- Uses invoiceNumber or documentId for subject display (whichever is available)
+- Adds metadata entries for `sagaId` and `failedStep`
 
 ---

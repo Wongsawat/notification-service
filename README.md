@@ -772,6 +772,7 @@ mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumeTaxInvoi
 - `shouldConsumePdfSignedEvent()` - Verifies `pdf.signed` topic consumption and notification creation
 - `shouldConsumeEbmsSentEvent()` - Verifies `ebms.sent` topic consumption and notification creation
 - `shouldConsumeSagaCompletedEvent()` - Verifies `saga.lifecycle.completed` topic consumption and notification creation
+- `shouldConsumeSagaFailedEvent()` - Verifies `saga.lifecycle.failed` topic consumption and URGENT notification creation
 
 All tests validate:
 - Event unmarshalling from Kafka JSON
