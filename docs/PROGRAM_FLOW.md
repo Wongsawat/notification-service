@@ -686,6 +686,7 @@ State Transitions:
 | `shouldConsumePdfGeneratedEvent()` | `pdf.generated` | PdfGeneratedEvent | `pdf-generated.html` | PDF generation flow |
 | `shouldConsumePdfSignedEvent()` | `pdf.signed` | PdfSignedEvent | `pdf-signed.html` | PDF signing flow |
 | `shouldConsumeEbmsSentEvent()` | `ebms.sent` | EbmsSentEvent | `ebms-sent.html` | ebMS submission flow |
+| `shouldConsumeSagaCompletedEvent()` | `saga.lifecycle.completed` | SagaCompletedEvent | `saga-completed.html` | Saga completion flow |
 
 **Common Assertions:**
 - Notification type enum value matches event type
@@ -1054,5 +1055,130 @@ State Transitions:
 - Sets `sentAt` using `formatInstant(event.getSentAt())`
 - Uses invoiceNumber or documentId for subject display (whichever is available)
 - Adds metadata entries for `ebmsMessageId` and `documentType`
+
+---
+
+## Flow 11: Integration Test Execution (SagaCompletedEvent)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                  INTEGRATION TEST FLOW (SagaCompletedEvent)               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  KafkaConsumerIntegrationTest    TestKafkaProducer          Kafka (9093)
+  ────────────────────────────    ─────────────────          ──────────────
+       │                                │                          │
+       │  1. Create SagaCompletedEvent
+       │     - sagaId: "SAGA-{UUID}"
+       │     - correlationId: UUID
+       │     - documentType: "INVOICE"
+       │     - documentId: "DOC-{UUID}"
+       │     - invoiceNumber: "T0001-{timestamp}"
+       │     - stepsExecuted: 7
+       │     - startedAt: Instant.now().minusSeconds(120)
+       │     - completedAt: Instant.now()
+       │     - durationMs: 120000L (2 minutes)
+       │                                │                          │
+       │  2. sendEvent("saga.lifecycle.completed", documentId, event)
+       ├──────────────────────────────►│                          │
+       │                                │  3. Serialize to JSON    │
+       │                                │     (ObjectMapper)       │
+       │                                ├─────────────────────────►│
+       │                                │                          │
+       │                                │                  ┌───────┴───────┐
+       │                                │                  │ SagaCompleted │
+       │                                │                  │ Event stored  │
+       │                                │                  │ on topic      │
+       │                                │                  └───────────────┘
+       │                                │                          │
+       │                                │◄─────────────────────────┤
+       │                                │  ACK sent                 │
+       │                                │                          │
+       │                                │                          │
+       │                     ┌──────────┴───────────┐
+       │                     │  Camel Route:        │
+       │                     │  notification-       │
+       │                     │  saga-completed       │
+       │                     └──────────┬───────────┘
+       │                                │
+       │                                │  4. Unmarshal JSON to
+       │                                │     SagaCompletedEvent
+       │                                │     (Jackson + JavaTimeModule)
+       │                                │
+       │                     ┌──────────┴───────────┐
+       │                     │  Handle Saga          │
+       │                     │  Completed Event      │
+       │                     │  - Create template    │
+       │                     │    variables          │
+       │                     │    (includes duration │
+       │                     │    formatting)        │
+       │                     │  - Create Notification │
+       │                     │    aggregate          │
+       │                     │  - Set invoiceId =     │
+       │                     │    documentId          │
+       │                     └──────────┬───────────┘
+       │                                │
+       │                                │  5. sendNotificationAsync()
+       │                                │
+       │                                ├─────────────────────────────►
+       │                                │                          NotificationService
+       │                                │                          ───────────────────
+       │                                │                                │
+       │                                │                                │  6. Save (PENDING)
+       │                                │                                │  7. Mark (SENDING)
+       │                                │                                │  8. Mock sender sends
+       │                                │                                │  9. Mark (SENT)
+       │                                │                                │
+       │                                │◄────────────────────────────┘
+       │                                │
+       │  10. awaitNotificationByInvoiceId(documentId)
+       │      - Handler sets invoiceId to documentId
+       │      - Polls database every 1 second
+       │      - Waits up to 2 minutes
+       │      - Returns when status = SENT
+       │
+       │  11. Assertions:
+       │      - type == "SAGA_COMPLETED"
+       │      - channel == "EMAIL"
+       │      - status == "SENT"
+       │      - template_name == "saga-completed"
+       │      - invoice_id == documentId (handler sets this)
+       │      - invoice_number, correlation_id match
+       │      - subject contains "Saga Completed" and invoiceNumber
+       │      - template_variables contains:
+       │        * sagaId, documentId, invoiceNumber, documentType
+       │        * stepsExecuted, durationMs, durationSec (formatted)
+       │        * completedAt (formatted)
+```
+
+### SagaCompletedEvent Test Specifics
+
+**Template Variables Created:**
+- `sagaId` - Saga orchestration UUID
+- `documentId` - Document UUID
+- `invoiceNumber` - Invoice number (or "N/A" if null)
+- `documentType` - Document type (INVOICE, TAX_INVOICE, etc.)
+- `stepsExecuted` - Number of saga steps executed
+- `durationMs` - Duration in milliseconds
+- `durationSec` - Duration formatted in seconds (e.g., "120.00")
+- `completedAt` - Completion timestamp formatted from `event.getCompletedAt()`
+
+**Special Validations:**
+- Subject contains both "Saga Completed" and invoice number (or document ID if invoice number is null)
+- Document type is preserved (INVOICE, TAX_INVOICE, etc.)
+- Saga ID is properly propagated
+- Steps executed count is included
+- Duration is formatted in seconds (contains "durationSec" key with formatted value)
+- Completion timestamp is formatted (contains formatted date/time string)
+- **Uses `awaitNotificationByInvoiceId(documentId)`** for lookup since handler sets `invoiceId = documentId`
+
+**Camel Route Handler:**
+`NotificationEventRoutes.handleSagaCompleted()` (lines 636-666)
+- Handles null invoiceNumber (uses "N/A" fallback in template variables)
+- Sets `invoiceId` to `documentId` for tracking purposes
+- Sets `durationSec` using `String.format("%.2f", event.getDurationMs() / 1000.0)`
+- Sets `completedAt` using `formatInstant(event.getCompletedAt())`
+- Uses invoiceNumber or documentId for subject display (whichever is available)
+- Adds metadata entry for `sagaId`
 
 ---

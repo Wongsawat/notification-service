@@ -815,6 +815,7 @@ Integration tests verify end-to-end Kafka event consumption using Apache Camel r
 3. **shouldConsumePdfGeneratedEvent()** - Tests `pdf.generated` topic consumption
 4. **shouldConsumePdfSignedEvent()** - Tests `pdf.signed` topic consumption
 5. **shouldConsumeEbmsSentEvent()** - Tests `ebms.sent` topic consumption
+6. **shouldConsumeSagaCompletedEvent()** - Tests `saga.lifecycle.completed` topic consumption
 
 **Run integration tests:**
 ```bash
@@ -827,7 +828,7 @@ cd services/notification-service
 mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest
 
 # Run specific test
-mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumeEbmsSentEvent
+mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumeSagaCompletedEvent
 ```
 
 **Test Validation:**
@@ -840,6 +841,7 @@ mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumeEbmsSent
 - Special validation for PdfGeneratedEvent: fileSize formatting, boolean fields (xmlEmbedded, digitallySigned)
 - Special validation for PdfSignedEvent: documentType, signedDocumentId, signedPdfUrl, signedPdfSize formatting, transactionId, signatureLevel, signatureTimestamp formatting
 - Special validation for EbmsSentEvent: uses correlationId for lookup (invoiceId may be null), documentType, ebmsMessageId, sentAt formatting
+- Special validation for SagaCompletedEvent: uses documentId for lookup (handler sets invoiceId to documentId), sagaId, stepsExecuted, durationMs, durationSec formatting, completedAt formatting
 
 ### JaCoCo Coverage
 
@@ -850,8 +852,8 @@ mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumeEbmsSent
 ### Short-Term (Next Sprint)
 
 1. ~~**Unit Tests**: Comprehensive test coverage~~ **COMPLETED** (147 tests)
-2. ~~**Integration Tests**: Testcontainers-based tests~~ **COMPLETED** (5 tests)
-3. **Additional Integration Tests**: Add tests for remaining event types (SagaCompletedEvent, SagaFailedEvent)
+2. ~~**Integration Tests**: Testcontainers-based tests~~ **COMPLETED** (6 tests)
+3. **Additional Integration Tests**: Add tests for remaining event types (SagaFailedEvent)
 4. **Logging-Only Route Tests**: Add tests for routes that don't create notifications (use `assertNoNotificationCreatedAfterWait()`)
 5. **Camel Route Unit Tests**: Add unit tests for individual Camel routes
 6. **SMS Support**: Twilio or AWS SNS integration
