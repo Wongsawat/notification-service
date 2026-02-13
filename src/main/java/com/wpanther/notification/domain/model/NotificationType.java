@@ -6,6 +6,7 @@ package com.wpanther.notification.domain.model;
 public enum NotificationType {
     INVOICE_PROCESSED,          // Invoice processing completed
     TAXINVOICE_PROCESSED,       // Tax invoice processing completed
+    XML_SIGNED,                 // XML document signed
     PDF_GENERATED,              // PDF generation completed
     PDF_SIGNED,                 // PDF signing completed
     DOCUMENT_STORED,            // Document stored successfully

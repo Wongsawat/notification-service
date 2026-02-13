@@ -98,6 +98,7 @@ kafka:
     taxinvoice-processed: taxinvoice.processed
     pdf-generated: pdf.generated
     pdf-signed: pdf.signed
+    xml-signed: xml.signed
     ebms-sent: ebms.sent
     notification-dlq: notification.dlq
     # Document-type-specific topics for statistics (after validation)

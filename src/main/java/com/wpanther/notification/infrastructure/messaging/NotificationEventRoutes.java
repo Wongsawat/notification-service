@@ -50,6 +50,7 @@ public class NotificationEventRoutes extends RouteBuilder {
     private final String taxInvoiceProcessedTopic;
     private final String pdfGeneratedTopic;
     private final String pdfSignedTopic;
+    private final String xmlSignedTopic;
     private final String ebmsSentTopic;
     private final String dlqTopic;
 
@@ -78,6 +79,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             @Value("${kafka.topics.taxinvoice-processed}") String taxInvoiceProcessedTopic,
             @Value("${kafka.topics.pdf-generated}") String pdfGeneratedTopic,
             @Value("${kafka.topics.pdf-signed}") String pdfSignedTopic,
+            @Value("${kafka.topics.xml-signed:xml.signed}") String xmlSignedTopic,
             @Value("${kafka.topics.ebms-sent:ebms.sent}") String ebmsSentTopic,
             @Value("${kafka.topics.notification-dlq:notification.dlq}") String dlqTopic,
             @Value("${kafka.topics.document-received:document.received}") String documentReceivedCountingTopic,
@@ -100,6 +102,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         this.taxInvoiceProcessedTopic = taxInvoiceProcessedTopic;
         this.pdfGeneratedTopic = pdfGeneratedTopic;
         this.pdfSignedTopic = pdfSignedTopic;
+        this.xmlSignedTopic = xmlSignedTopic;
         this.ebmsSentTopic = ebmsSentTopic;
         this.dlqTopic = dlqTopic;
         this.documentReceivedCountingTopic = documentReceivedCountingTopic;
@@ -187,7 +190,20 @@ public class NotificationEventRoutes extends RouteBuilder {
             .process(this::handlePdfSigned)
             .log("Created notification for PDF signed: ${header.invoiceNumber}");
 
-        // Route 5: Document Received Counting Events (before validation - all documents)
+        // Route 5: XML Signed Events
+        from("kafka:" + xmlSignedTopic + kafkaOptions)
+            .routeId("notification-xml-signed")
+            .log("Received XmlSignedEvent from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping message")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, XmlSignedEvent.class)
+            .process(this::handleXmlSigned)
+            .log("Created notification for XML signed: ${header.invoiceNumber}");
+
+        // Route 6: Document Received Counting Events (before validation - all documents)
         // This lightweight event tracks ALL received documents regardless of validation outcome
         from("kafka:" + documentReceivedCountingTopic + kafkaOptions)
             .routeId("notification-document-counting")
@@ -493,6 +509,41 @@ public class NotificationEventRoutes extends RouteBuilder {
         notification.addMetadata("signedPdfUrl", event.getSignedPdfUrl());
         notification.addMetadata("signedDocumentId", event.getSignedDocumentId());
         notification.addMetadata("signatureLevel", event.getSignatureLevel());
+
+        notificationService.sendNotificationAsync(notification);
+
+        // Set header for logging
+        exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
+    }
+
+    /**
+     * Process XmlSignedEvent and create notification
+     */
+    private void handleXmlSigned(Exchange exchange) {
+        XmlSignedEvent event = exchange.getIn().getBody(XmlSignedEvent.class);
+
+        log.info("Processing XmlSignedEvent: invoiceId={}, invoiceNumber={}, documentType={}",
+            event.getInvoiceId(), event.getInvoiceNumber(), event.getDocumentType());
+
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put("invoiceId", event.getInvoiceId());
+        templateVariables.put("invoiceNumber", event.getInvoiceNumber());
+        templateVariables.put("documentType", event.getDocumentType());
+        templateVariables.put("signedAt", formatInstant(event.getOccurredAt()));
+
+        Notification notification = Notification.createFromTemplate(
+            NotificationType.XML_SIGNED,
+            NotificationChannel.EMAIL,
+            defaultRecipient,
+            "xml-signed",
+            templateVariables
+        );
+
+        notification.setSubject("XML Document Signed: " + event.getInvoiceNumber());
+        notification.setInvoiceId(event.getInvoiceId());
+        notification.setInvoiceNumber(event.getInvoiceNumber());
+        notification.setCorrelationId(event.getCorrelationId());
+        notification.addMetadata("documentType", event.getDocumentType());
 
         notificationService.sendNotificationAsync(notification);
 
