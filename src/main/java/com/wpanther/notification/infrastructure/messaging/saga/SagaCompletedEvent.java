@@ -2,7 +2,7 @@ package com.wpanther.notification.infrastructure.messaging.saga;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.wpanther.saga.domain.model.IntegrationEvent;
+import com.wpanther.saga.domain.model.TraceEvent;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -16,10 +16,7 @@ import java.util.UUID;
  * This indicates successful end-to-end document processing.
  */
 @Getter
-public class SagaCompletedEvent extends IntegrationEvent {
-
-    @JsonProperty("sagaId")
-    private final String sagaId;
+public class SagaCompletedEvent extends TraceEvent {
 
     @JsonProperty("correlationId")
     private final String correlationId;
@@ -52,8 +49,7 @@ public class SagaCompletedEvent extends IntegrationEvent {
     public SagaCompletedEvent(String sagaId, String correlationId, String documentType,
                               String documentId, String invoiceNumber, Integer stepsExecuted,
                               Instant startedAt, Instant completedAt, Long durationMs) {
-        super();
-        this.sagaId = sagaId;
+        super(sagaId, "orchestrator-service", "SAGA_COMPLETED");
         this.correlationId = correlationId;
         this.documentType = documentType;
         this.documentId = documentId;
@@ -75,6 +71,9 @@ public class SagaCompletedEvent extends IntegrationEvent {
         @JsonProperty("eventType") String eventType,
         @JsonProperty("version") int version,
         @JsonProperty("sagaId") String sagaId,
+        @JsonProperty("source") String source,
+        @JsonProperty("traceType") String traceType,
+        @JsonProperty("context") String context,
         @JsonProperty("correlationId") String correlationId,
         @JsonProperty("documentType") String documentType,
         @JsonProperty("documentId") String documentId,
@@ -84,8 +83,7 @@ public class SagaCompletedEvent extends IntegrationEvent {
         @JsonProperty("completedAt") Instant completedAt,
         @JsonProperty("durationMs") Long durationMs
     ) {
-        super(eventId, occurredAt, eventType, version);
-        this.sagaId = sagaId;
+        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
         this.correlationId = correlationId;
         this.documentType = documentType;
         this.documentId = documentId;

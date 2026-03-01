@@ -42,11 +42,13 @@ class JpaOutboxEventRepositoryTest {
         void testSaveOutboxEvent() {
             // Arrange
             OutboxEvent event = OutboxEvent.builder()
+                .id(UUID.randomUUID())
                 .aggregateType("Notification")
                 .aggregateId("notif-123")
                 .eventType("NotificationSentEvent")
                 .payload("{\"sent\":true}")
                 .status(OutboxStatus.PENDING)
+                .createdAt(Instant.now())
                 .build();
 
             // Act
@@ -65,11 +67,13 @@ class JpaOutboxEventRepositoryTest {
         void testUpdateExistingOutboxEvent() {
             // Arrange - save an event first
             OutboxEvent event = OutboxEvent.builder()
+                .id(UUID.randomUUID())
                 .aggregateType("Notification")
                 .aggregateId("notif-456")
                 .eventType("NotificationCreatedEvent")
                 .payload("{\"created\":true}")
                 .status(OutboxStatus.PENDING)
+                .createdAt(Instant.now())
                 .build();
 
             OutboxEvent saved = repository.save(event);
@@ -103,11 +107,13 @@ class JpaOutboxEventRepositoryTest {
         void testFindById() {
             // Arrange
             OutboxEvent event = OutboxEvent.builder()
+                .id(UUID.randomUUID())
                 .aggregateType("Notification")
                 .aggregateId("notif-789")
                 .eventType("NotificationSentEvent")
                 .payload("{\"sent\":true}")
                 .status(OutboxStatus.PUBLISHED)
+                .createdAt(Instant.now())
                 .build();
 
             OutboxEvent saved = repository.save(event);
@@ -142,6 +148,7 @@ class JpaOutboxEventRepositoryTest {
             Instant now = Instant.now();
 
             repository.save(OutboxEvent.builder()
+                .id(UUID.randomUUID())
                 .aggregateType("Notification")
                 .aggregateId("notif-pending-1")
                 .eventType("Event1")
@@ -151,6 +158,7 @@ class JpaOutboxEventRepositoryTest {
                 .build());
 
             repository.save(OutboxEvent.builder()
+                .id(UUID.randomUUID())
                 .aggregateType("Notification")
                 .aggregateId("notif-pending-2")
                 .eventType("Event2")
@@ -160,6 +168,7 @@ class JpaOutboxEventRepositoryTest {
                 .build());
 
             repository.save(OutboxEvent.builder()
+                .id(UUID.randomUUID())
                 .aggregateType("Notification")
                 .aggregateId("notif-published")
                 .eventType("Event3")
@@ -183,11 +192,13 @@ class JpaOutboxEventRepositoryTest {
             // Arrange
             for (int i = 0; i < 5; i++) {
                 repository.save(OutboxEvent.builder()
+                    .id(UUID.randomUUID())
                     .aggregateType("Notification")
                     .aggregateId("notif-pending-" + i)
                     .eventType("Event" + i)
                     .payload("{}")
                     .status(OutboxStatus.PENDING)
+                    .createdAt(Instant.now())
                     .build());
             }
 

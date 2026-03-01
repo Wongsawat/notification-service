@@ -2,7 +2,7 @@ package com.wpanther.notification.infrastructure.messaging;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.wpanther.saga.domain.model.IntegrationEvent;
+import com.wpanther.saga.domain.model.TraceEvent;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -13,7 +13,7 @@ import java.util.UUID;
  * Thailand Revenue Department via ebMS protocol.
  */
 @Getter
-public class EbmsSentEvent extends IntegrationEvent {
+public class EbmsSentEvent extends TraceEvent {
 
     @JsonProperty("documentId")
     private final String documentId;
@@ -43,7 +43,7 @@ public class EbmsSentEvent extends IntegrationEvent {
     public EbmsSentEvent(String documentId, String invoiceId, String invoiceNumber,
                           String documentType, String ebmsMessageId, Instant sentAt,
                           String correlationId) {
-        super();
+        super(documentId, "ebms-sending-service", "EBMS_SENT");
         this.documentId = documentId;
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
@@ -63,6 +63,10 @@ public class EbmsSentEvent extends IntegrationEvent {
         @JsonProperty("occurredAt") Instant occurredAt,
         @JsonProperty("eventType") String eventType,
         @JsonProperty("version") int version,
+        @JsonProperty("sagaId") String sagaId,
+        @JsonProperty("source") String source,
+        @JsonProperty("traceType") String traceType,
+        @JsonProperty("context") String context,
         @JsonProperty("documentId") String documentId,
         @JsonProperty("invoiceId") String invoiceId,
         @JsonProperty("invoiceNumber") String invoiceNumber,
@@ -71,7 +75,7 @@ public class EbmsSentEvent extends IntegrationEvent {
         @JsonProperty("sentAt") Instant sentAt,
         @JsonProperty("correlationId") String correlationId
     ) {
-        super(eventId, occurredAt, eventType, version);
+        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
         this.documentId = documentId;
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;

@@ -2,7 +2,7 @@ package com.wpanther.notification.infrastructure.messaging;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.wpanther.saga.domain.model.IntegrationEvent;
+import com.wpanther.saga.domain.model.TraceEvent;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -14,7 +14,7 @@ import java.util.UUID;
  * This event contains the signed PDF URL and signing metadata.
  */
 @Getter
-public class PdfSignedEvent extends IntegrationEvent {
+public class PdfSignedEvent extends TraceEvent {
 
     // Document identifiers
     @JsonProperty("correlationId")
@@ -60,7 +60,7 @@ public class PdfSignedEvent extends IntegrationEvent {
                           String documentType, String signedDocumentId, String signedPdfUrl,
                           Long signedPdfSize, String transactionId, String certificate,
                           String signatureLevel, Instant signatureTimestamp) {
-        super();
+        super(correlationId, "pdf-signing-service", "PDF_SIGNED");
         this.correlationId = correlationId;
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
@@ -84,6 +84,10 @@ public class PdfSignedEvent extends IntegrationEvent {
         @JsonProperty("occurredAt") Instant occurredAt,
         @JsonProperty("eventType") String eventType,
         @JsonProperty("version") int version,
+        @JsonProperty("sagaId") String sagaId,
+        @JsonProperty("source") String source,
+        @JsonProperty("traceType") String traceType,
+        @JsonProperty("context") String context,
         @JsonProperty("correlationId") String correlationId,
         @JsonProperty("invoiceId") String invoiceId,
         @JsonProperty("invoiceNumber") String invoiceNumber,
@@ -96,7 +100,7 @@ public class PdfSignedEvent extends IntegrationEvent {
         @JsonProperty("signatureLevel") String signatureLevel,
         @JsonProperty("signatureTimestamp") Instant signatureTimestamp
     ) {
-        super(eventId, occurredAt, eventType, version);
+        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
         this.correlationId = correlationId;
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;

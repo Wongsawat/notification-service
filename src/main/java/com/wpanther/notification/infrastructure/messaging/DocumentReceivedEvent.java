@@ -2,7 +2,7 @@ package com.wpanther.notification.infrastructure.messaging;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.wpanther.saga.domain.model.IntegrationEvent;
+import com.wpanther.saga.domain.model.TraceEvent;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -17,7 +17,7 @@ import java.util.UUID;
  * - invoice-processing-service / taxinvoice-processing-service: For downstream processing
  */
 @Getter
-public class DocumentReceivedEvent extends IntegrationEvent {
+public class DocumentReceivedEvent extends TraceEvent {
 
     @JsonProperty("documentId")
     private final String documentId;
@@ -40,7 +40,7 @@ public class DocumentReceivedEvent extends IntegrationEvent {
      */
     public DocumentReceivedEvent(String documentId, String invoiceNumber, String xmlContent,
                                   String correlationId, String documentType) {
-        super();
+        super(documentId, "document-intake-service", "DOCUMENT_RECEIVED");
         this.documentId = documentId;
         this.invoiceNumber = invoiceNumber;
         this.xmlContent = xmlContent;
@@ -58,13 +58,17 @@ public class DocumentReceivedEvent extends IntegrationEvent {
         @JsonProperty("occurredAt") Instant occurredAt,
         @JsonProperty("eventType") String eventType,
         @JsonProperty("version") int version,
+        @JsonProperty("sagaId") String sagaId,
+        @JsonProperty("source") String source,
+        @JsonProperty("traceType") String traceType,
+        @JsonProperty("context") String context,
         @JsonProperty("documentId") String documentId,
         @JsonProperty("invoiceNumber") String invoiceNumber,
         @JsonProperty("xmlContent") String xmlContent,
         @JsonProperty("correlationId") String correlationId,
         @JsonProperty("documentType") String documentType
     ) {
-        super(eventId, occurredAt, eventType, version);
+        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
         this.documentId = documentId;
         this.invoiceNumber = invoiceNumber;
         this.xmlContent = xmlContent;

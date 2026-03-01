@@ -95,44 +95,35 @@ class NotificationServiceTest {
     }
 
     @Test
-    @DisplayName("Should handle sender failure and mark notification as FAILED")
-    void testSendNotificationFailureMarksFailed() throws Exception {
+    @DisplayName("Should return FAILED notification without throwing when sender fails")
+    void testSendNotification_returnsFailed_withoutThrowing() throws Exception {
         // Arrange
         when(repository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
         doThrow(new RuntimeException("SMTP error")).when(emailSender).send(any());
 
-        // Act & Assert
-        assertThatThrownBy(() -> notificationService.sendNotification(testNotification))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Failed to send notification");
+        // Act - must NOT throw; FAILED status must be returned so @Transactional can commit
+        Notification result = notificationService.sendNotification(testNotification);
 
-        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(repository, times(3)).save(captor.capture());
-
-        Notification failedNotification = captor.getAllValues().get(2);
-        assertThat(failedNotification.getStatus()).isEqualTo(NotificationStatus.FAILED);
-        assertThat(failedNotification.getErrorMessage()).contains("SMTP error");
-        assertThat(failedNotification.getFailedAt()).isNotNull();
+        // Assert
+        assertThat(result.getStatus()).isEqualTo(NotificationStatus.FAILED);
+        assertThat(result.getErrorMessage()).contains("SMTP error");
+        assertThat(result.getFailedAt()).isNotNull();
     }
 
     @Test
-    @DisplayName("Should throw exception when no sender found for channel")
-    void testSendNotificationThrowsWhenNoSenderFound() throws Exception {
+    @DisplayName("Should return FAILED notification without throwing when no sender found")
+    void testSendNotification_returnsFailed_whenNoSenderFound() throws Exception {
         // Arrange
         testNotification.setChannel(NotificationChannel.SMS);
         when(repository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // Act & Assert
-        assertThatThrownBy(() -> notificationService.sendNotification(testNotification))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Failed to send notification");
+        // Act - must NOT throw so @Transactional can commit the FAILED status
+        Notification result = notificationService.sendNotification(testNotification);
 
-        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(repository, times(3)).save(captor.capture());
-
-        Notification failedNotification = captor.getAllValues().get(2);
-        assertThat(failedNotification.getStatus()).isEqualTo(NotificationStatus.FAILED);
-        assertThat(failedNotification.getErrorMessage()).contains("No sender found for channel");
+        // Assert
+        assertThat(result.getStatus()).isEqualTo(NotificationStatus.FAILED);
+        assertThat(result.getErrorMessage()).contains("No sender found for channel");
+        assertThat(result.getFailedAt()).isNotNull();
     }
 
     // ========== Sender Selection Tests ==========

@@ -2,7 +2,7 @@ package com.wpanther.notification.infrastructure.messaging;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.wpanther.saga.domain.model.IntegrationEvent;
+import com.wpanther.saga.domain.model.TraceEvent;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -15,7 +15,7 @@ import java.util.UUID;
  * Consumed by notification-service to track total received document count.
  */
 @Getter
-public class DocumentReceivedCountingEvent extends IntegrationEvent {
+public class DocumentReceivedCountingEvent extends TraceEvent {
 
     @JsonProperty("documentId")
     private final String documentId;
@@ -31,7 +31,7 @@ public class DocumentReceivedCountingEvent extends IntegrationEvent {
      * Generates eventId, occurredAt, eventType, and version automatically.
      */
     public DocumentReceivedCountingEvent(String documentId, String correlationId, Instant receivedAt) {
-        super();
+        super(documentId, "document-intake-service", "DOCUMENT_RECEIVED_COUNTING");
         this.documentId = documentId;
         this.correlationId = correlationId;
         this.receivedAt = receivedAt;
@@ -47,11 +47,15 @@ public class DocumentReceivedCountingEvent extends IntegrationEvent {
         @JsonProperty("occurredAt") Instant occurredAt,
         @JsonProperty("eventType") String eventType,
         @JsonProperty("version") int version,
+        @JsonProperty("sagaId") String sagaId,
+        @JsonProperty("source") String source,
+        @JsonProperty("traceType") String traceType,
+        @JsonProperty("context") String context,
         @JsonProperty("documentId") String documentId,
         @JsonProperty("correlationId") String correlationId,
         @JsonProperty("receivedAt") Instant receivedAt
     ) {
-        super(eventId, occurredAt, eventType, version);
+        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
         this.documentId = documentId;
         this.correlationId = correlationId;
         this.receivedAt = receivedAt;

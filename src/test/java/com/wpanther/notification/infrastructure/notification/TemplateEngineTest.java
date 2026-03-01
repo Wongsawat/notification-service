@@ -9,6 +9,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
+import org.thymeleaf.templatemode.TemplateMode;
+import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -111,6 +113,55 @@ class TemplateEngineTest {
 
             // Assert - verify the process method was called
             verify(thymeleafEngine).process(eq("test"), any(Context.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("xml-signed template rendering tests")
+    class XmlSignedTemplateTests {
+
+        private TemplateEngine realEngine;
+
+        @BeforeEach
+        void setUpRealEngine() {
+            ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
+            resolver.setPrefix("templates/");
+            resolver.setSuffix(".html");
+            resolver.setTemplateMode(TemplateMode.HTML);
+            resolver.setCharacterEncoding("UTF-8");
+
+            SpringTemplateEngine springEngine = new SpringTemplateEngine();
+            springEngine.setTemplateResolver(resolver);
+
+            realEngine = new TemplateEngine(springEngine);
+        }
+
+        @Test
+        @DisplayName("xml-signed template exists and renders invoice number")
+        void testXmlSignedTemplateRendersInvoiceNumber() throws TemplateEngine.TemplateException {
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("invoiceNumber", "INV-2025-001");
+            variables.put("documentType", "TAX_INVOICE");
+            variables.put("signedAt", "2025-01-15 10:30:00");
+
+            String result = realEngine.render("xml-signed", variables);
+
+            assertThat(result).contains("INV-2025-001");
+            assertThat(result).contains("TAX_INVOICE");
+        }
+
+        @Test
+        @DisplayName("xml-signed template renders without invoiceId field")
+        void testXmlSignedTemplateRendersBasicStructure() throws TemplateEngine.TemplateException {
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("invoiceNumber", "INV-TEST-999");
+            variables.put("documentType", "INVOICE");
+            variables.put("signedAt", "2025-06-01 09:00:00");
+
+            String result = realEngine.render("xml-signed", variables);
+
+            assertThat(result).isNotEmpty();
+            assertThat(result).containsIgnoringCase("xml");
         }
     }
 

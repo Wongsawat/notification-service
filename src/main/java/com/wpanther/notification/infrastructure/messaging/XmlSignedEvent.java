@@ -2,7 +2,7 @@ package com.wpanther.notification.infrastructure.messaging;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.wpanther.saga.domain.model.IntegrationEvent;
+import com.wpanther.saga.domain.model.TraceEvent;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -13,7 +13,7 @@ import java.util.UUID;
  * Consumed from xml.signed topic.
  */
 @Getter
-public class XmlSignedEvent extends IntegrationEvent {
+public class XmlSignedEvent extends TraceEvent {
 
     @JsonProperty("invoiceId")
     private final String invoiceId;
@@ -29,7 +29,7 @@ public class XmlSignedEvent extends IntegrationEvent {
 
     public XmlSignedEvent(String invoiceId, String invoiceNumber,
                           String documentType, String correlationId) {
-        super();
+        super(correlationId, "xml-signing-service", "XML_SIGNED");
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
         this.documentType = documentType;
@@ -42,12 +42,16 @@ public class XmlSignedEvent extends IntegrationEvent {
         @JsonProperty("occurredAt") Instant occurredAt,
         @JsonProperty("eventType") String eventType,
         @JsonProperty("version") int version,
+        @JsonProperty("sagaId") String sagaId,
+        @JsonProperty("source") String source,
+        @JsonProperty("traceType") String traceType,
+        @JsonProperty("context") String context,
         @JsonProperty("invoiceId") String invoiceId,
         @JsonProperty("invoiceNumber") String invoiceNumber,
         @JsonProperty("documentType") String documentType,
         @JsonProperty("correlationId") String correlationId
     ) {
-        super(eventId, occurredAt, eventType, version);
+        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
         this.documentType = documentType;

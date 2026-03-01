@@ -66,11 +66,11 @@ public class NotificationService {
         } catch (Exception e) {
             log.error("Failed to send notification: id={}", notification.getId(), e);
 
-            // Mark as failed
+            // Mark as failed and persist — do NOT re-throw, so @Transactional commits the
+            // FAILED status. Re-throwing would roll back the transaction and lose this state.
             notification.markFailed(e.getMessage());
-            repository.save(notification);
-
-            throw new RuntimeException("Failed to send notification", e);
+            notification = repository.save(notification);
+            return notification;
         }
     }
 

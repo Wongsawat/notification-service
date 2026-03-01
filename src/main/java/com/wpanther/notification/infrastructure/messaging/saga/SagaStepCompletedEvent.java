@@ -2,7 +2,7 @@ package com.wpanther.notification.infrastructure.messaging.saga;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.wpanther.saga.domain.model.IntegrationEvent;
+import com.wpanther.saga.domain.model.TraceEvent;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -16,10 +16,7 @@ import java.util.UUID;
  * No email notification created (per user requirement - too noisy).
  */
 @Getter
-public class SagaStepCompletedEvent extends IntegrationEvent {
-
-    @JsonProperty("sagaId")
-    private final String sagaId;
+public class SagaStepCompletedEvent extends TraceEvent {
 
     @JsonProperty("correlationId")
     private final String correlationId;
@@ -49,8 +46,7 @@ public class SagaStepCompletedEvent extends IntegrationEvent {
     public SagaStepCompletedEvent(String sagaId, String correlationId, String documentType,
                                    String documentId, String completedStep, String nextStep,
                                    String invoiceNumber, Long stepDurationMs) {
-        super();
-        this.sagaId = sagaId;
+        super(sagaId, "orchestrator-service", "SAGA_STEP_COMPLETED");
         this.correlationId = correlationId;
         this.documentType = documentType;
         this.documentId = documentId;
@@ -71,6 +67,9 @@ public class SagaStepCompletedEvent extends IntegrationEvent {
         @JsonProperty("eventType") String eventType,
         @JsonProperty("version") int version,
         @JsonProperty("sagaId") String sagaId,
+        @JsonProperty("source") String source,
+        @JsonProperty("traceType") String traceType,
+        @JsonProperty("context") String context,
         @JsonProperty("correlationId") String correlationId,
         @JsonProperty("documentType") String documentType,
         @JsonProperty("documentId") String documentId,
@@ -79,8 +78,7 @@ public class SagaStepCompletedEvent extends IntegrationEvent {
         @JsonProperty("invoiceNumber") String invoiceNumber,
         @JsonProperty("stepDurationMs") Long stepDurationMs
     ) {
-        super(eventId, occurredAt, eventType, version);
-        this.sagaId = sagaId;
+        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
         this.correlationId = correlationId;
         this.documentType = documentType;
         this.documentId = documentId;
