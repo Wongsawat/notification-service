@@ -1,5 +1,6 @@
 package com.wpanther.notification.infrastructure.messaging;
 
+import com.wpanther.notification.application.service.NotificationDispatcherService;
 import com.wpanther.notification.application.service.NotificationService;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
@@ -40,6 +41,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final NotificationService notificationService;
+    private final NotificationDispatcherService dispatcherService;
     private final String defaultRecipient;
     private final boolean notificationEnabled;
     private final String consumerGroup;
@@ -71,6 +73,7 @@ public class NotificationEventRoutes extends RouteBuilder {
 
     public NotificationEventRoutes(
             NotificationService notificationService,
+            NotificationDispatcherService dispatcherService,
             @Value("${app.notification.default-recipient:admin@example.com}") String defaultRecipient,
             @Value("${app.notification.enabled:true}") boolean notificationEnabled,
             @Value("${spring.kafka.consumer.group-id}") String consumerGroup,
@@ -94,6 +97,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             @Value("${kafka.topics.saga-lifecycle-completed}") String sagaLifecycleCompletedTopic,
             @Value("${kafka.topics.saga-lifecycle-failed}") String sagaLifecycleFailedTopic) {
         this.notificationService = notificationService;
+        this.dispatcherService = dispatcherService;
         this.defaultRecipient = defaultRecipient;
         this.notificationEnabled = notificationEnabled;
         this.consumerGroup = consumerGroup;
@@ -393,7 +397,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         notification.setInvoiceNumber(event.getInvoiceNumber());
         notification.setCorrelationId(event.getCorrelationId());
 
-        notificationService.sendNotificationAsync(notification);
+        dispatcherService.dispatchAsync(notification);
 
         // Set header for logging
         exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
@@ -428,7 +432,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         notification.setInvoiceNumber(event.getInvoiceNumber());
         notification.setCorrelationId(event.getCorrelationId());
 
-        notificationService.sendNotificationAsync(notification);
+        dispatcherService.dispatchAsync(notification);
 
         // Set header for logging
         exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
@@ -468,7 +472,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         notification.addMetadata("documentUrl", event.getDocumentUrl());
         notification.addMetadata("documentId", event.getDocumentId());
 
-        notificationService.sendNotificationAsync(notification);
+        dispatcherService.dispatchAsync(notification);
 
         // Set header for logging
         exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
@@ -510,7 +514,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         notification.addMetadata("signedDocumentId", event.getSignedDocumentId());
         notification.addMetadata("signatureLevel", event.getSignatureLevel());
 
-        notificationService.sendNotificationAsync(notification);
+        dispatcherService.dispatchAsync(notification);
 
         // Set header for logging
         exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
@@ -545,7 +549,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         notification.setCorrelationId(event.getCorrelationId());
         notification.addMetadata("documentType", event.getDocumentType());
 
-        notificationService.sendNotificationAsync(notification);
+        dispatcherService.dispatchAsync(notification);
 
         // Set header for logging
         exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
@@ -653,7 +657,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         notification.addMetadata("ebmsMessageId", event.getEbmsMessageId());
         notification.addMetadata("documentType", event.getDocumentType());
 
-        notificationService.sendNotificationAsync(notification);
+        dispatcherService.dispatchAsync(notification);
 
         // Set header for logging
         exchange.getIn().setHeader("invoiceNumber", displayNumber);
@@ -712,7 +716,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         notification.setCorrelationId(event.getCorrelationId());
         notification.addMetadata("sagaId", event.getSagaId());
 
-        notificationService.sendNotificationAsync(notification);
+        dispatcherService.dispatchAsync(notification);
         exchange.getIn().setHeader("sagaId", event.getSagaId());
     }
 
@@ -749,7 +753,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         notification.addMetadata("sagaId", event.getSagaId());
         notification.addMetadata("failedStep", event.getFailedStep());
 
-        notificationService.sendNotificationAsync(notification);
+        dispatcherService.dispatchAsync(notification);
         exchange.getIn().setHeader("sagaId", event.getSagaId());
     }
 }

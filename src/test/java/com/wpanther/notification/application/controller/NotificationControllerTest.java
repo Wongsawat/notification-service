@@ -1,6 +1,7 @@
 package com.wpanther.notification.application.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wpanther.notification.application.service.NotificationDispatcherService;
 import com.wpanther.notification.application.service.NotificationService;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
@@ -40,6 +41,9 @@ class NotificationControllerTest {
 
     @MockBean
     private NotificationRepository notificationRepository;
+
+    @MockBean
+    private NotificationDispatcherService dispatcherService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -285,7 +289,7 @@ class NotificationControllerTest {
 
         verify(notificationRepository).findById(testId);
         verify(notificationRepository).save(any(Notification.class));
-        verify(notificationService).sendNotificationAsync(any(Notification.class));
+        verify(dispatcherService).dispatchAsync(any(Notification.class));
     }
 
     @Test
@@ -311,7 +315,7 @@ class NotificationControllerTest {
 
         verify(notificationRepository).findById(testId);
         verify(notificationRepository, never()).save(any());
-        verify(notificationService, never()).sendNotificationAsync(any());
+        verify(dispatcherService, never()).dispatchAsync(any());
     }
 
     @Test
@@ -326,7 +330,7 @@ class NotificationControllerTest {
             .andExpect(status().isNotFound());
 
         verify(notificationRepository).findById(unknownId);
-        verify(notificationService, never()).sendNotificationAsync(any());
+        verify(dispatcherService, never()).dispatchAsync(any());
     }
 
     // ========== Input Validation Tests ==========

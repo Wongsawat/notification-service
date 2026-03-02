@@ -1,5 +1,6 @@
 package com.wpanther.notification.application.controller;
 
+import com.wpanther.notification.application.service.NotificationDispatcherService;
 import com.wpanther.notification.application.service.NotificationService;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
@@ -29,6 +30,7 @@ public class NotificationController {
 
     private final NotificationService notificationService;
     private final NotificationRepository notificationRepository;
+    private final NotificationDispatcherService dispatcherService;
 
     /**
      * Send notification manually
@@ -129,7 +131,7 @@ public class NotificationController {
                 if (notification.canRetry(3)) {
                     notification.prepareRetry();
                     notificationRepository.save(notification);
-                    notificationService.sendNotificationAsync(notification);
+                    dispatcherService.dispatchAsync(notification);
                     return ResponseEntity.ok(Map.of("message", "Retry scheduled"));
                 } else {
                     return ResponseEntity.badRequest()

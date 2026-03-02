@@ -9,7 +9,6 @@ import com.wpanther.notification.domain.service.NotificationSender;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +26,7 @@ public class NotificationService {
 
     private final NotificationRepository repository;
     private final List<NotificationSender> senders;
+    private final NotificationDispatcherService dispatcherService;
 
     @Value("${app.notification.max-retries:3}")
     private int maxRetries;
@@ -70,15 +70,6 @@ public class NotificationService {
     }
 
     /**
-     * Send notification asynchronously
-     */
-    @Async
-    @Transactional
-    public void sendNotificationAsync(Notification notification) {
-        sendNotification(notification);
-    }
-
-    /**
      * Create and send notification from template
      */
     @Transactional
@@ -110,7 +101,7 @@ public class NotificationService {
                 notification.prepareRetry();
                 notification = repository.save(notification);
 
-                sendNotificationAsync(notification);
+                dispatcherService.dispatchAsync(notification);
 
             } catch (Exception e) {
                 log.error("Failed to retry notification: id={}", notification.getId(), e);
@@ -130,7 +121,7 @@ public class NotificationService {
 
         for (Notification notification : pendingNotifications) {
             try {
-                sendNotificationAsync(notification);
+                dispatcherService.dispatchAsync(notification);
             } catch (Exception e) {
                 log.error("Failed to process pending notification: id={}", notification.getId(), e);
             }

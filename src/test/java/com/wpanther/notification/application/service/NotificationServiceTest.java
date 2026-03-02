@@ -40,6 +40,9 @@ class NotificationServiceTest {
     @Mock
     private NotificationSender webhookSender;
 
+    @Mock
+    private NotificationDispatcherService dispatcherService;
+
     @InjectMocks
     private NotificationService notificationService;
 
@@ -71,6 +74,9 @@ class NotificationServiceTest {
 
         // Set senders list via reflection
         ReflectionTestUtils.setField(notificationService, "senders", List.of(emailSender, webhookSender));
+
+        // Set dispatcherService via reflection
+        ReflectionTestUtils.setField(notificationService, "dispatcherService", dispatcherService);
     }
 
     // ========== Send Notification Tests ==========
@@ -313,13 +319,13 @@ class NotificationServiceTest {
             .build();
 
         when(repository.findPendingNotifications()).thenReturn(List.of(pendingNotification));
-        when(repository.save(any(Notification.class))).thenThrow(new RuntimeException("Database error"));
+        doThrow(new RuntimeException("Dispatch error")).when(dispatcherService).dispatchAsync(any(Notification.class));
 
         // Act - should not throw exception
         notificationService.processPendingNotifications();
 
-        // Assert
-        verify(repository).findPendingNotifications();
+        // Assert - verify dispatcher was called even though it threw an exception
+        verify(dispatcherService).dispatchAsync(pendingNotification);
     }
 
     // ========== Statistics Tests ==========
