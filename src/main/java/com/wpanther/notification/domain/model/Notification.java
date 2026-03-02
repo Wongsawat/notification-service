@@ -36,10 +36,32 @@ public class Notification {
     private String errorMessage;
 
     /**
+     * Validate required parameters (domain invariants)
+     */
+    private static void requireNonNull(Object value, String paramName) {
+        if (value == null) {
+            throw new IllegalArgumentException(paramName + " is required");
+        }
+    }
+
+    private static void requireNonBlank(String value, String paramName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(paramName + " is required");
+        }
+    }
+
+    /**
      * Create new notification
+     * @throws IllegalArgumentException if required parameters are null or blank
      */
     public static Notification create(NotificationType type, NotificationChannel channel,
                                      String recipient, String subject, String body) {
+        requireNonNull(type, "type");
+        requireNonNull(channel, "channel");
+        requireNonBlank(recipient, "recipient");
+        requireNonBlank(subject, "subject");
+        // body can be null/empty for template-based notifications
+
         return Notification.builder()
             .id(UUID.randomUUID())
             .type(type)
@@ -57,10 +79,17 @@ public class Notification {
 
     /**
      * Create notification from template
+     * @throws IllegalArgumentException if required parameters are null or blank
      */
     public static Notification createFromTemplate(NotificationType type, NotificationChannel channel,
                                                   String recipient, String templateName,
                                                   Map<String, Object> templateVariables) {
+        requireNonNull(type, "type");
+        requireNonNull(channel, "channel");
+        requireNonBlank(recipient, "recipient");
+        requireNonBlank(templateName, "templateName");
+        requireNonNull(templateVariables, "templateVariables");
+
         return Notification.builder()
             .id(UUID.randomUUID())
             .type(type)

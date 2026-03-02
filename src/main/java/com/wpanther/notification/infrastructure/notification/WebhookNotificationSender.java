@@ -10,11 +10,14 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Webhook notification sender implementation using WebClient
@@ -28,6 +31,8 @@ public class WebhookNotificationSender implements NotificationSender {
     private final ObjectMapper objectMapper;
 
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
+    private static final int MAX_RETRIES = 3;
+    private static final Duration INITIAL_BACKOFF = Duration.ofMillis(500);
 
     @Override
     public void send(Notification notification) throws NotificationException {
@@ -38,7 +43,7 @@ public class WebhookNotificationSender implements NotificationSender {
             // Build webhook payload
             Map<String, Object> payload = buildPayload(notification);
 
-            // Send HTTP POST to webhook URL
+            // Send HTTP POST to webhook URL with retry on transient failures
             String response = webClient.post()
                 .uri(notification.getRecipient())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -53,6 +58,10 @@ public class WebhookNotificationSender implements NotificationSender {
                 )
                 .bodyToMono(String.class)
                 .timeout(TIMEOUT)
+                .retryWhen(Retry.backoff(MAX_RETRIES, INITIAL_BACKOFF)
+                    .filter(throwable -> isTransient(throwable))
+                    .doBeforeRetry(signal -> log.warn("Retrying webhook send: attempt={}, error={}",
+                        signal.totalRetries() + 1, signal.failure().getMessage())))
                 .block();
 
             log.info("Webhook sent successfully: id={}, response={}", notification.getId(), response);
@@ -62,6 +71,17 @@ public class WebhookNotificationSender implements NotificationSender {
                 notification.getId(), notification.getRecipient(), e);
             throw new NotificationException("Failed to send webhook", e);
         }
+    }
+
+    /**
+     * Determine if an exception is transient (should retry)
+     */
+    private boolean isTransient(Throwable throwable) {
+        return throwable instanceof TimeoutException
+            || throwable instanceof WebClientRequestException
+            || (throwable instanceof RuntimeException
+                && throwable.getMessage() != null
+                && throwable.getMessage().contains("5xx"));  // 5xx errors from onStatus
     }
 
     @Override

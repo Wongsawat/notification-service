@@ -139,6 +139,202 @@ class NotificationTest {
         assertThat(notification.getRetryCount()).isZero();
     }
 
+    // ========== Factory Method Validation Tests ==========
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when type is null in create()")
+    void testCreate_withNullType_throwsException() {
+        assertThatThrownBy(() -> Notification.create(
+            null,
+            NotificationChannel.EMAIL,
+            "test@example.com",
+            "Subject",
+            "Body"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("type");
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when channel is null in create()")
+    void testCreate_withNullChannel_throwsException() {
+        assertThatThrownBy(() -> Notification.create(
+            NotificationType.INVOICE_PROCESSED,
+            null,
+            "test@example.com",
+            "Subject",
+            "Body"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("channel");
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when recipient is null in create()")
+    void testCreate_withNullRecipient_throwsException() {
+        assertThatThrownBy(() -> Notification.create(
+            NotificationType.INVOICE_PROCESSED,
+            NotificationChannel.EMAIL,
+            null,
+            "Subject",
+            "Body"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("recipient");
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when recipient is blank in create()")
+    void testCreate_withBlankRecipient_throwsException() {
+        assertThatThrownBy(() -> Notification.create(
+            NotificationType.INVOICE_PROCESSED,
+            NotificationChannel.EMAIL,
+            "   ",
+            "Subject",
+            "Body"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("recipient");
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when subject is null in create()")
+    void testCreate_withNullSubject_throwsException() {
+        assertThatThrownBy(() -> Notification.create(
+            NotificationType.INVOICE_PROCESSED,
+            NotificationChannel.EMAIL,
+            "test@example.com",
+            null,
+            "Body"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("subject");
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when subject is blank in create()")
+    void testCreate_withBlankSubject_throwsException() {
+        assertThatThrownBy(() -> Notification.create(
+            NotificationType.INVOICE_PROCESSED,
+            NotificationChannel.EMAIL,
+            "test@example.com",
+            "   ",
+            "Body"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("subject");
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when type is null in createFromTemplate()")
+    void testCreateFromTemplate_withNullType_throwsException() {
+        Map<String, Object> templateVars = Map.of("key", "value");
+
+        assertThatThrownBy(() -> Notification.createFromTemplate(
+            null,
+            NotificationChannel.EMAIL,
+            "test@example.com",
+            "template",
+            templateVars
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("type");
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when channel is null in createFromTemplate()")
+    void testCreateFromTemplate_withNullChannel_throwsException() {
+        Map<String, Object> templateVars = Map.of("key", "value");
+
+        assertThatThrownBy(() -> Notification.createFromTemplate(
+            NotificationType.INVOICE_PROCESSED,
+            null,
+            "test@example.com",
+            "template",
+            templateVars
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("channel");
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when recipient is null in createFromTemplate()")
+    void testCreateFromTemplate_withNullRecipient_throwsException() {
+        Map<String, Object> templateVars = Map.of("key", "value");
+
+        assertThatThrownBy(() -> Notification.createFromTemplate(
+            NotificationType.INVOICE_PROCESSED,
+            NotificationChannel.EMAIL,
+            null,
+            "template",
+            templateVars
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("recipient");
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when recipient is blank in createFromTemplate()")
+    void testCreateFromTemplate_withBlankRecipient_throwsException() {
+        Map<String, Object> templateVars = Map.of("key", "value");
+
+        assertThatThrownBy(() -> Notification.createFromTemplate(
+            NotificationType.INVOICE_PROCESSED,
+            NotificationChannel.EMAIL,
+            "   ",
+            "template",
+            templateVars
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("recipient");
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when templateName is null in createFromTemplate()")
+    void testCreateFromTemplate_withNullTemplateName_throwsException() {
+        Map<String, Object> templateVars = Map.of("key", "value");
+
+        assertThatThrownBy(() -> Notification.createFromTemplate(
+            NotificationType.INVOICE_PROCESSED,
+            NotificationChannel.EMAIL,
+            "test@example.com",
+            null,
+            templateVars
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("templateName");
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when templateName is blank in createFromTemplate()")
+    void testCreateFromTemplate_withBlankTemplateName_throwsException() {
+        Map<String, Object> templateVars = Map.of("key", "value");
+
+        assertThatThrownBy(() -> Notification.createFromTemplate(
+            NotificationType.INVOICE_PROCESSED,
+            NotificationChannel.EMAIL,
+            "test@example.com",
+            "   ",
+            templateVars
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("templateName");
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when templateVariables is null in createFromTemplate()")
+    void testCreateFromTemplate_withNullTemplateVariables_throwsException() {
+        assertThatThrownBy(() -> Notification.createFromTemplate(
+            NotificationType.INVOICE_PROCESSED,
+            NotificationChannel.EMAIL,
+            "test@example.com",
+            "template",
+            null
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("templateVariables");
+    }
+
     // ========== State Transition Tests - Valid Transitions ==========
 
     @Test

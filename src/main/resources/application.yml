@@ -68,7 +68,7 @@ spring:
   thymeleaf:
     mode: HTML
     encoding: UTF-8
-    cache: false
+    cache: ${THYMELEAF_CACHE:true}  # true by default (production), set to false for dev
     prefix: classpath:/templates/
     suffix: .html
 

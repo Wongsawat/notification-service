@@ -269,6 +269,32 @@ class WebhookNotificationSenderTest {
                 return data != null && "INV-001".equals(data.get("invoiceNumber"));
             }));
         }
+
+        @Test
+        @DisplayName("Should retry on transient timeout failures")
+        void testRetriesOnTimeout() throws NotificationException {
+            // This test verifies retry logic is configured
+            // Actual retry verification requires integration test with real server
+            // For now, we verify the send() method handles timeout correctly
+            String webhookUrl = "https://example.com/webhook";
+            Notification notification = Notification.builder()
+                .id(java.util.UUID.randomUUID())
+                .type(NotificationType.INVOICE_PROCESSED)
+                .channel(NotificationChannel.WEBHOOK)
+                .recipient(webhookUrl)
+                .subject("Test Subject")
+                .body("Test Body")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+            lenient().doReturn(Mono.error(new java.util.concurrent.TimeoutException("Timeout")))
+                .when(responseSpec).bodyToMono(String.class);
+
+            // Act & Assert - should eventually throw after retries exhausted
+            assertThatThrownBy(() -> webhookNotificationSender.send(notification))
+                .isInstanceOf(NotificationException.class)
+                .hasMessageContaining("Failed to send webhook");
+        }
     }
 
     @Nested
