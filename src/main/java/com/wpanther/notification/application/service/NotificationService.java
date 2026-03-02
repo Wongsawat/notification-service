@@ -47,13 +47,8 @@ public class NotificationService {
             notification.markSending();
             notification = repository.save(notification);
 
-            // Find appropriate sender
+            // Find appropriate sender and send notification
             NotificationSender sender = findSender(notification.getChannel());
-            if (sender == null) {
-                throw new RuntimeException("No sender found for channel: " + notification.getChannel());
-            }
-
-            // Send notification
             sender.send(notification);
 
             // Mark as sent
@@ -157,11 +152,12 @@ public class NotificationService {
 
     /**
      * Find sender for channel
+     * @throws IllegalStateException if no sender supports the channel
      */
     private NotificationSender findSender(NotificationChannel channel) {
         return senders.stream()
             .filter(sender -> sender.supports(channel))
             .findFirst()
-            .orElse(null);
+            .orElseThrow(() -> new IllegalStateException("No sender found for channel: " + channel));
     }
 }

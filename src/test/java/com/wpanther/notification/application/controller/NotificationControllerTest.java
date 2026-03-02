@@ -328,4 +328,79 @@ class NotificationControllerTest {
         verify(notificationRepository).findById(unknownId);
         verify(notificationService, never()).sendNotificationAsync(any());
     }
+
+    // ========== Input Validation Tests ==========
+
+    @Test
+    @DisplayName("POST /api/v1/notifications should return 400 when type is missing")
+    void testSendNotification_missingType_returns400() throws Exception {
+        Map<String, Object> request = Map.of(
+            "channel", "EMAIL",
+            "recipient", "test@example.com",
+            "subject", "Test",
+            "body", "Test body"
+        );
+
+        mockMvc.perform(post("/api/v1/notifications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest());
+
+        verify(notificationService, never()).sendNotification(any());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/notifications should return 400 when channel is missing")
+    void testSendNotification_missingChannel_returns400() throws Exception {
+        Map<String, Object> request = Map.of(
+            "type", "INVOICE_PROCESSED",
+            "recipient", "test@example.com",
+            "subject", "Test",
+            "body", "Test body"
+        );
+
+        mockMvc.perform(post("/api/v1/notifications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest());
+
+        verify(notificationService, never()).sendNotification(any());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/notifications should return 400 when recipient is missing")
+    void testSendNotification_missingRecipient_returns400() throws Exception {
+        Map<String, Object> request = Map.of(
+            "type", "INVOICE_PROCESSED",
+            "channel", "EMAIL",
+            "subject", "Test",
+            "body", "Test body"
+        );
+
+        mockMvc.perform(post("/api/v1/notifications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest());
+
+        verify(notificationService, never()).sendNotification(any());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/notifications should return 400 when recipient is blank")
+    void testSendNotification_blankRecipient_returns400() throws Exception {
+        Map<String, Object> request = Map.of(
+            "type", "INVOICE_PROCESSED",
+            "channel", "EMAIL",
+            "recipient", "   ",
+            "subject", "Test",
+            "body", "Test body"
+        );
+
+        mockMvc.perform(post("/api/v1/notifications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest());
+
+        verify(notificationService, never()).sendNotification(any());
+    }
 }

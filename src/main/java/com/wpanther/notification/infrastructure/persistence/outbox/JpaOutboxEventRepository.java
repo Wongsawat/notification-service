@@ -12,7 +12,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * JPA implementation of OutboxEventRepository from saga-commons.
@@ -57,7 +56,7 @@ public class JpaOutboxEventRepository implements OutboxEventRepository {
         log.debug("Found {} pending outbox events", entities.size());
         return entities.stream()
             .map(OutboxEventEntity::toDomain)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override
@@ -70,7 +69,7 @@ public class JpaOutboxEventRepository implements OutboxEventRepository {
         log.debug("Found {} failed outbox events", entities.size());
         return entities.stream()
             .map(OutboxEventEntity::toDomain)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override
@@ -83,7 +82,7 @@ public class JpaOutboxEventRepository implements OutboxEventRepository {
         log.debug("Found {} events for aggregate", entities.size());
         return entities.stream()
             .map(OutboxEventEntity::toDomain)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override

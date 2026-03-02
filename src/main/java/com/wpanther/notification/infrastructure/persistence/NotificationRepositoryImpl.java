@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Implementation of NotificationRepository using JPA
@@ -38,56 +37,56 @@ public class NotificationRepositoryImpl implements NotificationRepository {
     public List<Notification> findByStatus(NotificationStatus status) {
         return jpaRepository.findByStatus(status).stream()
             .map(this::toDomain)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override
     public List<Notification> findByInvoiceId(String invoiceId) {
         return jpaRepository.findByInvoiceId(invoiceId).stream()
             .map(this::toDomain)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override
     public List<Notification> findByInvoiceNumber(String invoiceNumber) {
         return jpaRepository.findByInvoiceNumber(invoiceNumber).stream()
             .map(this::toDomain)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override
     public List<Notification> findByRecipient(String recipient) {
         return jpaRepository.findByRecipient(recipient).stream()
             .map(this::toDomain)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override
     public List<Notification> findByType(NotificationType type) {
         return jpaRepository.findByType(type).stream()
             .map(this::toDomain)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override
     public List<Notification> findFailedNotifications(int maxRetries) {
         return jpaRepository.findFailedNotifications(maxRetries).stream()
             .map(this::toDomain)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override
     public List<Notification> findPendingNotifications() {
         return jpaRepository.findPendingNotifications().stream()
             .map(this::toDomain)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override
     public List<Notification> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end) {
         return jpaRepository.findByCreatedAtBetween(start, end).stream()
             .map(this::toDomain)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override

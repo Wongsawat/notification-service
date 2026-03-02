@@ -6,6 +6,9 @@ import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.model.NotificationType;
 import com.wpanther.notification.domain.repository.NotificationRepository;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +35,7 @@ public class NotificationController {
      */
     @PostMapping
     public ResponseEntity<Map<String, Object>> sendNotification(
-        @RequestBody NotificationRequest request
+        @Valid @RequestBody NotificationRequest request
     ) {
         log.info("Received notification request: type={}, channel={}, recipient={}",
             request.getType(), request.getChannel(), request.getRecipient());
@@ -141,9 +144,15 @@ public class NotificationController {
      */
     @lombok.Data
     public static class NotificationRequest {
+        @NotNull(message = "Notification type is required")
         private NotificationType type;
+
+        @NotNull(message = "Notification channel is required")
         private NotificationChannel channel;
+
+        @NotBlank(message = "Recipient is required")
         private String recipient;
+
         private String subject;
         private String body;
         private String templateName;
