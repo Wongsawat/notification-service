@@ -2,6 +2,7 @@ package com.wpanther.notification.infrastructure.persistence;
 
 import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.model.NotificationType;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -28,10 +29,10 @@ public interface JpaNotificationRepository extends JpaRepository<NotificationEnt
     List<NotificationEntity> findByType(NotificationType type);
 
     @Query("SELECT n FROM NotificationEntity n WHERE n.status = 'FAILED' AND n.retryCount < :maxRetries")
-    List<NotificationEntity> findFailedNotifications(@Param("maxRetries") int maxRetries);
+    List<NotificationEntity> findFailedNotifications(@Param("maxRetries") int maxRetries, Pageable pageable);
 
     @Query("SELECT n FROM NotificationEntity n WHERE n.status = 'PENDING' ORDER BY n.createdAt ASC")
-    List<NotificationEntity> findPendingNotifications();
+    List<NotificationEntity> findPendingNotifications(Pageable pageable);
 
     List<NotificationEntity> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 

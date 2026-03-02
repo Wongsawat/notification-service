@@ -5,7 +5,6 @@ import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.model.NotificationType;
 import com.wpanther.notification.domain.repository.NotificationRepository;
-import com.wpanther.notification.domain.service.NotificationSender;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,9 +14,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
- * Application service for notification operations
+ * Application service for notification operations.
+ *
+ * <p>Thin facade that delegates sending to {@link NotificationSendingService} and dispatching
+ * to {@link NotificationDispatcherService}. Owns the scheduled retry/pending sweepers, and
+ * exposes query and retry-initiation methods for the REST controller.</p>
+ *
+ * <p>Dependency chain (no cycles):
+ * NotificationService → NotificationDispatcherService → NotificationSendingService</p>
  */
 @Service
 @RequiredArgsConstructor
@@ -25,71 +34,70 @@ import java.util.Map;
 public class NotificationService {
 
     private final NotificationRepository repository;
-    private final List<NotificationSender> senders;
+    private final NotificationSendingService sendingService;
     private final NotificationDispatcherService dispatcherService;
 
     @Value("${app.notification.max-retries:3}")
     private int maxRetries;
 
-    /**
-     * Send notification
-     */
-    @Transactional
+    // ── Send (delegates to NotificationSendingService) ──────────────────────────────────
+
     public Notification sendNotification(Notification notification) {
-        try {
-            log.info("Sending notification: id={}, type={}, channel={}",
-                notification.getId(), notification.getType(), notification.getChannel());
-
-            // Save as pending
-            notification = repository.save(notification);
-
-            // Mark as sending
-            notification.markSending();
-            notification = repository.save(notification);
-
-            // Find appropriate sender and send notification
-            NotificationSender sender = findSender(notification.getChannel());
-            sender.send(notification);
-
-            // Mark as sent
-            notification.markSent();
-            notification = repository.save(notification);
-
-            log.info("Notification sent successfully: id={}", notification.getId());
-            return notification;
-
-        } catch (Exception e) {
-            log.error("Failed to send notification: id={}", notification.getId(), e);
-
-            // Mark as failed and persist — do NOT re-throw, so @Transactional commits the
-            // FAILED status. Re-throwing would roll back the transaction and lose this state.
-            notification.markFailed(e.getMessage());
-            notification = repository.save(notification);
-            return notification;
-        }
+        return sendingService.sendNotification(notification);
     }
 
+    public Notification createAndSend(NotificationType type, NotificationChannel channel,
+                                      String recipient, String templateName,
+                                      Map<String, Object> templateVariables) {
+        return sendingService.createAndSend(type, channel, recipient, templateName, templateVariables);
+    }
+
+    public Map<String, Long> getStatistics() {
+        return sendingService.getStatistics();
+    }
+
+    // ── Query methods (for REST controller) ─────────────────────────────────────────────
+
+    public Optional<Notification> findById(UUID id) {
+        return repository.findById(id);
+    }
+
+    public List<Notification> findByInvoiceId(String invoiceId) {
+        return repository.findByInvoiceId(invoiceId);
+    }
+
+    public List<Notification> findByStatus(NotificationStatus status) {
+        return repository.findByStatus(status);
+    }
+
+    // ── Manual retry (for REST controller) ──────────────────────────────────────────────
+
     /**
-     * Create and send notification from template
+     * Prepares a failed notification for retry and schedules async dispatch.
+     *
+     * @throws NoSuchElementException if no notification exists for the given ID
+     * @throws IllegalStateException  if the notification cannot be retried
      */
     @Transactional
-    public Notification createAndSend(NotificationType type, NotificationChannel channel,
-                                     String recipient, String templateName,
-                                     Map<String, Object> templateVariables) {
-        Notification notification = Notification.createFromTemplate(
-            type, channel, recipient, templateName, templateVariables
-        );
+    public void prepareAndDispatchRetry(UUID id) {
+        Notification notification = repository.findById(id)
+            .orElseThrow(() -> new NoSuchElementException("Notification not found: " + id));
 
-        return sendNotification(notification);
+        if (!notification.canRetry(maxRetries)) {
+            throw new IllegalStateException("Cannot retry notification");
+        }
+
+        notification.prepareRetry();
+        repository.save(notification);
+        dispatcherService.dispatchAsync(notification);
     }
 
-    /**
-     * Retry failed notifications (scheduled task)
-     */
-    @Scheduled(fixedDelayString = "${app.notification.retry-interval:300000}") // 5 minutes
+    // ── Scheduled sweepers ───────────────────────────────────────────────────────────────
+
+    @Scheduled(fixedDelayString = "${app.notification.retry-interval:300000}")
     @Transactional
     public void retryFailedNotifications() {
-        List<Notification> failedNotifications = repository.findFailedNotifications(maxRetries);
+        List<Notification> failedNotifications = repository.findFailedNotifications(maxRetries, 100);
 
         log.info("Found {} failed notifications to retry", failedNotifications.size());
 
@@ -109,13 +117,10 @@ public class NotificationService {
         }
     }
 
-    /**
-     * Process pending notifications (scheduled task)
-     */
-    @Scheduled(fixedDelayString = "${app.notification.processing-interval:60000}") // 1 minute
+    @Scheduled(fixedDelayString = "${app.notification.processing-interval:60000}")
     @Transactional
     public void processPendingNotifications() {
-        List<Notification> pendingNotifications = repository.findPendingNotifications();
+        List<Notification> pendingNotifications = repository.findPendingNotifications(100);
 
         log.debug("Processing {} pending notifications", pendingNotifications.size());
 
@@ -126,29 +131,5 @@ public class NotificationService {
                 log.error("Failed to process pending notification: id={}", notification.getId(), e);
             }
         }
-    }
-
-    /**
-     * Get notification statistics
-     */
-    public Map<String, Long> getStatistics() {
-        return Map.of(
-            "pending", repository.countByStatus(NotificationStatus.PENDING),
-            "sending", repository.countByStatus(NotificationStatus.SENDING),
-            "sent", repository.countByStatus(NotificationStatus.SENT),
-            "failed", repository.countByStatus(NotificationStatus.FAILED),
-            "retrying", repository.countByStatus(NotificationStatus.RETRYING)
-        );
-    }
-
-    /**
-     * Find sender for channel
-     * @throws IllegalStateException if no sender supports the channel
-     */
-    private NotificationSender findSender(NotificationChannel channel) {
-        return senders.stream()
-            .filter(sender -> sender.supports(channel))
-            .findFirst()
-            .orElseThrow(() -> new IllegalStateException("No sender found for channel: " + channel));
     }
 }

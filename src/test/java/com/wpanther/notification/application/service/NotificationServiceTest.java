@@ -5,12 +5,10 @@ import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.model.NotificationType;
 import com.wpanther.notification.domain.repository.NotificationRepository;
-import com.wpanther.notification.domain.service.NotificationSender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -18,14 +16,14 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("NotificationService Application Service Tests")
@@ -35,10 +33,7 @@ class NotificationServiceTest {
     private NotificationRepository repository;
 
     @Mock
-    private NotificationSender emailSender;
-
-    @Mock
-    private NotificationSender webhookSender;
+    private NotificationSendingService sendingService;
 
     @Mock
     private NotificationDispatcherService dispatcherService;
@@ -47,11 +42,13 @@ class NotificationServiceTest {
     private NotificationService notificationService;
 
     private Notification testNotification;
+    private UUID testId;
 
     @BeforeEach
     void setUp() {
+        testId = UUID.randomUUID();
         testNotification = Notification.builder()
-            .id(UUID.randomUUID())
+            .id(testId)
             .type(NotificationType.INVOICE_PROCESSED)
             .channel(NotificationChannel.EMAIL)
             .recipient("test@example.com")
@@ -59,152 +56,86 @@ class NotificationServiceTest {
             .status(NotificationStatus.PENDING)
             .build();
 
-        // Configure mock senders with lenient stubbing to avoid UnnecessaryStubbingException
-        lenient().when(emailSender.supports(any())).thenAnswer(invocation -> {
-            NotificationChannel channel = invocation.getArgument(0);
-            return channel == NotificationChannel.EMAIL;
-        });
-        lenient().when(webhookSender.supports(any())).thenAnswer(invocation -> {
-            NotificationChannel channel = invocation.getArgument(0);
-            return channel == NotificationChannel.WEBHOOK;
-        });
-
-        // Set maxRetries via reflection
         ReflectionTestUtils.setField(notificationService, "maxRetries", 3);
-
-        // Set senders list via reflection
-        ReflectionTestUtils.setField(notificationService, "senders", List.of(emailSender, webhookSender));
-
-        // Set dispatcherService via reflection
-        ReflectionTestUtils.setField(notificationService, "dispatcherService", dispatcherService);
     }
 
-    // ========== Send Notification Tests ==========
+    // ── Delegation tests ──────────────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("Should send notification successfully and update status to SENT")
-    void testSendNotificationHappyPath() throws Exception {
-        // Arrange
-        when(repository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        doNothing().when(emailSender).send(any());
+    @DisplayName("sendNotification delegates to NotificationSendingService")
+    void testSendNotification_delegatesToSendingService() {
+        when(sendingService.sendNotification(testNotification)).thenReturn(testNotification);
 
-        // Act
         Notification result = notificationService.sendNotification(testNotification);
 
-        // Assert
-        verify(repository, times(3)).save(any(Notification.class));
-        verify(emailSender).send(any(Notification.class));
-
-        // Final result should be SENT with sentAt timestamp
-        assertThat(result.getStatus()).isEqualTo(NotificationStatus.SENT);
-        assertThat(result.getSentAt()).isNotNull();
+        verify(sendingService).sendNotification(testNotification);
+        assertThat(result).isEqualTo(testNotification);
     }
 
     @Test
-    @DisplayName("Should return FAILED notification without throwing when sender fails")
-    void testSendNotification_returnsFailed_withoutThrowing() throws Exception {
-        // Arrange
-        when(repository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        doThrow(new RuntimeException("SMTP error")).when(emailSender).send(any());
+    @DisplayName("getStatistics delegates to NotificationSendingService")
+    void testGetStatistics_delegatesToSendingService() {
+        Map<String, Long> stats = Map.of("sent", 10L, "failed", 2L);
+        when(sendingService.getStatistics()).thenReturn(stats);
 
-        // Act - must NOT throw; FAILED status must be returned so @Transactional can commit
-        Notification result = notificationService.sendNotification(testNotification);
+        Map<String, Long> result = notificationService.getStatistics();
 
-        // Assert
-        assertThat(result.getStatus()).isEqualTo(NotificationStatus.FAILED);
-        assertThat(result.getErrorMessage()).contains("SMTP error");
-        assertThat(result.getFailedAt()).isNotNull();
+        verify(sendingService).getStatistics();
+        assertThat(result).isEqualTo(stats);
+    }
+
+    // ── Query method tests ────────────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("findById delegates to repository")
+    void testFindById_delegatesToRepository() {
+        when(repository.findById(testId)).thenReturn(Optional.of(testNotification));
+
+        Optional<Notification> result = notificationService.findById(testId);
+
+        verify(repository).findById(testId);
+        assertThat(result).contains(testNotification);
     }
 
     @Test
-    @DisplayName("Should return FAILED notification without throwing when no sender found")
-    void testSendNotification_returnsFailed_whenNoSenderFound() throws Exception {
-        // Arrange
-        testNotification.setChannel(NotificationChannel.SMS);
-        when(repository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    @DisplayName("findById returns empty when notification not found")
+    void testFindById_returnsEmpty_whenNotFound() {
+        when(repository.findById(testId)).thenReturn(Optional.empty());
 
-        // Act - must NOT throw so @Transactional can commit the FAILED status
-        Notification result = notificationService.sendNotification(testNotification);
+        Optional<Notification> result = notificationService.findById(testId);
 
-        // Assert
-        assertThat(result.getStatus()).isEqualTo(NotificationStatus.FAILED);
-        assertThat(result.getErrorMessage()).contains("No sender found for channel");
-        assertThat(result.getFailedAt()).isNotNull();
-    }
-
-    // ========== Sender Selection Tests ==========
-
-    @Test
-    @DisplayName("Should select EMAIL sender for EMAIL channel")
-    void testFindSenderForEmail() throws Exception {
-        // Arrange
-        testNotification.setChannel(NotificationChannel.EMAIL);
-        when(repository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        doNothing().when(emailSender).send(any());
-
-        // Act
-        notificationService.sendNotification(testNotification);
-
-        // Assert
-        verify(emailSender).send(any(Notification.class));
-        verify(webhookSender, never()).send(any());
+        assertThat(result).isEmpty();
     }
 
     @Test
-    @DisplayName("Should select WEBHOOK sender for WEBHOOK channel")
-    void testFindSenderForWebhook() throws Exception {
-        // Arrange
-        testNotification.setChannel(NotificationChannel.WEBHOOK);
-        testNotification.setRecipient("https://api.example.com/webhook");
-        when(repository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        doNothing().when(webhookSender).send(any());
+    @DisplayName("findByInvoiceId delegates to repository")
+    void testFindByInvoiceId_delegatesToRepository() {
+        when(repository.findByInvoiceId("INV-001")).thenReturn(List.of(testNotification));
 
-        // Act
-        notificationService.sendNotification(testNotification);
+        List<Notification> result = notificationService.findByInvoiceId("INV-001");
 
-        // Assert
-        verify(webhookSender).send(any(Notification.class));
-        verify(emailSender, never()).send(any());
+        verify(repository).findByInvoiceId("INV-001");
+        assertThat(result).containsExactly(testNotification);
     }
 
-    // ========== Create and Send Tests ==========
-
     @Test
-    @DisplayName("Should create notification from template and send")
-    void testCreateAndSend() throws Exception {
-        // Arrange
-        Map<String, Object> templateVars = Map.of("invoiceNumber", "INV-001");
-        when(repository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        doNothing().when(emailSender).send(any());
+    @DisplayName("findByStatus delegates to repository")
+    void testFindByStatus_delegatesToRepository() {
+        when(repository.findByStatus(NotificationStatus.SENT)).thenReturn(List.of(testNotification));
 
-        // Act
-        Notification result = notificationService.createAndSend(
-            NotificationType.INVOICE_PROCESSED,
-            NotificationChannel.EMAIL,
-            "test@example.com",
-            "invoice-processed",
-            templateVars
-        );
+        List<Notification> result = notificationService.findByStatus(NotificationStatus.SENT);
 
-        // Assert
-        assertThat(result.getType()).isEqualTo(NotificationType.INVOICE_PROCESSED);
-        assertThat(result.getChannel()).isEqualTo(NotificationChannel.EMAIL);
-        assertThat(result.getRecipient()).isEqualTo("test@example.com");
-        assertThat(result.getTemplateName()).isEqualTo("invoice-processed");
-        assertThat(result.getTemplateVariables()).containsAllEntriesOf(templateVars);
-        assertThat(result.getStatus()).isEqualTo(NotificationStatus.SENT);
-
-        verify(emailSender).send(any(Notification.class));
+        verify(repository).findByStatus(NotificationStatus.SENT);
+        assertThat(result).containsExactly(testNotification);
     }
 
-    // ========== Retry Failed Notifications Tests ==========
+    // ── prepareAndDispatchRetry tests ─────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("Should retry failed notifications with retryCount < maxRetries")
-    void testRetryFailedNotificationsRetries() {
-        // Arrange
+    @DisplayName("prepareAndDispatchRetry succeeds for retryable notification")
+    void testPrepareAndDispatchRetry_success() {
         Notification failedNotification = Notification.builder()
-            .id(UUID.randomUUID())
+            .id(testId)
             .type(NotificationType.INVOICE_PROCESSED)
             .channel(NotificationChannel.EMAIL)
             .recipient("test@example.com")
@@ -213,38 +144,55 @@ class NotificationServiceTest {
             .retryCount(1)
             .build();
 
-        when(repository.findFailedNotifications(3)).thenReturn(List.of(failedNotification));
-        when(repository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.findById(testId)).thenReturn(Optional.of(failedNotification));
+        when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        // Act
-        notificationService.retryFailedNotifications();
+        notificationService.prepareAndDispatchRetry(testId);
 
-        // Assert
-        // Verify that save was called at least once (prepareRetry saves with RETRYING status)
-        verify(repository, atLeastOnce()).save(any(Notification.class));
-
-        // The retry count should be incremented
+        verify(repository).findById(testId);
+        verify(repository).save(failedNotification);
+        verify(dispatcherService).dispatchAsync(failedNotification);
         assertThat(failedNotification.getRetryCount()).isEqualTo(2);
     }
 
     @Test
-    @DisplayName("Should not retry when no failed notifications found")
-    void testRetryFailedNotificationsWhenNoneFound() throws Exception {
-        // Arrange
-        when(repository.findFailedNotifications(3)).thenReturn(List.of());
+    @DisplayName("prepareAndDispatchRetry throws NoSuchElementException when not found")
+    void testPrepareAndDispatchRetry_notFound() {
+        when(repository.findById(testId)).thenReturn(Optional.empty());
 
-        // Act
-        notificationService.retryFailedNotifications();
+        assertThatThrownBy(() -> notificationService.prepareAndDispatchRetry(testId))
+            .isInstanceOf(NoSuchElementException.class);
 
-        // Assert
-        verify(repository, never()).save(any());
-        verify(emailSender, never()).send(any());
+        verify(dispatcherService, never()).dispatchAsync(any());
     }
 
     @Test
-    @DisplayName("Should handle exception during retry gracefully")
-    void testRetryFailedNotificationsHandlesException() {
-        // Arrange
+    @DisplayName("prepareAndDispatchRetry throws IllegalStateException when max retries reached")
+    void testPrepareAndDispatchRetry_maxRetriesReached() {
+        Notification maxRetriesNotification = Notification.builder()
+            .id(testId)
+            .type(NotificationType.INVOICE_PROCESSED)
+            .channel(NotificationChannel.EMAIL)
+            .recipient("test@example.com")
+            .subject("Test")
+            .status(NotificationStatus.FAILED)
+            .retryCount(3) // equals maxRetries
+            .build();
+
+        when(repository.findById(testId)).thenReturn(Optional.of(maxRetriesNotification));
+
+        assertThatThrownBy(() -> notificationService.prepareAndDispatchRetry(testId))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Cannot retry notification");
+
+        verify(dispatcherService, never()).dispatchAsync(any());
+    }
+
+    // ── Scheduler: retryFailedNotifications tests ─────────────────────────────────────────
+
+    @Test
+    @DisplayName("retryFailedNotifications retries notifications with retryCount < maxRetries")
+    void testRetryFailedNotificationsRetries() {
         Notification failedNotification = Notification.builder()
             .id(UUID.randomUUID())
             .type(NotificationType.INVOICE_PROCESSED)
@@ -255,59 +203,51 @@ class NotificationServiceTest {
             .retryCount(1)
             .build();
 
-        when(repository.findFailedNotifications(3)).thenReturn(List.of(failedNotification));
-        when(repository.save(any(Notification.class))).thenThrow(new RuntimeException("Database error"));
+        when(repository.findFailedNotifications(3, 100)).thenReturn(List.of(failedNotification));
+        when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        // Act - should not throw exception
         notificationService.retryFailedNotifications();
 
-        // Assert
-        verify(repository).save(any(Notification.class));
-    }
-
-    // ========== Process Pending Notifications Tests ==========
-
-    @Test
-    @DisplayName("Should process pending notifications")
-    void testProcessPendingNotifications() {
-        // Arrange
-        Notification pendingNotification = Notification.builder()
-            .id(UUID.randomUUID())
-            .type(NotificationType.INVOICE_PROCESSED)
-            .channel(NotificationChannel.EMAIL)
-            .recipient("test@example.com")
-            .subject("Test")
-            .status(NotificationStatus.PENDING)
-            .retryCount(0)
-            .build();
-
-        when(repository.findPendingNotifications()).thenReturn(List.of(pendingNotification));
-
-        // Act
-        notificationService.processPendingNotifications();
-
-        // Assert
-        verify(repository).findPendingNotifications();
+        verify(repository, atLeastOnce()).save(any(Notification.class));
+        assertThat(failedNotification.getRetryCount()).isEqualTo(2);
     }
 
     @Test
-    @DisplayName("Should not process when no pending notifications found")
-    void testProcessPendingNotificationsWhenNoneFound() {
-        // Arrange
-        when(repository.findPendingNotifications()).thenReturn(List.of());
+    @DisplayName("retryFailedNotifications does nothing when no failed notifications")
+    void testRetryFailedNotificationsWhenNoneFound() {
+        when(repository.findFailedNotifications(3, 100)).thenReturn(List.of());
 
-        // Act
-        notificationService.processPendingNotifications();
+        notificationService.retryFailedNotifications();
 
-        // Assert
-        verify(repository).findPendingNotifications();
         verify(repository, never()).save(any());
     }
 
     @Test
-    @DisplayName("Should handle exception during processing gracefully")
-    void testProcessPendingNotificationsHandlesException() {
-        // Arrange
+    @DisplayName("retryFailedNotifications handles exception gracefully")
+    void testRetryFailedNotificationsHandlesException() {
+        Notification failedNotification = Notification.builder()
+            .id(UUID.randomUUID())
+            .type(NotificationType.INVOICE_PROCESSED)
+            .channel(NotificationChannel.EMAIL)
+            .recipient("test@example.com")
+            .subject("Test")
+            .status(NotificationStatus.FAILED)
+            .retryCount(1)
+            .build();
+
+        when(repository.findFailedNotifications(3, 100)).thenReturn(List.of(failedNotification));
+        when(repository.save(any(Notification.class))).thenThrow(new RuntimeException("Database error"));
+
+        notificationService.retryFailedNotifications(); // must not throw
+
+        verify(repository).save(any(Notification.class));
+    }
+
+    // ── Scheduler: processPendingNotifications tests ──────────────────────────────────────
+
+    @Test
+    @DisplayName("processPendingNotifications dispatches each pending notification")
+    void testProcessPendingNotifications() {
         Notification pendingNotification = Notification.builder()
             .id(UUID.randomUUID())
             .type(NotificationType.INVOICE_PROCESSED)
@@ -318,52 +258,43 @@ class NotificationServiceTest {
             .retryCount(0)
             .build();
 
-        when(repository.findPendingNotifications()).thenReturn(List.of(pendingNotification));
-        doThrow(new RuntimeException("Dispatch error")).when(dispatcherService).dispatchAsync(any(Notification.class));
+        when(repository.findPendingNotifications(100)).thenReturn(List.of(pendingNotification));
 
-        // Act - should not throw exception
         notificationService.processPendingNotifications();
 
-        // Assert - verify dispatcher was called even though it threw an exception
+        verify(repository).findPendingNotifications(100);
         verify(dispatcherService).dispatchAsync(pendingNotification);
     }
 
-    // ========== Statistics Tests ==========
-
     @Test
-    @DisplayName("Should return notification statistics by status")
-    void testGetStatistics() {
-        // Arrange
-        when(repository.countByStatus(NotificationStatus.PENDING)).thenReturn(5L);
-        when(repository.countByStatus(NotificationStatus.SENDING)).thenReturn(2L);
-        when(repository.countByStatus(NotificationStatus.SENT)).thenReturn(100L);
-        when(repository.countByStatus(NotificationStatus.FAILED)).thenReturn(3L);
-        when(repository.countByStatus(NotificationStatus.RETRYING)).thenReturn(1L);
+    @DisplayName("processPendingNotifications does nothing when no pending notifications")
+    void testProcessPendingNotificationsWhenNoneFound() {
+        when(repository.findPendingNotifications(100)).thenReturn(List.of());
 
-        // Act
-        Map<String, Long> statistics = notificationService.getStatistics();
+        notificationService.processPendingNotifications();
 
-        // Assert
-        assertThat(statistics)
-            .containsEntry("pending", 5L)
-            .containsEntry("sending", 2L)
-            .containsEntry("sent", 100L)
-            .containsEntry("failed", 3L)
-            .containsEntry("retrying", 1L);
-
-        verify(repository, times(5)).countByStatus(any(NotificationStatus.class));
+        verify(repository).findPendingNotifications(100);
+        verify(repository, never()).save(any());
     }
 
     @Test
-    @DisplayName("Should return zero counts when no notifications exist")
-    void testGetStatisticsWhenEmpty() {
-        // Arrange
-        when(repository.countByStatus(any(NotificationStatus.class))).thenReturn(0L);
+    @DisplayName("processPendingNotifications handles dispatch exception gracefully")
+    void testProcessPendingNotificationsHandlesException() {
+        Notification pendingNotification = Notification.builder()
+            .id(UUID.randomUUID())
+            .type(NotificationType.INVOICE_PROCESSED)
+            .channel(NotificationChannel.EMAIL)
+            .recipient("test@example.com")
+            .subject("Test")
+            .status(NotificationStatus.PENDING)
+            .retryCount(0)
+            .build();
 
-        // Act
-        Map<String, Long> statistics = notificationService.getStatistics();
+        when(repository.findPendingNotifications(100)).thenReturn(List.of(pendingNotification));
+        doThrow(new RuntimeException("Dispatch error")).when(dispatcherService).dispatchAsync(any());
 
-        // Assert
-        assertThat(statistics).allSatisfy((key, value) -> assertThat(value).isZero());
+        notificationService.processPendingNotifications(); // must not throw
+
+        verify(dispatcherService).dispatchAsync(pendingNotification);
     }
 }

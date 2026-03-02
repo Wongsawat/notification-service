@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -23,7 +24,7 @@ import static org.mockito.Mockito.*;
 class NotificationDispatcherServiceTest {
 
     @Mock
-    private NotificationService notificationService;
+    private NotificationSendingService sendingService;
 
     private NotificationDispatcherService dispatcherService;
 
@@ -32,7 +33,7 @@ class NotificationDispatcherServiceTest {
 
     @BeforeEach
     void setUp() {
-        dispatcherService = new NotificationDispatcherService(notificationService);
+        dispatcherService = new NotificationDispatcherService(sendingService);
 
         testId = UUID.randomUUID();
         testNotification = Notification.builder()
@@ -46,10 +47,10 @@ class NotificationDispatcherServiceTest {
     }
 
     @Test
-    @DisplayName("dispatchAsync calls notificationService in async thread")
-    void testDispatchAsync_callsNotificationServiceInAsyncThread() {
+    @DisplayName("dispatchAsync calls sendingService in async thread")
+    void testDispatchAsync_callsSendingServiceInAsyncThread() {
         // Arrange
-        when(notificationService.sendNotification(any(Notification.class)))
+        when(sendingService.sendNotification(any(Notification.class)))
             .thenReturn(testNotification);
 
         // Act
@@ -57,26 +58,25 @@ class NotificationDispatcherServiceTest {
 
         // Assert - wait for async execution
         await().atMost(java.time.Duration.ofSeconds(2))
-            .untilAsserted(() -> verify(notificationService).sendNotification(testNotification));
+            .untilAsserted(() -> verify(sendingService).sendNotification(testNotification));
     }
 
     @Test
-    @DisplayName("dispatchAsync passes notification unchanged to service")
+    @DisplayName("dispatchAsync passes notification unchanged to sendingService")
     void testDispatchAsync_passesNotificationUnchanged() {
         // Arrange
-        when(notificationService.sendNotification(any(Notification.class)))
+        when(sendingService.sendNotification(any(Notification.class)))
             .thenReturn(testNotification);
 
         // Act
         dispatcherService.dispatchAsync(testNotification);
 
-        // Assert - capture the argument passed to notificationService
+        // Assert - capture the argument passed to sendingService
         await().atMost(java.time.Duration.ofSeconds(2))
             .untilAsserted(() -> {
                 ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-                verify(notificationService).sendNotification(captor.capture());
-                // Verify it's the same notification (same ID)
-                assert captor.getValue().getId().equals(testId);
+                verify(sendingService).sendNotification(captor.capture());
+                assertThat(captor.getValue().getId()).isEqualTo(testId);
             });
     }
 }

@@ -28,9 +28,9 @@ public interface NotificationRepository {
 
     List<Notification> findByType(NotificationType type);
 
-    List<Notification> findFailedNotifications(int maxRetries);
+    List<Notification> findFailedNotifications(int maxRetries, int limit);
 
-    List<Notification> findPendingNotifications();
+    List<Notification> findPendingNotifications(int limit);
 
     List<Notification> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 

@@ -11,32 +11,29 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Service for dispatching notifications asynchronously.
  *
- * <p>This separate service fixes the @Async self-invocation problem where
- * calling an async method from within the same bean bypasses the Spring proxy.
- * By extracting to a separate service, the @Async proxy is properly invoked.</p>
+ * <p>This separate service fixes the @Async self-invocation problem where calling an async
+ * method from within the same bean bypasses the Spring proxy. By extracting to a separate
+ * service, the @Async proxy is properly invoked.</p>
  *
- * <p>Uses REQUIRES_NEW propagation to ensure each async dispatch gets its own
- * transaction, independent of the caller's transaction context.</p>
+ * <p>Uses REQUIRES_NEW propagation to ensure each async dispatch gets its own transaction,
+ * independent of the caller's transaction context.</p>
  *
- * <p>Note: @Lazy is used to break circular dependency with NotificationService.</p>
+ * <p>Depends on {@link NotificationSendingService} (not {@link NotificationService}) to avoid
+ * a circular dependency: NotificationService → NotificationDispatcherService →
+ * NotificationSendingService.</p>
  */
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class NotificationDispatcherService {
 
-    private final NotificationService notificationService;
-
-    public NotificationDispatcherService(
-            @org.springframework.context.annotation.Lazy NotificationService notificationService) {
-        this.notificationService = notificationService;
-    }
+    private final NotificationSendingService sendingService;
 
     /**
      * Dispatch notification asynchronously with a new transaction.
      *
-     * <p>This method runs in a separate thread with its own transaction context.
-     * If the notification sending fails, only this transaction rolls back,
-     * not the caller's transaction.</p>
+     * <p>Runs in a separate thread with its own transaction context. If sending fails,
+     * only this transaction rolls back, not the caller's.</p>
      *
      * @param notification the notification to send
      */
@@ -46,7 +43,7 @@ public class NotificationDispatcherService {
         log.debug("Dispatching notification asynchronously: id={}, thread={}",
             notification.getId(), Thread.currentThread().getName());
 
-        notificationService.sendNotification(notification);
+        sendingService.sendNotification(notification);
 
         log.debug("Async dispatch completed: id={}", notification.getId());
     }

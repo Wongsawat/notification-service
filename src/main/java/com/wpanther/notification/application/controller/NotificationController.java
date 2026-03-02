@@ -1,23 +1,21 @@
 package com.wpanther.notification.application.controller;
 
-import com.wpanther.notification.application.service.NotificationDispatcherService;
 import com.wpanther.notification.application.service.NotificationService;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.model.NotificationType;
-import com.wpanther.notification.domain.repository.NotificationRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
 /**
@@ -30,11 +28,6 @@ import java.util.UUID;
 public class NotificationController {
 
     private final NotificationService notificationService;
-    private final NotificationRepository notificationRepository;
-    private final NotificationDispatcherService dispatcherService;
-
-    @Value("${app.notification.max-retries:3}")
-    private int maxRetries;
 
     /**
      * Send notification manually
@@ -90,7 +83,7 @@ public class NotificationController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<Notification> getNotification(@PathVariable UUID id) {
-        return notificationRepository.findById(id)
+        return notificationService.findById(id)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
     }
@@ -102,8 +95,7 @@ public class NotificationController {
     public ResponseEntity<List<Notification>> getNotificationsByInvoice(
         @PathVariable String invoiceId
     ) {
-        List<Notification> notifications = notificationRepository.findByInvoiceId(invoiceId);
-        return ResponseEntity.ok(notifications);
+        return ResponseEntity.ok(notificationService.findByInvoiceId(invoiceId));
     }
 
     /**
@@ -113,8 +105,7 @@ public class NotificationController {
     public ResponseEntity<List<Notification>> getNotificationsByStatus(
         @PathVariable NotificationStatus status
     ) {
-        List<Notification> notifications = notificationRepository.findByStatus(status);
-        return ResponseEntity.ok(notifications);
+        return ResponseEntity.ok(notificationService.findByStatus(status));
     }
 
     /**
@@ -130,19 +121,14 @@ public class NotificationController {
      */
     @PostMapping("/{id}/retry")
     public ResponseEntity<Map<String, String>> retryNotification(@PathVariable UUID id) {
-        return notificationRepository.findById(id)
-            .map(notification -> {
-                if (notification.canRetry(maxRetries)) {
-                    notification.prepareRetry();
-                    notificationRepository.save(notification);
-                    dispatcherService.dispatchAsync(notification);
-                    return ResponseEntity.ok(Map.of("message", "Retry scheduled"));
-                } else {
-                    return ResponseEntity.badRequest()
-                        .body(Map.of("error", "Cannot retry notification"));
-                }
-            })
-            .orElse(ResponseEntity.notFound().build());
+        try {
+            notificationService.prepareAndDispatchRetry(id);
+            return ResponseEntity.ok(Map.of("message", "Retry scheduled"));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     /**

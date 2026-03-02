@@ -194,7 +194,7 @@ class NotificationRepositoryImplTest {
             repository.save(failed3);
 
             // Act
-            List<Notification> failed = repository.findFailedNotifications(3);
+            List<Notification> failed = repository.findFailedNotifications(3, 100);
 
             // Assert
             assertThat(failed).hasSize(2);
@@ -209,7 +209,7 @@ class NotificationRepositoryImplTest {
             repository.save(createNotification(NotificationStatus.PENDING));
 
             // Act
-            List<Notification> pending = repository.findPendingNotifications();
+            List<Notification> pending = repository.findPendingNotifications(100);
 
             // Assert
             assertThat(pending).hasSize(2);

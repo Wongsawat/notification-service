@@ -5,6 +5,7 @@ import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.model.NotificationType;
 import com.wpanther.notification.domain.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -69,15 +70,15 @@ public class NotificationRepositoryImpl implements NotificationRepository {
     }
 
     @Override
-    public List<Notification> findFailedNotifications(int maxRetries) {
-        return jpaRepository.findFailedNotifications(maxRetries).stream()
+    public List<Notification> findFailedNotifications(int maxRetries, int limit) {
+        return jpaRepository.findFailedNotifications(maxRetries, PageRequest.of(0, limit)).stream()
             .map(this::toDomain)
             .toList();
     }
 
     @Override
-    public List<Notification> findPendingNotifications() {
-        return jpaRepository.findPendingNotifications().stream()
+    public List<Notification> findPendingNotifications(int limit) {
+        return jpaRepository.findPendingNotifications(PageRequest.of(0, limit)).stream()
             .map(this::toDomain)
             .toList();
     }

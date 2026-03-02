@@ -5,11 +5,7 @@ import com.wpanther.notification.application.service.NotificationService;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationType;
-import com.wpanther.notification.infrastructure.messaging.EbmsSentEvent;
-import com.wpanther.notification.infrastructure.messaging.InvoiceProcessedEvent;
-import com.wpanther.notification.infrastructure.messaging.PdfGeneratedEvent;
-import com.wpanther.notification.infrastructure.messaging.PdfSignedEvent;
-import com.wpanther.notification.infrastructure.messaging.TaxInvoiceProcessedEvent;
+import com.wpanther.notification.infrastructure.config.KafkaTopicsConfig;
 import com.wpanther.notification.infrastructure.messaging.saga.SagaCompletedEvent;
 import com.wpanther.notification.infrastructure.messaging.saga.SagaFailedEvent;
 import com.wpanther.notification.infrastructure.messaging.saga.SagaStartedEvent;
@@ -46,30 +42,7 @@ public class NotificationEventRoutes extends RouteBuilder {
     private final boolean notificationEnabled;
     private final String consumerGroup;
     private final String kafkaBrokers;
-
-    // Topic names
-    private final String invoiceProcessedTopic;
-    private final String taxInvoiceProcessedTopic;
-    private final String pdfGeneratedTopic;
-    private final String pdfSignedTopic;
-    private final String xmlSignedTopic;
-    private final String ebmsSentTopic;
-    private final String dlqTopic;
-
-    // Document-type-specific topics for statistics
-    private final String documentReceivedCountingTopic; // For counting (all documents before validation)
-    private final String taxInvoiceReceivedTopic;
-    private final String invoiceReceivedTopic;
-    private final String receiptReceivedTopic;
-    private final String debitCreditNoteReceivedTopic;
-    private final String cancellationReceivedTopic;
-    private final String abbreviatedReceivedTopic;
-
-    // Saga lifecycle topics
-    private final String sagaLifecycleStartedTopic;
-    private final String sagaLifecycleStepCompletedTopic;
-    private final String sagaLifecycleCompletedTopic;
-    private final String sagaLifecycleFailedTopic;
+    private final KafkaTopicsConfig topics;
 
     public NotificationEventRoutes(
             NotificationService notificationService,
@@ -78,54 +51,20 @@ public class NotificationEventRoutes extends RouteBuilder {
             @Value("${app.notification.enabled:true}") boolean notificationEnabled,
             @Value("${spring.kafka.consumer.group-id}") String consumerGroup,
             @Value("${spring.kafka.bootstrap-servers}") String kafkaBrokers,
-            @Value("${kafka.topics.invoice-processed}") String invoiceProcessedTopic,
-            @Value("${kafka.topics.taxinvoice-processed}") String taxInvoiceProcessedTopic,
-            @Value("${kafka.topics.pdf-generated}") String pdfGeneratedTopic,
-            @Value("${kafka.topics.pdf-signed}") String pdfSignedTopic,
-            @Value("${kafka.topics.xml-signed:xml.signed}") String xmlSignedTopic,
-            @Value("${kafka.topics.ebms-sent:ebms.sent}") String ebmsSentTopic,
-            @Value("${kafka.topics.notification-dlq:notification.dlq}") String dlqTopic,
-            @Value("${kafka.topics.document-received:document.received}") String documentReceivedCountingTopic,
-            @Value("${kafka.topics.tax-invoice-received:document.received.tax-invoice}") String taxInvoiceReceivedTopic,
-            @Value("${kafka.topics.invoice-received:document.received.invoice}") String invoiceReceivedTopic,
-            @Value("${kafka.topics.receipt-received:document.received.receipt}") String receiptReceivedTopic,
-            @Value("${kafka.topics.debit-credit-note-received:document.received.debit-credit-note}") String debitCreditNoteReceivedTopic,
-            @Value("${kafka.topics.cancellation-received:document.received.cancellation}") String cancellationReceivedTopic,
-            @Value("${kafka.topics.abbreviated-received:document.received.abbreviated}") String abbreviatedReceivedTopic,
-            @Value("${kafka.topics.saga-lifecycle-started}") String sagaLifecycleStartedTopic,
-            @Value("${kafka.topics.saga-lifecycle-step-completed}") String sagaLifecycleStepCompletedTopic,
-            @Value("${kafka.topics.saga-lifecycle-completed}") String sagaLifecycleCompletedTopic,
-            @Value("${kafka.topics.saga-lifecycle-failed}") String sagaLifecycleFailedTopic) {
+            KafkaTopicsConfig topics) {
         this.notificationService = notificationService;
         this.dispatcherService = dispatcherService;
         this.defaultRecipient = defaultRecipient;
         this.notificationEnabled = notificationEnabled;
         this.consumerGroup = consumerGroup;
         this.kafkaBrokers = kafkaBrokers;
-        this.invoiceProcessedTopic = invoiceProcessedTopic;
-        this.taxInvoiceProcessedTopic = taxInvoiceProcessedTopic;
-        this.pdfGeneratedTopic = pdfGeneratedTopic;
-        this.pdfSignedTopic = pdfSignedTopic;
-        this.xmlSignedTopic = xmlSignedTopic;
-        this.ebmsSentTopic = ebmsSentTopic;
-        this.dlqTopic = dlqTopic;
-        this.documentReceivedCountingTopic = documentReceivedCountingTopic;
-        this.taxInvoiceReceivedTopic = taxInvoiceReceivedTopic;
-        this.invoiceReceivedTopic = invoiceReceivedTopic;
-        this.receiptReceivedTopic = receiptReceivedTopic;
-        this.debitCreditNoteReceivedTopic = debitCreditNoteReceivedTopic;
-        this.cancellationReceivedTopic = cancellationReceivedTopic;
-        this.abbreviatedReceivedTopic = abbreviatedReceivedTopic;
-        this.sagaLifecycleStartedTopic = sagaLifecycleStartedTopic;
-        this.sagaLifecycleStepCompletedTopic = sagaLifecycleStepCompletedTopic;
-        this.sagaLifecycleCompletedTopic = sagaLifecycleCompletedTopic;
-        this.sagaLifecycleFailedTopic = sagaLifecycleFailedTopic;
+        this.topics = topics;
     }
 
     @Override
     public void configure() throws Exception {
         // Global error handler - Dead Letter Channel with exponential backoff
-        errorHandler(deadLetterChannel("kafka:" + dlqTopic + "?brokers=" + kafkaBrokers)
+        errorHandler(deadLetterChannel("kafka:" + topics.notificationDlq() + "?brokers=" + kafkaBrokers)
             .maximumRedeliveries(3)
             .redeliveryDelay(1000)
             .useExponentialBackOff()
@@ -143,7 +82,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             + "&breakOnFirstError=true";
 
         // Route 1: Invoice Processed Events
-        from("kafka:" + invoiceProcessedTopic + kafkaOptions)
+        from("kafka:" + topics.invoiceProcessed() + kafkaOptions)
             .routeId("notification-invoice-processed")
             .log("Received InvoiceProcessedEvent from Kafka")
             .choice()
@@ -156,7 +95,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .log("Created notification for invoice processed: ${header.invoiceNumber}");
 
         // Route 2: Tax Invoice Processed Events
-        from("kafka:" + taxInvoiceProcessedTopic + kafkaOptions)
+        from("kafka:" + topics.taxinvoiceProcessed() + kafkaOptions)
             .routeId("notification-taxinvoice-processed")
             .log("Received TaxInvoiceProcessedEvent from Kafka")
             .choice()
@@ -169,7 +108,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .log("Created notification for tax invoice processed: ${header.invoiceNumber}");
 
         // Route 3: PDF Generated Events
-        from("kafka:" + pdfGeneratedTopic + kafkaOptions)
+        from("kafka:" + topics.pdfGenerated() + kafkaOptions)
             .routeId("notification-pdf-generated")
             .log("Received PdfGeneratedEvent from Kafka")
             .choice()
@@ -182,7 +121,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .log("Created notification for PDF generated: ${header.invoiceNumber}");
 
         // Route 4: PDF Signed Events
-        from("kafka:" + pdfSignedTopic + kafkaOptions)
+        from("kafka:" + topics.pdfSigned() + kafkaOptions)
             .routeId("notification-pdf-signed")
             .log("Received PdfSignedEvent from Kafka")
             .choice()
@@ -195,7 +134,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .log("Created notification for PDF signed: ${header.invoiceNumber}");
 
         // Route 5: XML Signed Events
-        from("kafka:" + xmlSignedTopic + kafkaOptions)
+        from("kafka:" + topics.xmlSigned() + kafkaOptions)
             .routeId("notification-xml-signed")
             .log("Received XmlSignedEvent from Kafka")
             .choice()
@@ -209,7 +148,7 @@ public class NotificationEventRoutes extends RouteBuilder {
 
         // Route 6: Document Received Counting Events (before validation - all documents)
         // This lightweight event tracks ALL received documents regardless of validation outcome
-        from("kafka:" + documentReceivedCountingTopic + kafkaOptions)
+        from("kafka:" + topics.documentReceived() + kafkaOptions)
             .routeId("notification-document-counting")
             .log("Received DocumentReceivedCountingEvent from Kafka")
             .choice()
@@ -223,7 +162,7 @@ public class NotificationEventRoutes extends RouteBuilder {
 
         // Route 6: Tax Invoice Document Received Events (after validation)
         // Statistics event for validated tax invoice documents
-        from("kafka:" + taxInvoiceReceivedTopic + kafkaOptions)
+        from("kafka:" + topics.taxInvoiceReceived() + kafkaOptions)
             .routeId("notification-tax-invoice-received")
             .log("Received DocumentReceivedEvent (TAX_INVOICE) from Kafka")
             .choice()
@@ -237,7 +176,7 @@ public class NotificationEventRoutes extends RouteBuilder {
 
         // Route 7: Invoice Document Received Events (after validation)
         // Statistics event for validated invoice documents
-        from("kafka:" + invoiceReceivedTopic + kafkaOptions)
+        from("kafka:" + topics.invoiceReceived() + kafkaOptions)
             .routeId("notification-invoice-received")
             .log("Received DocumentReceivedEvent (INVOICE) from Kafka")
             .choice()
@@ -251,7 +190,7 @@ public class NotificationEventRoutes extends RouteBuilder {
 
         // Additional routes for other document types follow the same pattern
         // Route 8: Receipt Document Received Events (after validation)
-        from("kafka:" + receiptReceivedTopic + kafkaOptions)
+        from("kafka:" + topics.receiptReceived() + kafkaOptions)
             .routeId("notification-receipt-received")
             .log("Received DocumentReceivedEvent (RECEIPT) from Kafka")
             .choice()
@@ -264,7 +203,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .log("Processed receipt statistics event");
 
         // Route 9: Debit/Credit Note Document Received Events (after validation)
-        from("kafka:" + debitCreditNoteReceivedTopic + kafkaOptions)
+        from("kafka:" + topics.debitCreditNoteReceived() + kafkaOptions)
             .routeId("notification-debit-credit-note-received")
             .log("Received DocumentReceivedEvent (DEBIT_CREDIT_NOTE) from Kafka")
             .choice()
@@ -277,7 +216,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .log("Processed debit/credit note statistics event");
 
         // Route 10: Cancellation Note Document Received Events (after validation)
-        from("kafka:" + cancellationReceivedTopic + kafkaOptions)
+        from("kafka:" + topics.cancellationReceived() + kafkaOptions)
             .routeId("notification-cancellation-received")
             .log("Received DocumentReceivedEvent (CANCELLATION) from Kafka")
             .choice()
@@ -290,7 +229,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .log("Processed cancellation note statistics event");
 
         // Route 11: Abbreviated Tax Invoice Document Received Events (after validation)
-        from("kafka:" + abbreviatedReceivedTopic + kafkaOptions)
+        from("kafka:" + topics.abbreviatedReceived() + kafkaOptions)
             .routeId("notification-abbreviated-received")
             .log("Received DocumentReceivedEvent (ABBREVIATED) from Kafka")
             .choice()
@@ -303,7 +242,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .log("Processed abbreviated tax invoice statistics event");
 
         // Route 12: ebMS Sent Events
-        from("kafka:" + ebmsSentTopic + kafkaOptions)
+        from("kafka:" + topics.ebmsSent() + kafkaOptions)
             .routeId("notification-ebms-sent")
             .log("Received EbmsSentEvent from Kafka")
             .choice()
@@ -316,7 +255,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .log("Created notification for ebMS sent: ${header.invoiceNumber}");
 
         // Route 13: Saga Started Events (logging only)
-        from("kafka:" + sagaLifecycleStartedTopic + kafkaOptions)
+        from("kafka:" + topics.sagaLifecycleStarted() + kafkaOptions)
             .routeId("notification-saga-started")
             .log("Received SagaStartedEvent from Kafka")
             .choice()
@@ -329,7 +268,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .log("Processed saga started: sagaId=${header.sagaId}");
 
         // Route 14: Saga Step Completed Events (logging only - no notifications)
-        from("kafka:" + sagaLifecycleStepCompletedTopic + kafkaOptions)
+        from("kafka:" + topics.sagaLifecycleStepCompleted() + kafkaOptions)
             .routeId("notification-saga-step-completed")
             .log("Received SagaStepCompletedEvent from Kafka")
             .choice()
@@ -342,7 +281,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .log("Processed saga step completed: step=${header.completedStep}");
 
         // Route 15: Saga Completed Events (creates email notification)
-        from("kafka:" + sagaLifecycleCompletedTopic + kafkaOptions)
+        from("kafka:" + topics.sagaLifecycleCompleted() + kafkaOptions)
             .routeId("notification-saga-completed")
             .log("Received SagaCompletedEvent from Kafka")
             .choice()
@@ -355,7 +294,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .log("Created notification for saga completed: sagaId=${header.sagaId}");
 
         // Route 16: Saga Failed Events (creates urgent email notification)
-        from("kafka:" + sagaLifecycleFailedTopic + kafkaOptions)
+        from("kafka:" + topics.sagaLifecycleFailed() + kafkaOptions)
             .routeId("notification-saga-failed")
             .log("Received SagaFailedEvent from Kafka")
             .choice()
