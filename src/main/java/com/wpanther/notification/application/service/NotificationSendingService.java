@@ -52,7 +52,7 @@ public class NotificationSendingService {
      * open during external I/O:
      * <ol>
      *   <li>Short tx: persist + markSending</li>
-     *   <li>No tx: actual SMTP/HTTP send (potentially slow)</li>
+     *   <li>No tx: actual sender I/O (email SMTP or webhook HTTP)</li>
      *   <li>Short tx: markSent or markFailed</li>
      * </ol>
      * Never throws — failures are captured as FAILED status.
@@ -79,7 +79,8 @@ public class NotificationSendingService {
             return result;
 
         } catch (Exception e) {
-            log.error("Failed to send notification: id={}", sending.getId(), e);
+            log.error("Failed to send notification: id={}, type={}, channel={}",
+                sending.getId(), sending.getType(), sending.getChannel(), e);
             // Phase 3b (failure): mark FAILED (short transaction)
             sending.markFailed(e.getMessage());
             return requiresNewTx.execute(status -> repository.save(sending));
