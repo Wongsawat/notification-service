@@ -5,8 +5,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Service for dispatching notifications asynchronously.
@@ -15,8 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
  * method from within the same bean bypasses the Spring proxy. By extracting to a separate
  * service, the @Async proxy is properly invoked.</p>
  *
- * <p>Uses REQUIRES_NEW propagation to ensure each async dispatch gets its own transaction,
- * independent of the caller's transaction context.</p>
+ * <p>Transaction management is handled by {@link NotificationSendingService} via short
+ * REQUIRES_NEW transactions, so no @Transactional annotation is needed here.</p>
  *
  * <p>Depends on {@link NotificationSendingService} (not {@link NotificationService}) to avoid
  * a circular dependency: NotificationService → NotificationDispatcherService →
@@ -30,15 +28,13 @@ public class NotificationDispatcherService {
     private final NotificationSendingService sendingService;
 
     /**
-     * Dispatch notification asynchronously with a new transaction.
-     *
-     * <p>Runs in a separate thread with its own transaction context. If sending fails,
-     * only this transaction rolls back, not the caller's.</p>
+     * Dispatch notification asynchronously. Transaction management is owned by
+     * {@link NotificationSendingService#sendNotification}, which uses short REQUIRES_NEW
+     * transactions around DB operations, releasing the connection before external I/O.
      *
      * @param notification the notification to send
      */
     @Async
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void dispatchAsync(Notification notification) {
         log.debug("Dispatching notification asynchronously: id={}, thread={}",
             notification.getId(), Thread.currentThread().getName());

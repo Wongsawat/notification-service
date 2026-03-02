@@ -12,6 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -39,6 +40,9 @@ public class NotificationService {
 
     @Value("${app.notification.max-retries:3}")
     private int maxRetries;
+
+    @Value("${app.notification.stale-sending-timeout-ms:300000}")
+    private long staleSendingTimeoutMs;
 
     // ── Send (delegates to NotificationSendingService) ──────────────────────────────────
 
@@ -93,6 +97,33 @@ public class NotificationService {
     }
 
     // ── Scheduled sweepers ───────────────────────────────────────────────────────────────
+
+    /**
+     * Recovers notifications stuck in SENDING state (e.g. after a process crash).
+     * Resets them to FAILED so the normal retry sweeper can pick them up.
+     */
+    @Scheduled(fixedDelayString = "${app.notification.stale-sending-check-interval:120000}")
+    @Transactional
+    public void recoverStaleSendingNotifications() {
+        LocalDateTime threshold = LocalDateTime.now().minusSeconds(staleSendingTimeoutMs / 1000);
+        List<Notification> stale = repository.findStaleSendingNotifications(threshold, 100);
+
+        if (stale.isEmpty()) {
+            return;
+        }
+
+        log.warn("Found {} stale SENDING notifications to recover", stale.size());
+
+        for (Notification notification : stale) {
+            try {
+                notification.markFailed("Recovered from stale SENDING state");
+                repository.save(notification);
+                log.info("Recovered stale notification: id={}", notification.getId());
+            } catch (Exception e) {
+                log.error("Failed to recover stale notification: id={}", notification.getId(), e);
+            }
+        }
+    }
 
     @Scheduled(fixedDelayString = "${app.notification.retry-interval:300000}")
     @Transactional

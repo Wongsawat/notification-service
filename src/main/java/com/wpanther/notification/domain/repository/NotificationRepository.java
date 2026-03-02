@@ -28,6 +28,8 @@ public interface NotificationRepository {
 
     List<Notification> findByType(NotificationType type);
 
+    List<Notification> findStaleSendingNotifications(LocalDateTime threshold, int limit);
+
     List<Notification> findFailedNotifications(int maxRetries, int limit);
 
     List<Notification> findPendingNotifications(int limit);

@@ -124,6 +124,8 @@ app:
     max-retries: ${MAX_RETRIES:3}
     retry-interval: ${RETRY_INTERVAL:300000}  # 5 minutes in milliseconds
     processing-interval: ${PROCESSING_INTERVAL:60000}  # 1 minute
+    stale-sending-timeout-ms: ${STALE_SENDING_TIMEOUT_MS:300000}  # mark SENDING as stale after 5 min
+    stale-sending-check-interval: ${STALE_SENDING_CHECK_INTERVAL:120000}  # check every 2 min
 
 # Actuator endpoints
 management:
@@ -158,6 +160,6 @@ spring.task.scheduling:
 # Async execution
 spring.task.execution:
   pool:
-    core-size: 5
-    max-size: 10
+    core-size: ${ASYNC_CORE_SIZE:10}
+    max-size: ${ASYNC_MAX_SIZE:20}
     queue-capacity: 100

@@ -175,6 +175,50 @@ class NotificationRepositoryImplTest {
         }
 
         @Test
+        @DisplayName("Should find stale SENDING notifications older than threshold")
+        void testFindStaleSendingNotifications() {
+            // Arrange - a notification that has been stuck in SENDING for a long time
+            Notification stale = Notification.builder()
+                .id(java.util.UUID.randomUUID())
+                .type(NotificationType.INVOICE_PROCESSED)
+                .channel(NotificationChannel.EMAIL)
+                .status(NotificationStatus.SENDING)
+                .recipient("test@example.com")
+                .subject("Test")
+                .body("Body")
+                .metadata(new java.util.HashMap<>())
+                .templateVariables(new java.util.HashMap<>())
+                .createdAt(LocalDateTime.now().minusMinutes(10))
+                .retryCount(0)
+                .build();
+            repository.save(stale);
+
+            // A recent SENDING notification — should NOT be returned
+            Notification recent = Notification.builder()
+                .id(java.util.UUID.randomUUID())
+                .type(NotificationType.INVOICE_PROCESSED)
+                .channel(NotificationChannel.EMAIL)
+                .status(NotificationStatus.SENDING)
+                .recipient("test@example.com")
+                .subject("Recent")
+                .body("Body")
+                .metadata(new java.util.HashMap<>())
+                .templateVariables(new java.util.HashMap<>())
+                .createdAt(LocalDateTime.now())
+                .retryCount(0)
+                .build();
+            repository.save(recent);
+
+            // Act — threshold is 5 minutes ago
+            LocalDateTime threshold = LocalDateTime.now().minusMinutes(5);
+            List<Notification> staleFound = repository.findStaleSendingNotifications(threshold, 100);
+
+            // Assert
+            assertThat(staleFound).hasSize(1);
+            assertThat(staleFound.get(0).getStatus()).isEqualTo(NotificationStatus.SENDING);
+        }
+
+        @Test
         @DisplayName("Should find failed notifications")
         void testFindFailedNotifications() {
             // Arrange

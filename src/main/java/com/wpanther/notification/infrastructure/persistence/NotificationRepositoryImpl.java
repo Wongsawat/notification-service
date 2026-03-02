@@ -70,6 +70,13 @@ public class NotificationRepositoryImpl implements NotificationRepository {
     }
 
     @Override
+    public List<Notification> findStaleSendingNotifications(LocalDateTime threshold, int limit) {
+        return jpaRepository.findStaleSendingNotifications(threshold, PageRequest.of(0, limit)).stream()
+            .map(this::toDomain)
+            .toList();
+    }
+
+    @Override
     public List<Notification> findFailedNotifications(int maxRetries, int limit) {
         return jpaRepository.findFailedNotifications(maxRetries, PageRequest.of(0, limit)).stream()
             .map(this::toDomain)

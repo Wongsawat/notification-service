@@ -298,6 +298,79 @@ class WebhookNotificationSenderTest {
     }
 
     @Nested
+    @DisplayName("URL validation tests")
+    class UrlValidationTests {
+
+        @Test
+        @DisplayName("Should reject file:// scheme (SSRF prevention)")
+        void testRejectFileScheme() {
+            Notification notification = buildMinimalNotification("file:///etc/passwd");
+            assertThatThrownBy(() -> webhookNotificationSender.send(notification))
+                .isInstanceOf(NotificationException.class)
+                .hasMessageContaining("only http and https are allowed");
+        }
+
+        @Test
+        @DisplayName("Should reject ftp:// scheme")
+        void testRejectFtpScheme() {
+            Notification notification = buildMinimalNotification("ftp://internal-server/resource");
+            assertThatThrownBy(() -> webhookNotificationSender.send(notification))
+                .isInstanceOf(NotificationException.class)
+                .hasMessageContaining("only http and https are allowed");
+        }
+
+        @Test
+        @DisplayName("Should reject invalid URL syntax")
+        void testRejectInvalidUrl() {
+            Notification notification = buildMinimalNotification("not a valid url ://");
+            assertThatThrownBy(() -> webhookNotificationSender.send(notification))
+                .isInstanceOf(NotificationException.class)
+                .hasMessageContaining("Invalid webhook URL");
+        }
+
+        @Test
+        @DisplayName("Should reject blank URL")
+        void testRejectBlankUrl() {
+            Notification notification = buildMinimalNotification("   ");
+            assertThatThrownBy(() -> webhookNotificationSender.send(notification))
+                .isInstanceOf(NotificationException.class)
+                .hasMessageContaining("must not be blank");
+        }
+
+        @Test
+        @DisplayName("Should allow http:// scheme")
+        void testAllowHttpScheme() throws NotificationException {
+            Notification notification = buildMinimalNotification("http://example.com/webhook");
+            lenient().doReturn(Mono.just("ok")).when(responseSpec).bodyToMono(String.class);
+            webhookNotificationSender.send(notification); // must not throw
+            verify(requestBodyUriSpec).uri("http://example.com/webhook");
+        }
+
+        @Test
+        @DisplayName("Should allow https:// scheme")
+        void testAllowHttpsScheme() throws NotificationException {
+            Notification notification = buildMinimalNotification("https://api.example.com/hook");
+            lenient().doReturn(Mono.just("ok")).when(responseSpec).bodyToMono(String.class);
+            webhookNotificationSender.send(notification); // must not throw
+            verify(requestBodyUriSpec).uri("https://api.example.com/hook");
+        }
+
+        private Notification buildMinimalNotification(String url) {
+            return Notification.builder()
+                .id(java.util.UUID.randomUUID())
+                .type(NotificationType.INVOICE_PROCESSED)
+                .channel(NotificationChannel.WEBHOOK)
+                .recipient(url)
+                .subject("Test")
+                .body("Test")
+                .createdAt(LocalDateTime.now())
+                .metadata(new HashMap<>())
+                .templateVariables(new HashMap<>())
+                .build();
+        }
+    }
+
+    @Nested
     @DisplayName("supports() method tests")
     class SupportsMethodTests {
 

@@ -15,6 +15,8 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,6 +39,8 @@ public class WebhookNotificationSender implements NotificationSender {
 
     @Override
     public void send(Notification notification) throws NotificationException {
+        validateWebhookUrl(notification.getRecipient());
+
         try {
             log.info("Sending webhook notification: id={}, url={}",
                 notification.getId(), notification.getRecipient());
@@ -71,6 +75,26 @@ public class WebhookNotificationSender implements NotificationSender {
             log.error("Failed to send webhook notification: id={}, url={}",
                 notification.getId(), notification.getRecipient(), e);
             throw new NotificationException("Failed to send webhook", e);
+        }
+    }
+
+    /**
+     * Validates that the webhook URL uses an allowed scheme (http or https).
+     * Rejects other schemes (file://, ftp://, etc.) to prevent SSRF attacks.
+     */
+    private void validateWebhookUrl(String url) throws NotificationException {
+        if (url == null || url.isBlank()) {
+            throw new NotificationException("Webhook URL must not be blank");
+        }
+        try {
+            URI uri = new URI(url);
+            String scheme = uri.getScheme();
+            if (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme)) {
+                throw new NotificationException(
+                    "Invalid webhook URL scheme '" + scheme + "': only http and https are allowed");
+            }
+        } catch (URISyntaxException e) {
+            throw new NotificationException("Invalid webhook URL: " + e.getMessage(), e);
         }
     }
 

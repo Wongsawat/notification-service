@@ -13,6 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 
 import java.util.List;
 import java.util.Map;
@@ -35,13 +37,22 @@ class NotificationSendingServiceTest {
     @Mock
     private NotificationSender webhookSender;
 
+    @Mock
+    private PlatformTransactionManager txManager;
+
+    @Mock
+    private TransactionStatus txStatus;
+
     private NotificationSendingService sendingService;
 
     private Notification testNotification;
 
     @BeforeEach
     void setUp() {
-        sendingService = new NotificationSendingService(repository, List.of(emailSender, webhookSender));
+        // Make TransactionTemplate.execute() actually invoke the callback
+        lenient().when(txManager.getTransaction(any())).thenReturn(txStatus);
+
+        sendingService = new NotificationSendingService(repository, List.of(emailSender, webhookSender), txManager);
         ReflectionTestUtils.setField(sendingService, "maxRetries", 3);
 
         testNotification = Notification.builder()

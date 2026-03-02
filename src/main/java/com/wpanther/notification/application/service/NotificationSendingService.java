@@ -9,7 +9,9 @@ import com.wpanther.notification.domain.service.NotificationSender;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 import java.util.Map;
@@ -17,9 +19,10 @@ import java.util.Map;
 /**
  * Core notification sending service.
  *
- * <p>Owns the full send lifecycle: persist → markSending → dispatch → markSent/markFailed.
- * Extracted from NotificationService to break the circular dependency with
- * NotificationDispatcherService.</p>
+ * <p>Owns the full send lifecycle: persist → markSending → [I/O] → markSent/markFailed.
+ * Each DB phase runs in its own short REQUIRES_NEW transaction, releasing the connection
+ * before blocking on external I/O (SMTP or HTTP). This prevents connection pool exhaustion
+ * under load.</p>
  *
  * <p>Dependency chain (no cycles):
  * NotificationService → NotificationDispatcherService → NotificationSendingService</p>
@@ -30,52 +33,62 @@ public class NotificationSendingService {
 
     private final NotificationRepository repository;
     private final List<NotificationSender> senders;
+    private final TransactionTemplate requiresNewTx;
 
     @Value("${app.notification.max-retries:3}")
     private int maxRetries;
 
     public NotificationSendingService(NotificationRepository repository,
-                                      List<NotificationSender> senders) {
+                                      List<NotificationSender> senders,
+                                      PlatformTransactionManager txManager) {
         this.repository = repository;
         this.senders = senders;
+        this.requiresNewTx = new TransactionTemplate(txManager);
+        this.requiresNewTx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
     /**
-     * Persists, sends, and updates notification status in a single transaction.
-     * Never throws — failures are captured as FAILED status so the transaction can commit.
+     * Sends a notification using a three-phase approach to avoid holding a DB connection
+     * open during external I/O:
+     * <ol>
+     *   <li>Short tx: persist + markSending</li>
+     *   <li>No tx: actual SMTP/HTTP send (potentially slow)</li>
+     *   <li>Short tx: markSent or markFailed</li>
+     * </ol>
+     * Never throws — failures are captured as FAILED status.
      */
-    @Transactional
     public Notification sendNotification(Notification notification) {
+        log.info("Sending notification: id={}, type={}, channel={}",
+            notification.getId(), notification.getType(), notification.getChannel());
+
+        // Phase 1: persist + mark SENDING (short transaction, releases connection before I/O)
+        Notification sending = requiresNewTx.execute(status -> {
+            Notification saved = repository.save(notification);
+            saved.markSending();
+            return repository.save(saved);
+        });
+
         try {
-            log.info("Sending notification: id={}, type={}, channel={}",
-                notification.getId(), notification.getType(), notification.getChannel());
+            // Phase 2: external I/O — no transaction, no DB connection held
+            findSender(sending.getChannel()).send(sending);
 
-            notification = repository.save(notification);
-
-            notification.markSending();
-            notification = repository.save(notification);
-
-            findSender(notification.getChannel()).send(notification);
-
-            notification.markSent();
-            notification = repository.save(notification);
-
-            log.info("Notification sent successfully: id={}", notification.getId());
-            return notification;
+            // Phase 3a (success): mark SENT (short transaction)
+            sending.markSent();
+            Notification result = requiresNewTx.execute(status -> repository.save(sending));
+            log.info("Notification sent successfully: id={}", sending.getId());
+            return result;
 
         } catch (Exception e) {
-            log.error("Failed to send notification: id={}", notification.getId(), e);
-            // Do NOT re-throw — @Transactional must commit the FAILED status.
-            notification.markFailed(e.getMessage());
-            notification = repository.save(notification);
-            return notification;
+            log.error("Failed to send notification: id={}", sending.getId(), e);
+            // Phase 3b (failure): mark FAILED (short transaction)
+            sending.markFailed(e.getMessage());
+            return requiresNewTx.execute(status -> repository.save(sending));
         }
     }
 
     /**
      * Creates a notification from a template and immediately sends it.
      */
-    @Transactional
     public Notification createAndSend(NotificationType type, NotificationChannel channel,
                                       String recipient, String templateName,
                                       Map<String, Object> templateVariables) {

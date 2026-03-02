@@ -28,6 +28,9 @@ public interface JpaNotificationRepository extends JpaRepository<NotificationEnt
 
     List<NotificationEntity> findByType(NotificationType type);
 
+    @Query("SELECT n FROM NotificationEntity n WHERE n.status = 'SENDING' AND n.createdAt < :threshold ORDER BY n.createdAt ASC")
+    List<NotificationEntity> findStaleSendingNotifications(@Param("threshold") LocalDateTime threshold, Pageable pageable);
+
     @Query("SELECT n FROM NotificationEntity n WHERE n.status = 'FAILED' AND n.retryCount < :maxRetries")
     List<NotificationEntity> findFailedNotifications(@Param("maxRetries") int maxRetries, Pageable pageable);
 

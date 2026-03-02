@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -23,6 +24,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,6 +59,7 @@ class NotificationServiceTest {
             .build();
 
         ReflectionTestUtils.setField(notificationService, "maxRetries", 3);
+        ReflectionTestUtils.setField(notificationService, "staleSendingTimeoutMs", 300000L);
     }
 
     // ── Delegation tests ──────────────────────────────────────────────────────────────────
@@ -296,5 +299,64 @@ class NotificationServiceTest {
         notificationService.processPendingNotifications(); // must not throw
 
         verify(dispatcherService).dispatchAsync(pendingNotification);
+    }
+
+    // ── Scheduler: recoverStaleSendingNotifications tests ────────────────────────────────
+
+    @Test
+    @DisplayName("recoverStaleSendingNotifications marks stale SENDING notifications as FAILED")
+    void testRecoverStaleSendingNotifications() {
+        Notification staleSending = Notification.builder()
+            .id(UUID.randomUUID())
+            .type(NotificationType.INVOICE_PROCESSED)
+            .channel(NotificationChannel.EMAIL)
+            .recipient("test@example.com")
+            .subject("Test")
+            .status(NotificationStatus.SENDING)
+            .retryCount(0)
+            .build();
+
+        when(repository.findStaleSendingNotifications(any(LocalDateTime.class), eq(100)))
+            .thenReturn(List.of(staleSending));
+        when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        notificationService.recoverStaleSendingNotifications();
+
+        verify(repository).save(staleSending);
+        assertThat(staleSending.getStatus()).isEqualTo(NotificationStatus.FAILED);
+        assertThat(staleSending.getErrorMessage()).contains("stale SENDING");
+    }
+
+    @Test
+    @DisplayName("recoverStaleSendingNotifications does nothing when no stale notifications")
+    void testRecoverStaleSendingNotificationsWhenNone() {
+        when(repository.findStaleSendingNotifications(any(LocalDateTime.class), eq(100)))
+            .thenReturn(List.of());
+
+        notificationService.recoverStaleSendingNotifications();
+
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("recoverStaleSendingNotifications handles per-notification exception gracefully")
+    void testRecoverStaleSendingNotificationsHandlesException() {
+        Notification staleSending = Notification.builder()
+            .id(UUID.randomUUID())
+            .type(NotificationType.INVOICE_PROCESSED)
+            .channel(NotificationChannel.EMAIL)
+            .recipient("test@example.com")
+            .subject("Test")
+            .status(NotificationStatus.SENDING)
+            .retryCount(0)
+            .build();
+
+        when(repository.findStaleSendingNotifications(any(LocalDateTime.class), eq(100)))
+            .thenReturn(List.of(staleSending));
+        when(repository.save(any(Notification.class))).thenThrow(new RuntimeException("DB error"));
+
+        notificationService.recoverStaleSendingNotifications(); // must not throw
+
+        verify(repository).save(any(Notification.class));
     }
 }
