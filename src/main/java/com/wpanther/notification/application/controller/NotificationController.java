@@ -12,6 +12,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,6 +33,9 @@ public class NotificationController {
     private final NotificationRepository notificationRepository;
     private final NotificationDispatcherService dispatcherService;
 
+    @Value("${app.notification.max-retries:3}")
+    private int maxRetries;
+
     /**
      * Send notification manually
      */
@@ -40,35 +44,35 @@ public class NotificationController {
         @Valid @RequestBody NotificationRequest request
     ) {
         log.info("Received notification request: type={}, channel={}, recipient={}",
-            request.getType(), request.getChannel(), request.getRecipient());
+            request.type(), request.channel(), request.recipient());
 
         Notification notification;
 
-        if (request.getTemplateName() != null) {
+        if (request.templateName() != null) {
             notification = Notification.createFromTemplate(
-                request.getType(),
-                request.getChannel(),
-                request.getRecipient(),
-                request.getTemplateName(),
-                request.getTemplateVariables()
+                request.type(),
+                request.channel(),
+                request.recipient(),
+                request.templateName(),
+                request.templateVariables()
             );
-            notification.setSubject(request.getSubject());
+            notification.setSubject(request.subject());
         } else {
             notification = Notification.create(
-                request.getType(),
-                request.getChannel(),
-                request.getRecipient(),
-                request.getSubject(),
-                request.getBody()
+                request.type(),
+                request.channel(),
+                request.recipient(),
+                request.subject(),
+                request.body()
             );
         }
 
-        notification.setInvoiceId(request.getInvoiceId());
-        notification.setInvoiceNumber(request.getInvoiceNumber());
-        notification.setCorrelationId(request.getCorrelationId());
+        notification.setInvoiceId(request.invoiceId());
+        notification.setInvoiceNumber(request.invoiceNumber());
+        notification.setCorrelationId(request.correlationId());
 
-        if (request.getMetadata() != null) {
-            request.getMetadata().forEach(notification::addMetadata);
+        if (request.metadata() != null) {
+            request.metadata().forEach(notification::addMetadata);
         }
 
         notification = notificationService.sendNotification(notification);
@@ -128,7 +132,7 @@ public class NotificationController {
     public ResponseEntity<Map<String, String>> retryNotification(@PathVariable UUID id) {
         return notificationRepository.findById(id)
             .map(notification -> {
-                if (notification.canRetry(3)) {
+                if (notification.canRetry(maxRetries)) {
                     notification.prepareRetry();
                     notificationRepository.save(notification);
                     dispatcherService.dispatchAsync(notification);
@@ -144,24 +148,17 @@ public class NotificationController {
     /**
      * Request DTO
      */
-    @lombok.Data
-    public static class NotificationRequest {
-        @NotNull(message = "Notification type is required")
-        private NotificationType type;
-
-        @NotNull(message = "Notification channel is required")
-        private NotificationChannel channel;
-
-        @NotBlank(message = "Recipient is required")
-        private String recipient;
-
-        private String subject;
-        private String body;
-        private String templateName;
-        private Map<String, Object> templateVariables;
-        private Map<String, Object> metadata;
-        private String invoiceId;
-        private String invoiceNumber;
-        private String correlationId;
-    }
+    public record NotificationRequest(
+        @NotNull(message = "Notification type is required") NotificationType type,
+        @NotNull(message = "Notification channel is required") NotificationChannel channel,
+        @NotBlank(message = "Recipient is required") String recipient,
+        String subject,
+        String body,
+        String templateName,
+        Map<String, Object> templateVariables,
+        Map<String, Object> metadata,
+        String invoiceId,
+        String invoiceNumber,
+        String correlationId
+    ) {}
 }

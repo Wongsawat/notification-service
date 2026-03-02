@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
@@ -53,7 +54,7 @@ public class WebhookNotificationSender implements NotificationSender {
                     HttpStatusCode::isError,
                     clientResponse -> {
                         log.error("Webhook returned error status: {}", clientResponse.statusCode());
-                        return Mono.error(new RuntimeException("Webhook returned error: " + clientResponse.statusCode()));
+                        return clientResponse.createError();
                     }
                 )
                 .bodyToMono(String.class)
@@ -74,14 +75,17 @@ public class WebhookNotificationSender implements NotificationSender {
     }
 
     /**
-     * Determine if an exception is transient (should retry)
+     * Determine if an exception is transient (should retry).
+     * Retries on network errors, timeouts, and 5xx server errors.
+     * Does NOT retry on 4xx client errors (bad request, unauthorized, etc.).
      */
     private boolean isTransient(Throwable throwable) {
-        return throwable instanceof TimeoutException
-            || throwable instanceof WebClientRequestException
-            || (throwable instanceof RuntimeException
-                && throwable.getMessage() != null
-                && throwable.getMessage().contains("5xx"));  // 5xx errors from onStatus
+        if (throwable instanceof TimeoutException) return true;
+        if (throwable instanceof WebClientRequestException) return true;
+        if (throwable instanceof WebClientResponseException wce) {
+            return wce.getStatusCode().is5xxServerError();
+        }
+        return false;
     }
 
     @Override
