@@ -1,6 +1,8 @@
 package com.wpanther.notification.application.controller;
 
-import com.wpanther.notification.application.service.NotificationService;
+import com.wpanther.notification.application.port.in.QueryNotificationUseCase;
+import com.wpanther.notification.application.port.in.RetryNotificationUseCase;
+import com.wpanther.notification.application.port.in.SendNotificationUseCase;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationStatus;
@@ -27,7 +29,9 @@ import java.util.UUID;
 @Slf4j
 public class NotificationController {
 
-    private final NotificationService notificationService;
+    private final SendNotificationUseCase sendNotificationUseCase;
+    private final QueryNotificationUseCase queryNotificationUseCase;
+    private final RetryNotificationUseCase retryNotificationUseCase;
 
     /**
      * Send notification manually
@@ -68,7 +72,7 @@ public class NotificationController {
             request.metadata().forEach(notification::addMetadata);
         }
 
-        notification = notificationService.sendNotification(notification);
+        notification = sendNotificationUseCase.sendNotification(notification);
 
         return ResponseEntity.ok(Map.of(
             "notificationId", notification.getId(),
@@ -83,7 +87,7 @@ public class NotificationController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<Notification> getNotification(@PathVariable UUID id) {
-        return notificationService.findById(id)
+        return queryNotificationUseCase.findById(id)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
     }
@@ -95,7 +99,7 @@ public class NotificationController {
     public ResponseEntity<List<Notification>> getNotificationsByInvoice(
         @PathVariable String invoiceId
     ) {
-        return ResponseEntity.ok(notificationService.findByInvoiceId(invoiceId));
+        return ResponseEntity.ok(queryNotificationUseCase.findByInvoiceId(invoiceId));
     }
 
     /**
@@ -105,7 +109,7 @@ public class NotificationController {
     public ResponseEntity<List<Notification>> getNotificationsByStatus(
         @PathVariable NotificationStatus status
     ) {
-        return ResponseEntity.ok(notificationService.findByStatus(status));
+        return ResponseEntity.ok(queryNotificationUseCase.findByStatus(status));
     }
 
     /**
@@ -113,7 +117,7 @@ public class NotificationController {
      */
     @GetMapping("/statistics")
     public ResponseEntity<Map<String, Long>> getStatistics() {
-        return ResponseEntity.ok(notificationService.getStatistics());
+        return ResponseEntity.ok(queryNotificationUseCase.getStatistics());
     }
 
     /**
@@ -122,7 +126,7 @@ public class NotificationController {
     @PostMapping("/{id}/retry")
     public ResponseEntity<Map<String, String>> retryNotification(@PathVariable UUID id) {
         try {
-            notificationService.prepareAndDispatchRetry(id);
+            retryNotificationUseCase.prepareAndDispatchRetry(id);
             return ResponseEntity.ok(Map.of("message", "Retry scheduled"));
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();

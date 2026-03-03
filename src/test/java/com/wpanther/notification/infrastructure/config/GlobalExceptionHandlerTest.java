@@ -2,10 +2,10 @@ package com.wpanther.notification.infrastructure.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.notification.application.controller.NotificationController;
-import com.wpanther.notification.application.service.NotificationDispatcherService;
-import com.wpanther.notification.application.service.NotificationService;
+import com.wpanther.notification.application.port.in.QueryNotificationUseCase;
+import com.wpanther.notification.application.port.in.RetryNotificationUseCase;
+import com.wpanther.notification.application.port.in.SendNotificationUseCase;
 import com.wpanther.notification.domain.model.Notification;
-import com.wpanther.notification.domain.repository.NotificationRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,13 +30,13 @@ class GlobalExceptionHandlerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private NotificationService notificationService;
+    private SendNotificationUseCase sendNotificationUseCase;
 
     @MockBean
-    private NotificationRepository notificationRepository;
+    private QueryNotificationUseCase queryNotificationUseCase;
 
     @MockBean
-    private NotificationDispatcherService dispatcherService;
+    private RetryNotificationUseCase retryNotificationUseCase;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -110,7 +110,7 @@ class GlobalExceptionHandlerTest {
             "body", "Test body"
         );
 
-        when(notificationService.sendNotification(any()))
+        when(sendNotificationUseCase.sendNotification(any()))
             .thenThrow(new IllegalStateException("Can only start sending from PENDING status"));
 
         mockMvc.perform(post("/api/v1/notifications")
@@ -134,7 +134,7 @@ class GlobalExceptionHandlerTest {
             "body", "Test body"
         );
 
-        when(notificationService.sendNotification(any()))
+        when(sendNotificationUseCase.sendNotification(any()))
             .thenThrow(new RuntimeException("Unexpected database error"));
 
         mockMvc.perform(post("/api/v1/notifications")

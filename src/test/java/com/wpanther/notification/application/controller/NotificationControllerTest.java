@@ -1,7 +1,9 @@
 package com.wpanther.notification.application.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wpanther.notification.application.service.NotificationService;
+import com.wpanther.notification.application.port.in.QueryNotificationUseCase;
+import com.wpanther.notification.application.port.in.RetryNotificationUseCase;
+import com.wpanther.notification.application.port.in.SendNotificationUseCase;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationStatus;
@@ -36,7 +38,13 @@ class NotificationControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private NotificationService notificationService;
+    private SendNotificationUseCase sendNotificationUseCase;
+
+    @MockBean
+    private QueryNotificationUseCase queryNotificationUseCase;
+
+    @MockBean
+    private RetryNotificationUseCase retryNotificationUseCase;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -74,7 +82,7 @@ class NotificationControllerTest {
             "invoiceNumber", "INV-001"
         );
 
-        when(notificationService.sendNotification(any())).thenReturn(testNotification);
+        when(sendNotificationUseCase.sendNotification(any())).thenReturn(testNotification);
 
         mockMvc.perform(post("/api/v1/notifications")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -85,7 +93,7 @@ class NotificationControllerTest {
             .andExpect(jsonPath("$.createdAt").exists())
             .andExpect(jsonPath("$.sentAt").exists());
 
-        verify(notificationService).sendNotification(any(Notification.class));
+        verify(sendNotificationUseCase).sendNotification(any(Notification.class));
     }
 
     @Test
@@ -103,7 +111,7 @@ class NotificationControllerTest {
             "correlationId", "correlation-uuid"
         );
 
-        when(notificationService.sendNotification(any())).thenReturn(testNotification);
+        when(sendNotificationUseCase.sendNotification(any())).thenReturn(testNotification);
 
         mockMvc.perform(post("/api/v1/notifications")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -112,7 +120,7 @@ class NotificationControllerTest {
             .andExpect(jsonPath("$.notificationId").exists())
             .andExpect(jsonPath("$.status").value("SENT"));
 
-        verify(notificationService).sendNotification(any(Notification.class));
+        verify(sendNotificationUseCase).sendNotification(any(Notification.class));
     }
 
     @Test
@@ -127,7 +135,7 @@ class NotificationControllerTest {
             "metadata", Map.of("priority", "HIGH", "source", "API")
         );
 
-        when(notificationService.sendNotification(any())).thenReturn(testNotification);
+        when(sendNotificationUseCase.sendNotification(any())).thenReturn(testNotification);
 
         mockMvc.perform(post("/api/v1/notifications")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -135,7 +143,7 @@ class NotificationControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.notificationId").exists());
 
-        verify(notificationService).sendNotification(any(Notification.class));
+        verify(sendNotificationUseCase).sendNotification(any(Notification.class));
     }
 
     // ── GET /api/v1/notifications/{id} Tests ─────────────────────────────────────────────
@@ -143,7 +151,7 @@ class NotificationControllerTest {
     @Test
     @DisplayName("GET /api/v1/notifications/{id} should return notification when found")
     void testGetNotificationByIdFound() throws Exception {
-        when(notificationService.findById(testId)).thenReturn(Optional.of(testNotification));
+        when(queryNotificationUseCase.findById(testId)).thenReturn(Optional.of(testNotification));
 
         mockMvc.perform(get("/api/v1/notifications/" + testId))
             .andExpect(status().isOk())
@@ -151,19 +159,19 @@ class NotificationControllerTest {
             .andExpect(jsonPath("$.recipient").value("test@example.com"))
             .andExpect(jsonPath("$.status").value("SENT"));
 
-        verify(notificationService).findById(testId);
+        verify(queryNotificationUseCase).findById(testId);
     }
 
     @Test
     @DisplayName("GET /api/v1/notifications/{id} should return 404 when not found")
     void testGetNotificationByIdNotFound() throws Exception {
         UUID unknownId = UUID.randomUUID();
-        when(notificationService.findById(unknownId)).thenReturn(Optional.empty());
+        when(queryNotificationUseCase.findById(unknownId)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/v1/notifications/" + unknownId))
             .andExpect(status().isNotFound());
 
-        verify(notificationService).findById(unknownId);
+        verify(queryNotificationUseCase).findById(unknownId);
     }
 
     // ── GET /api/v1/notifications/invoice/{invoiceId} Tests ──────────────────────────────
@@ -172,28 +180,28 @@ class NotificationControllerTest {
     @DisplayName("GET /api/v1/notifications/invoice/{invoiceId} should return notifications for invoice")
     void testGetNotificationsByInvoiceId() throws Exception {
         String invoiceId = "invoice-uuid";
-        when(notificationService.findByInvoiceId(invoiceId)).thenReturn(List.of(testNotification));
+        when(queryNotificationUseCase.findByInvoiceId(invoiceId)).thenReturn(List.of(testNotification));
 
         mockMvc.perform(get("/api/v1/notifications/invoice/" + invoiceId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$[0].id").value(testId.toString()));
 
-        verify(notificationService).findByInvoiceId(invoiceId);
+        verify(queryNotificationUseCase).findByInvoiceId(invoiceId);
     }
 
     @Test
     @DisplayName("GET /api/v1/notifications/invoice/{invoiceId} should return empty list when none found")
     void testGetNotificationsByInvoiceIdEmpty() throws Exception {
         String invoiceId = "unknown-invoice";
-        when(notificationService.findByInvoiceId(invoiceId)).thenReturn(List.of());
+        when(queryNotificationUseCase.findByInvoiceId(invoiceId)).thenReturn(List.of());
 
         mockMvc.perform(get("/api/v1/notifications/invoice/" + invoiceId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$").isEmpty());
 
-        verify(notificationService).findByInvoiceId(invoiceId);
+        verify(queryNotificationUseCase).findByInvoiceId(invoiceId);
     }
 
     // ── GET /api/v1/notifications/status/{status} Tests ──────────────────────────────────
@@ -201,14 +209,14 @@ class NotificationControllerTest {
     @Test
     @DisplayName("GET /api/v1/notifications/status/{status} should return notifications by status")
     void testGetNotificationsByStatus() throws Exception {
-        when(notificationService.findByStatus(NotificationStatus.SENT)).thenReturn(List.of(testNotification));
+        when(queryNotificationUseCase.findByStatus(NotificationStatus.SENT)).thenReturn(List.of(testNotification));
 
         mockMvc.perform(get("/api/v1/notifications/status/SENT"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$[0].status").value("SENT"));
 
-        verify(notificationService).findByStatus(NotificationStatus.SENT);
+        verify(queryNotificationUseCase).findByStatus(NotificationStatus.SENT);
     }
 
     // ── GET /api/v1/notifications/statistics Tests ────────────────────────────────────────
@@ -223,7 +231,7 @@ class NotificationControllerTest {
             "failed", 3L,
             "retrying", 1L
         );
-        when(notificationService.getStatistics()).thenReturn(stats);
+        when(queryNotificationUseCase.getStatistics()).thenReturn(stats);
 
         mockMvc.perform(get("/api/v1/notifications/statistics"))
             .andExpect(status().isOk())
@@ -233,7 +241,7 @@ class NotificationControllerTest {
             .andExpect(jsonPath("$.failed").value(3))
             .andExpect(jsonPath("$.retrying").value(1));
 
-        verify(notificationService).getStatistics();
+        verify(queryNotificationUseCase).getStatistics();
     }
 
     // ── POST /api/v1/notifications/{id}/retry Tests ───────────────────────────────────────
@@ -242,26 +250,26 @@ class NotificationControllerTest {
     @DisplayName("POST /api/v1/notifications/{id}/retry should retry failed notification when allowed")
     void testRetryNotificationSuccess() throws Exception {
         // prepareAndDispatchRetry is void — does nothing by default on a mock
-        doNothing().when(notificationService).prepareAndDispatchRetry(testId);
+        doNothing().when(retryNotificationUseCase).prepareAndDispatchRetry(testId);
 
         mockMvc.perform(post("/api/v1/notifications/" + testId + "/retry"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.message").value("Retry scheduled"));
 
-        verify(notificationService).prepareAndDispatchRetry(testId);
+        verify(retryNotificationUseCase).prepareAndDispatchRetry(testId);
     }
 
     @Test
     @DisplayName("POST /api/v1/notifications/{id}/retry should return 400 when retry not allowed")
     void testRetryNotificationWhenNotAllowed() throws Exception {
         doThrow(new IllegalStateException("Cannot retry notification"))
-            .when(notificationService).prepareAndDispatchRetry(testId);
+            .when(retryNotificationUseCase).prepareAndDispatchRetry(testId);
 
         mockMvc.perform(post("/api/v1/notifications/" + testId + "/retry"))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.error").value("Cannot retry notification"));
 
-        verify(notificationService).prepareAndDispatchRetry(testId);
+        verify(retryNotificationUseCase).prepareAndDispatchRetry(testId);
     }
 
     @Test
@@ -269,12 +277,12 @@ class NotificationControllerTest {
     void testRetryNotificationNotFound() throws Exception {
         UUID unknownId = UUID.randomUUID();
         doThrow(new NoSuchElementException("Notification not found: " + unknownId))
-            .when(notificationService).prepareAndDispatchRetry(unknownId);
+            .when(retryNotificationUseCase).prepareAndDispatchRetry(unknownId);
 
         mockMvc.perform(post("/api/v1/notifications/" + unknownId + "/retry"))
             .andExpect(status().isNotFound());
 
-        verify(notificationService).prepareAndDispatchRetry(unknownId);
+        verify(retryNotificationUseCase).prepareAndDispatchRetry(unknownId);
     }
 
     // ── Input Validation Tests ────────────────────────────────────────────────────────────
@@ -294,7 +302,7 @@ class NotificationControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest());
 
-        verify(notificationService, never()).sendNotification(any());
+        verify(sendNotificationUseCase, never()).sendNotification(any());
     }
 
     @Test
@@ -312,7 +320,7 @@ class NotificationControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest());
 
-        verify(notificationService, never()).sendNotification(any());
+        verify(sendNotificationUseCase, never()).sendNotification(any());
     }
 
     @Test
@@ -330,7 +338,7 @@ class NotificationControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest());
 
-        verify(notificationService, never()).sendNotification(any());
+        verify(sendNotificationUseCase, never()).sendNotification(any());
     }
 
     @Test
@@ -349,6 +357,6 @@ class NotificationControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest());
 
-        verify(notificationService, never()).sendNotification(any());
+        verify(sendNotificationUseCase, never()).sendNotification(any());
     }
 }

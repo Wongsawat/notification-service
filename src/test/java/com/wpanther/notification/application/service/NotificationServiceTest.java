@@ -4,7 +4,7 @@ import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.model.NotificationType;
-import com.wpanther.notification.domain.repository.NotificationRepository;
+import com.wpanther.notification.application.port.out.NotificationRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,7 +32,7 @@ import static org.mockito.Mockito.*;
 class NotificationServiceTest {
 
     @Mock
-    private NotificationRepository repository;
+    private NotificationRepositoryPort repository;
 
     @Mock
     private NotificationSendingService sendingService;

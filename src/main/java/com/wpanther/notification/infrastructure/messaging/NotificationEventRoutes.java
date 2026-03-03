@@ -1,10 +1,8 @@
 package com.wpanther.notification.infrastructure.messaging;
 
-import com.wpanther.notification.application.service.NotificationDispatcherService;
-import com.wpanther.notification.application.service.NotificationService;
-import com.wpanther.notification.domain.model.Notification;
-import com.wpanther.notification.domain.model.NotificationChannel;
-import com.wpanther.notification.domain.model.NotificationType;
+import com.wpanther.notification.application.port.in.DocumentReceivedEventUseCase;
+import com.wpanther.notification.application.port.in.ProcessingEventUseCase;
+import com.wpanther.notification.application.port.in.SagaEventUseCase;
 import com.wpanther.notification.infrastructure.config.KafkaTopicsConfig;
 import com.wpanther.notification.infrastructure.messaging.saga.SagaCompletedEvent;
 import com.wpanther.notification.infrastructure.messaging.saga.SagaFailedEvent;
@@ -17,12 +15,6 @@ import org.apache.camel.model.dataformat.JsonLibrary;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * Apache Camel routes for consuming notification events from Kafka.
  *
@@ -33,28 +25,25 @@ import java.util.Map;
 @Slf4j
 public class NotificationEventRoutes extends RouteBuilder {
 
-    private static final DateTimeFormatter DATE_FORMATTER =
-        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
-    private final NotificationService notificationService;
-    private final NotificationDispatcherService dispatcherService;
-    private final String defaultRecipient;
+    private final ProcessingEventUseCase processingEventUseCase;
+    private final DocumentReceivedEventUseCase documentReceivedEventUseCase;
+    private final SagaEventUseCase sagaEventUseCase;
     private final boolean notificationEnabled;
     private final String consumerGroup;
     private final String kafkaBrokers;
     private final KafkaTopicsConfig topics;
 
     public NotificationEventRoutes(
-            NotificationService notificationService,
-            NotificationDispatcherService dispatcherService,
-            @Value("${app.notification.default-recipient:admin@example.com}") String defaultRecipient,
+            ProcessingEventUseCase processingEventUseCase,
+            DocumentReceivedEventUseCase documentReceivedEventUseCase,
+            SagaEventUseCase sagaEventUseCase,
             @Value("${app.notification.enabled:true}") boolean notificationEnabled,
             @Value("${spring.kafka.consumer.group-id}") String consumerGroup,
             @Value("${spring.kafka.bootstrap-servers}") String kafkaBrokers,
             KafkaTopicsConfig topics) {
-        this.notificationService = notificationService;
-        this.dispatcherService = dispatcherService;
-        this.defaultRecipient = defaultRecipient;
+        this.processingEventUseCase = processingEventUseCase;
+        this.documentReceivedEventUseCase = documentReceivedEventUseCase;
+        this.sagaEventUseCase = sagaEventUseCase;
         this.notificationEnabled = notificationEnabled;
         this.consumerGroup = consumerGroup;
         this.kafkaBrokers = kafkaBrokers;
@@ -307,392 +296,76 @@ public class NotificationEventRoutes extends RouteBuilder {
             .log("Created notification for saga failed: sagaId=${header.sagaId}");
     }
 
-    /**
-     * Process InvoiceProcessedEvent and create notification
-     */
     private void handleInvoiceProcessed(Exchange exchange) {
         InvoiceProcessedEvent event = exchange.getIn().getBody(InvoiceProcessedEvent.class);
-
-        log.info("Processing InvoiceProcessedEvent: invoiceId={}, invoiceNumber={}",
-            event.getInvoiceId(), event.getInvoiceNumber());
-
-        Map<String, Object> templateVariables = new HashMap<>();
-        templateVariables.put("invoiceId", event.getInvoiceId());
-        templateVariables.put("invoiceNumber", event.getInvoiceNumber());
-        templateVariables.put("totalAmount", String.format("%,.2f", event.getTotalAmount()));
-        templateVariables.put("currency", event.getCurrency());
-        templateVariables.put("processedAt", formatInstant(event.getOccurredAt()));
-
-        Notification notification = Notification.createFromTemplate(
-            NotificationType.INVOICE_PROCESSED,
-            NotificationChannel.EMAIL,
-            defaultRecipient,
-            "invoice-processed",
-            templateVariables
-        );
-
-        notification.setSubject("Invoice Processed: " + event.getInvoiceNumber());
-        notification.setInvoiceId(event.getInvoiceId());
-        notification.setInvoiceNumber(event.getInvoiceNumber());
-        notification.setCorrelationId(event.getCorrelationId());
-
-        dispatcherService.dispatchAsync(notification);
-
-        // Set header for logging
+        processingEventUseCase.handleInvoiceProcessed(event);
         exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
     }
 
-    /**
-     * Process TaxInvoiceProcessedEvent and create notification
-     */
     private void handleTaxInvoiceProcessed(Exchange exchange) {
         TaxInvoiceProcessedEvent event = exchange.getIn().getBody(TaxInvoiceProcessedEvent.class);
-
-        log.info("Processing TaxInvoiceProcessedEvent: invoiceId={}, invoiceNumber={}",
-            event.getInvoiceId(), event.getInvoiceNumber());
-
-        Map<String, Object> templateVariables = new HashMap<>();
-        templateVariables.put("invoiceId", event.getInvoiceId());
-        templateVariables.put("invoiceNumber", event.getInvoiceNumber());
-        templateVariables.put("totalAmount", String.format("%,.2f", event.getTotal()));
-        templateVariables.put("currency", event.getCurrency());
-        templateVariables.put("processedAt", formatInstant(event.getOccurredAt()));
-
-        Notification notification = Notification.createFromTemplate(
-            NotificationType.TAXINVOICE_PROCESSED,
-            NotificationChannel.EMAIL,
-            defaultRecipient,
-            "taxinvoice-processed",
-            templateVariables
-        );
-
-        notification.setSubject("Tax Invoice Processed: " + event.getInvoiceNumber());
-        notification.setInvoiceId(event.getInvoiceId());
-        notification.setInvoiceNumber(event.getInvoiceNumber());
-        notification.setCorrelationId(event.getCorrelationId());
-
-        dispatcherService.dispatchAsync(notification);
-
-        // Set header for logging
+        processingEventUseCase.handleTaxInvoiceProcessed(event);
         exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
     }
 
-    /**
-     * Process PdfGeneratedEvent and create notification
-     */
     private void handlePdfGenerated(Exchange exchange) {
         PdfGeneratedEvent event = exchange.getIn().getBody(PdfGeneratedEvent.class);
-
-        log.info("Processing PdfGeneratedEvent: invoiceId={}, invoiceNumber={}",
-            event.getInvoiceId(), event.getInvoiceNumber());
-
-        Map<String, Object> templateVariables = new HashMap<>();
-        templateVariables.put("invoiceId", event.getInvoiceId());
-        templateVariables.put("invoiceNumber", event.getInvoiceNumber());
-        templateVariables.put("documentId", event.getDocumentId());
-        templateVariables.put("documentUrl", event.getDocumentUrl());
-        templateVariables.put("fileSize", formatFileSize(event.getFileSize()));
-        templateVariables.put("generatedAt", formatInstant(event.getOccurredAt()));
-        templateVariables.put("xmlEmbedded", event.isXmlEmbedded());
-        templateVariables.put("digitallySigned", event.isDigitallySigned());
-
-        Notification notification = Notification.createFromTemplate(
-            NotificationType.PDF_GENERATED,
-            NotificationChannel.EMAIL,
-            defaultRecipient,
-            "pdf-generated",
-            templateVariables
-        );
-
-        notification.setSubject("PDF Invoice Ready: " + event.getInvoiceNumber());
-        notification.setInvoiceId(event.getInvoiceId());
-        notification.setInvoiceNumber(event.getInvoiceNumber());
-        notification.setCorrelationId(event.getCorrelationId());
-        notification.addMetadata("documentUrl", event.getDocumentUrl());
-        notification.addMetadata("documentId", event.getDocumentId());
-
-        dispatcherService.dispatchAsync(notification);
-
-        // Set header for logging
+        processingEventUseCase.handlePdfGenerated(event);
         exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
     }
 
-    /**
-     * Process PdfSignedEvent and create notification
-     */
     private void handlePdfSigned(Exchange exchange) {
         PdfSignedEvent event = exchange.getIn().getBody(PdfSignedEvent.class);
-
-        log.info("Processing PdfSignedEvent: invoiceId={}, invoiceNumber={}, documentType={}",
-            event.getInvoiceId(), event.getInvoiceNumber(), event.getDocumentType());
-
-        Map<String, Object> templateVariables = new HashMap<>();
-        templateVariables.put("invoiceId", event.getInvoiceId());
-        templateVariables.put("invoiceNumber", event.getInvoiceNumber());
-        templateVariables.put("documentType", event.getDocumentType());
-        templateVariables.put("signedDocumentId", event.getSignedDocumentId());
-        templateVariables.put("signedPdfUrl", event.getSignedPdfUrl());
-        templateVariables.put("signedPdfSize", formatFileSize(event.getSignedPdfSize()));
-        templateVariables.put("transactionId", event.getTransactionId());
-        templateVariables.put("signatureLevel", event.getSignatureLevel());
-        templateVariables.put("signatureTimestamp", formatInstant(event.getSignatureTimestamp()));
-
-        Notification notification = Notification.createFromTemplate(
-            NotificationType.PDF_SIGNED,
-            NotificationChannel.EMAIL,
-            defaultRecipient,
-            "pdf-signed",
-            templateVariables
-        );
-
-        notification.setSubject("PDF Invoice Signed: " + event.getInvoiceNumber());
-        notification.setInvoiceId(event.getInvoiceId());
-        notification.setInvoiceNumber(event.getInvoiceNumber());
-        notification.setCorrelationId(event.getCorrelationId());
-        notification.addMetadata("signedPdfUrl", event.getSignedPdfUrl());
-        notification.addMetadata("signedDocumentId", event.getSignedDocumentId());
-        notification.addMetadata("signatureLevel", event.getSignatureLevel());
-
-        dispatcherService.dispatchAsync(notification);
-
-        // Set header for logging
+        processingEventUseCase.handlePdfSigned(event);
         exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
     }
 
-    /**
-     * Process XmlSignedEvent and create notification
-     */
     private void handleXmlSigned(Exchange exchange) {
         XmlSignedEvent event = exchange.getIn().getBody(XmlSignedEvent.class);
-
-        log.info("Processing XmlSignedEvent: invoiceId={}, invoiceNumber={}, documentType={}",
-            event.getInvoiceId(), event.getInvoiceNumber(), event.getDocumentType());
-
-        Map<String, Object> templateVariables = new HashMap<>();
-        templateVariables.put("invoiceId", event.getInvoiceId());
-        templateVariables.put("invoiceNumber", event.getInvoiceNumber());
-        templateVariables.put("documentType", event.getDocumentType());
-        templateVariables.put("signedAt", formatInstant(event.getOccurredAt()));
-
-        Notification notification = Notification.createFromTemplate(
-            NotificationType.XML_SIGNED,
-            NotificationChannel.EMAIL,
-            defaultRecipient,
-            "xml-signed",
-            templateVariables
-        );
-
-        notification.setSubject("XML Document Signed: " + event.getInvoiceNumber());
-        notification.setInvoiceId(event.getInvoiceId());
-        notification.setInvoiceNumber(event.getInvoiceNumber());
-        notification.setCorrelationId(event.getCorrelationId());
-        notification.addMetadata("documentType", event.getDocumentType());
-
-        dispatcherService.dispatchAsync(notification);
-
-        // Set header for logging
+        processingEventUseCase.handleXmlSigned(event);
         exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
     }
 
-    /**
-     * Format file size to human-readable string
-     */
-    private String formatFileSize(Long bytes) {
-        if (bytes == null) {
-            return "0 B";
-        }
-        if (bytes < 1024) {
-            return bytes + " B";
-        } else if (bytes < 1024 * 1024) {
-            return String.format("%.1f KB", bytes / 1024.0);
-        } else {
-            return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
-        }
-    }
-
-    /**
-     * Format Instant to string for template variables
-     */
-    private String formatInstant(Instant instant) {
-        return instant != null
-            ? DATE_FORMATTER.format(instant.atZone(ZoneId.systemDefault()))
-            : "N/A";
-    }
-
-    /**
-     * Process DocumentReceivedCountingEvent and track total received count.
-     * This lightweight event is published BEFORE validation, so ALL documents are counted.
-     *
-     * Future enhancement: Persist to database for accurate total received count tracking.
-     */
-    private void handleDocumentReceivedCounting(Exchange exchange) {
-        DocumentReceivedCountingEvent event = exchange.getIn().getBody(DocumentReceivedCountingEvent.class);
-
-        log.info("Processing DocumentReceivedCountingEvent: documentId={}, correlationId={}",
-            event.getDocumentId(), event.getCorrelationId());
-
-        // For now, just log the event. Future: persist to database for statistics
-        // This counts ALL received documents regardless of validation outcome
-
-        // Set headers for logging
-        exchange.getIn().setHeader("documentId", event.getDocumentId());
-        exchange.getIn().setHeader("correlationId", event.getCorrelationId());
-    }
-
-    /**
-     * Process DocumentReceivedEvent and track type-specific statistics.
-     * This event is published AFTER validation, so only VALIDATED documents are tracked.
-     *
-     * Future enhancement: Persist to database for type-specific statistics.
-     */
-    private void handleDocumentReceivedStats(Exchange exchange) {
-        DocumentReceivedEvent event = exchange.getIn().getBody(DocumentReceivedEvent.class);
-
-        log.info("Processing DocumentReceivedEvent (statistics): documentId={}, documentType={}, correlationId={}",
-            event.getDocumentId(), event.getDocumentType(), event.getCorrelationId());
-
-        // For now, just log the event. Future: persist to database for statistics
-        // This tracks validated documents by type
-
-        // Set headers for logging
-        exchange.getIn().setHeader("documentId", event.getDocumentId());
-        exchange.getIn().setHeader("documentType", event.getDocumentType());
-        exchange.getIn().setHeader("correlationId", event.getCorrelationId());
-    }
-
-    /**
-     * Process EbmsSentEvent and create notification
-     */
     private void handleEbmsSent(Exchange exchange) {
         EbmsSentEvent event = exchange.getIn().getBody(EbmsSentEvent.class);
-
-        log.info("Processing EbmsSentEvent: documentId={}, documentType={}, ebmsMessageId={}",
-            event.getDocumentId(), event.getDocumentType(), event.getEbmsMessageId());
-
-        Map<String, Object> templateVariables = new HashMap<>();
-        templateVariables.put("documentId", event.getDocumentId());
-        templateVariables.put("invoiceId", event.getInvoiceId() != null ? event.getInvoiceId() : "N/A");
-        templateVariables.put("invoiceNumber", event.getInvoiceNumber() != null ? event.getInvoiceNumber() : "N/A");
-        templateVariables.put("documentType", event.getDocumentType());
-        templateVariables.put("ebmsMessageId", event.getEbmsMessageId());
-        templateVariables.put("sentAt", formatInstant(event.getSentAt()));
-        templateVariables.put("correlationId", event.getCorrelationId());
-
-        String displayNumber = event.getInvoiceNumber() != null ? event.getInvoiceNumber() : event.getDocumentId();
-        String subject = "Document Submitted to TRD: " + displayNumber;
-
-        Notification notification = Notification.createFromTemplate(
-            NotificationType.EBMS_SENT,
-            NotificationChannel.EMAIL,
-            defaultRecipient,
-            "ebms-sent",
-            templateVariables
-        );
-
-        notification.setSubject(subject);
-        notification.setInvoiceId(event.getInvoiceId());
-        notification.setInvoiceNumber(event.getInvoiceNumber());
-        notification.setCorrelationId(event.getCorrelationId());
-        notification.addMetadata("ebmsMessageId", event.getEbmsMessageId());
-        notification.addMetadata("documentType", event.getDocumentType());
-
-        dispatcherService.dispatchAsync(notification);
-
-        // Set header for logging
-        exchange.getIn().setHeader("invoiceNumber", displayNumber);
+        processingEventUseCase.handleEbmsSent(event);
+        exchange.getIn().setHeader("invoiceNumber",
+            event.getInvoiceNumber() != null ? event.getInvoiceNumber() : event.getDocumentId());
     }
 
-    /**
-     * Process SagaStartedEvent (logging only, no notification)
-     */
+    private void handleDocumentReceivedCounting(Exchange exchange) {
+        DocumentReceivedCountingEvent event = exchange.getIn().getBody(DocumentReceivedCountingEvent.class);
+        documentReceivedEventUseCase.handleDocumentCounting(event);
+        exchange.getIn().setHeader("documentId", event.getDocumentId());
+    }
+
+    private void handleDocumentReceivedStats(Exchange exchange) {
+        DocumentReceivedEvent event = exchange.getIn().getBody(DocumentReceivedEvent.class);
+        documentReceivedEventUseCase.handleDocumentReceived(event);
+        exchange.getIn().setHeader("documentId", event.getDocumentId());
+    }
+
     private void handleSagaStarted(Exchange exchange) {
         SagaStartedEvent event = exchange.getIn().getBody(SagaStartedEvent.class);
-        log.info("Saga started: sagaId={}, documentType={}, invoiceNumber={}",
-            event.getSagaId(), event.getDocumentType(), event.getInvoiceNumber());
-        // Just log - no notification created
+        sagaEventUseCase.handleSagaStarted(event);
         exchange.getIn().setHeader("sagaId", event.getSagaId());
     }
 
-    /**
-     * Process SagaStepCompletedEvent (logging only, no notification)
-     */
     private void handleSagaStepCompleted(Exchange exchange) {
         SagaStepCompletedEvent event = exchange.getIn().getBody(SagaStepCompletedEvent.class);
-        log.info("Saga step completed: sagaId={}, step={}, nextStep={}",
-            event.getSagaId(), event.getCompletedStep(), event.getNextStep());
-        // Just log - no notification created (per user requirement)
+        sagaEventUseCase.handleSagaStepCompleted(event);
         exchange.getIn().setHeader("completedStep", event.getCompletedStep());
     }
 
-    /**
-     * Process SagaCompletedEvent and create success notification
-     */
     private void handleSagaCompleted(Exchange exchange) {
         SagaCompletedEvent event = exchange.getIn().getBody(SagaCompletedEvent.class);
-
-        Map<String, Object> templateVariables = new HashMap<>();
-        templateVariables.put("sagaId", event.getSagaId());
-        templateVariables.put("documentId", event.getDocumentId());
-        templateVariables.put("invoiceNumber", event.getInvoiceNumber() != null ? event.getInvoiceNumber() : "N/A");
-        templateVariables.put("documentType", event.getDocumentType());
-        templateVariables.put("stepsExecuted", event.getStepsExecuted());
-        templateVariables.put("durationMs", event.getDurationMs());
-        templateVariables.put("durationSec", String.format("%.2f", event.getDurationMs() / 1000.0));
-        templateVariables.put("completedAt", formatInstant(event.getCompletedAt()));
-
-        Notification notification = Notification.createFromTemplate(
-            NotificationType.SAGA_COMPLETED,
-            NotificationChannel.EMAIL,
-            defaultRecipient,
-            "saga-completed",
-            templateVariables
-        );
-
-        notification.setSubject("Saga Completed: " +
-            (event.getInvoiceNumber() != null ? event.getInvoiceNumber() : event.getDocumentId()));
-        notification.setInvoiceId(event.getDocumentId());
-        notification.setInvoiceNumber(event.getInvoiceNumber());
-        notification.setCorrelationId(event.getCorrelationId());
-        notification.addMetadata("sagaId", event.getSagaId());
-
-        dispatcherService.dispatchAsync(notification);
+        sagaEventUseCase.handleSagaCompleted(event);
         exchange.getIn().setHeader("sagaId", event.getSagaId());
     }
 
-    /**
-     * Process SagaFailedEvent and create urgent notification
-     */
     private void handleSagaFailed(Exchange exchange) {
         SagaFailedEvent event = exchange.getIn().getBody(SagaFailedEvent.class);
-
-        Map<String, Object> templateVariables = new HashMap<>();
-        templateVariables.put("sagaId", event.getSagaId());
-        templateVariables.put("documentId", event.getDocumentId());
-        templateVariables.put("invoiceNumber", event.getInvoiceNumber() != null ? event.getInvoiceNumber() : "N/A");
-        templateVariables.put("documentType", event.getDocumentType());
-        templateVariables.put("failedStep", event.getFailedStep());
-        templateVariables.put("errorMessage", event.getErrorMessage());
-        templateVariables.put("retryCount", event.getRetryCount());
-        templateVariables.put("compensationInitiated", event.getCompensationInitiated() != null && event.getCompensationInitiated());
-        templateVariables.put("failedAt", formatInstant(event.getFailedAt()));
-
-        Notification notification = Notification.createFromTemplate(
-            NotificationType.SAGA_FAILED,
-            NotificationChannel.EMAIL,
-            defaultRecipient,
-            "saga-failed",
-            templateVariables
-        );
-
-        notification.setSubject("URGENT: Saga Failed - " +
-            (event.getInvoiceNumber() != null ? event.getInvoiceNumber() : event.getDocumentId()));
-        notification.setInvoiceId(event.getDocumentId());
-        notification.setInvoiceNumber(event.getInvoiceNumber());
-        notification.setCorrelationId(event.getCorrelationId());
-        notification.addMetadata("sagaId", event.getSagaId());
-        notification.addMetadata("failedStep", event.getFailedStep());
-
-        dispatcherService.dispatchAsync(notification);
+        sagaEventUseCase.handleSagaFailed(event);
         exchange.getIn().setHeader("sagaId", event.getSagaId());
     }
 }

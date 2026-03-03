@@ -3,7 +3,7 @@ package com.wpanther.notification.infrastructure.persistence;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.model.NotificationType;
-import com.wpanther.notification.domain.repository.NotificationRepository;
+import com.wpanther.notification.application.port.out.NotificationRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
@@ -18,7 +18,7 @@ import java.util.UUID;
  */
 @Component
 @RequiredArgsConstructor
-public class NotificationRepositoryImpl implements NotificationRepository {
+public class NotificationRepositoryImpl implements NotificationRepositoryPort {
 
     private final JpaNotificationRepository jpaRepository;
 

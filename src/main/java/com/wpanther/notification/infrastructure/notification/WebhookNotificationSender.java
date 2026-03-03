@@ -1,9 +1,10 @@
 package com.wpanther.notification.infrastructure.notification;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wpanther.notification.application.port.out.NotificationSenderPort;
+import com.wpanther.notification.domain.exception.NotificationException;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
-import com.wpanther.notification.domain.service.NotificationSender;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
@@ -28,7 +29,7 @@ import java.util.concurrent.TimeoutException;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class WebhookNotificationSender implements NotificationSender {
+public class WebhookNotificationSender implements NotificationSenderPort {
 
     private final WebClient webClient;
     private final ObjectMapper objectMapper;

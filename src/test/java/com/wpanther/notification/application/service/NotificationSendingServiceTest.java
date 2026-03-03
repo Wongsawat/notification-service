@@ -4,8 +4,8 @@ import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.model.NotificationType;
-import com.wpanther.notification.domain.repository.NotificationRepository;
-import com.wpanther.notification.domain.service.NotificationSender;
+import com.wpanther.notification.application.port.out.NotificationRepositoryPort;
+import com.wpanther.notification.application.port.out.NotificationSenderPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,13 +29,13 @@ import static org.mockito.Mockito.*;
 class NotificationSendingServiceTest {
 
     @Mock
-    private NotificationRepository repository;
+    private NotificationRepositoryPort repository;
 
     @Mock
-    private NotificationSender emailSender;
+    private NotificationSenderPort emailSender;
 
     @Mock
-    private NotificationSender webhookSender;
+    private NotificationSenderPort webhookSender;
 
     @Mock
     private PlatformTransactionManager txManager;

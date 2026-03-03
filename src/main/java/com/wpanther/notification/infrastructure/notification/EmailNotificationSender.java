@@ -1,8 +1,9 @@
 package com.wpanther.notification.infrastructure.notification;
 
+import com.wpanther.notification.application.port.out.NotificationSenderPort;
+import com.wpanther.notification.domain.exception.NotificationException;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
-import com.wpanther.notification.domain.service.NotificationSender;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class EmailNotificationSender implements NotificationSender {
+public class EmailNotificationSender implements NotificationSenderPort {
 
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;

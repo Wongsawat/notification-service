@@ -1,4 +1,4 @@
-package com.wpanther.notification.domain.repository;
+package com.wpanther.notification.application.port.out;
 
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationStatus;
@@ -10,9 +10,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Repository interface for Notification aggregate
+ * Output port: persistence contract for the Notification aggregate.
+ * Implemented by {@link com.wpanther.notification.infrastructure.persistence.NotificationRepositoryImpl}.
  */
-public interface NotificationRepository {
+public interface NotificationRepositoryPort {
 
     Notification save(Notification notification);
 

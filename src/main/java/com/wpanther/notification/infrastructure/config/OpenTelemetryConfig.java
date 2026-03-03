@@ -1,6 +1,5 @@
 package com.wpanther.notification.infrastructure.config;
 
-import io.micrometer.tracing.Tracer;
 import io.opentelemetry.api.OpenTelemetry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,18 +20,6 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class OpenTelemetryConfig {
-
-    /**
-     * Micrometer Tracer bridge for OpenTelemetry.
-     * Automatically integrates with Spring Boot 3.x tracing.
-     *
-     * <p>Spring Boot 3.x auto-configures OpenTelemetry when micrometer-tracing-bridge-otel
-     * is on the classpath. This bean provides the Tracer for manual instrumentation if needed.</p>
-     */
-    @Bean
-    public Tracer micrometerTracer(io.micrometer.tracing.Tracer.Builder builder) {
-        return builder.build();
-    }
 
     /**
      * OpenTelemetry instance for advanced use cases.

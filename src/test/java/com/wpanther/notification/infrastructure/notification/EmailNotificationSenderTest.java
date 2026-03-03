@@ -3,7 +3,7 @@ package com.wpanther.notification.infrastructure.notification;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationType;
-import com.wpanther.notification.domain.service.NotificationSender.NotificationException;
+import com.wpanther.notification.domain.exception.NotificationException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
