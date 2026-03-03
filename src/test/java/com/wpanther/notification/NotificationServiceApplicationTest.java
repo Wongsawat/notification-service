@@ -1,6 +1,6 @@
 package com.wpanther.notification;
 
-import com.wpanther.notification.application.controller.NotificationController;
+import com.wpanther.notification.adapter.in.rest.NotificationController;
 import com.wpanther.notification.application.service.NotificationService;
 import com.wpanther.notification.application.port.out.NotificationRepositoryPort;
 import org.junit.jupiter.api.DisplayName;

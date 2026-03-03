@@ -11,7 +11,7 @@ import java.util.UUID;
 
 /**
  * Output port: persistence contract for the Notification aggregate.
- * Implemented by {@link com.wpanther.notification.infrastructure.persistence.NotificationRepositoryImpl}.
+ * Implemented by {@link com.wpanther.notification.adapter.out.persistence.NotificationRepositoryAdapter}.
  */
 public interface NotificationRepositoryPort {
 

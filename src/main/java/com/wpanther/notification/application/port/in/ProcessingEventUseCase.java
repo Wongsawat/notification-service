@@ -1,11 +1,11 @@
 package com.wpanther.notification.application.port.in;
 
-import com.wpanther.notification.infrastructure.messaging.EbmsSentEvent;
-import com.wpanther.notification.infrastructure.messaging.InvoiceProcessedEvent;
-import com.wpanther.notification.infrastructure.messaging.PdfGeneratedEvent;
-import com.wpanther.notification.infrastructure.messaging.PdfSignedEvent;
-import com.wpanther.notification.infrastructure.messaging.TaxInvoiceProcessedEvent;
-import com.wpanther.notification.infrastructure.messaging.XmlSignedEvent;
+import com.wpanther.notification.adapter.in.kafka.EbmsSentEvent;
+import com.wpanther.notification.adapter.in.kafka.InvoiceProcessedEvent;
+import com.wpanther.notification.adapter.in.kafka.PdfGeneratedEvent;
+import com.wpanther.notification.adapter.in.kafka.PdfSignedEvent;
+import com.wpanther.notification.adapter.in.kafka.TaxInvoiceProcessedEvent;
+import com.wpanther.notification.adapter.in.kafka.XmlSignedEvent;
 
 /**
  * Input port: use case for handling invoice/PDF/XML processing completion events.

@@ -1,0 +1,115 @@
+package com.wpanther.notification.adapter.in.kafka.saga;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.wpanther.saga.domain.model.TraceEvent;
+import lombok.Getter;
+
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * Saga lifecycle event: Saga orchestration failed.
+ * Published by orchestrator-service to saga.lifecycle.failed topic.
+ *
+ * Consumed by notification-service to create URGENT email notification.
+ * This indicates a critical failure requiring immediate attention.
+ */
+@Getter
+public class SagaFailedEvent extends TraceEvent {
+
+    @JsonProperty("correlationId")
+    private final String correlationId;
+
+    @JsonProperty("documentType")
+    private final String documentType;
+
+    @JsonProperty("documentId")
+    private final String documentId;
+
+    @JsonProperty("invoiceNumber")
+    private final String invoiceNumber;
+
+    @JsonProperty("failedStep")
+    private final String failedStep;
+
+    @JsonProperty("errorMessage")
+    private final String errorMessage;
+
+    @JsonProperty("retryCount")
+    private final Integer retryCount;
+
+    @JsonProperty("compensationInitiated")
+    private final Boolean compensationInitiated;
+
+    @JsonProperty("startedAt")
+    private final Instant startedAt;
+
+    @JsonProperty("failedAt")
+    private final Instant failedAt;
+
+    @JsonProperty("durationMs")
+    private final Long durationMs;
+
+    /**
+     * Constructor for creating new events.
+     * Generates eventId, occurredAt, eventType, and version automatically.
+     */
+    public SagaFailedEvent(String sagaId, String correlationId, String documentType,
+                           String documentId, String invoiceNumber, String failedStep,
+                           String errorMessage, Integer retryCount, Boolean compensationInitiated,
+                           Instant startedAt, Instant failedAt, Long durationMs) {
+        super(sagaId, "orchestrator-service", "SAGA_FAILED");
+        this.correlationId = correlationId;
+        this.documentType = documentType;
+        this.documentId = documentId;
+        this.invoiceNumber = invoiceNumber;
+        this.failedStep = failedStep;
+        this.errorMessage = errorMessage;
+        this.retryCount = retryCount;
+        this.compensationInitiated = compensationInitiated;
+        this.startedAt = startedAt;
+        this.failedAt = failedAt;
+        this.durationMs = durationMs;
+    }
+
+    /**
+     * Constructor for deserialization from JSON.
+     * Used by Jackson when reading events from Kafka.
+     */
+    @JsonCreator
+    public SagaFailedEvent(
+        @JsonProperty("eventId") UUID eventId,
+        @JsonProperty("occurredAt") Instant occurredAt,
+        @JsonProperty("eventType") String eventType,
+        @JsonProperty("version") int version,
+        @JsonProperty("sagaId") String sagaId,
+        @JsonProperty("source") String source,
+        @JsonProperty("traceType") String traceType,
+        @JsonProperty("context") String context,
+        @JsonProperty("correlationId") String correlationId,
+        @JsonProperty("documentType") String documentType,
+        @JsonProperty("documentId") String documentId,
+        @JsonProperty("invoiceNumber") String invoiceNumber,
+        @JsonProperty("failedStep") String failedStep,
+        @JsonProperty("errorMessage") String errorMessage,
+        @JsonProperty("retryCount") Integer retryCount,
+        @JsonProperty("compensationInitiated") Boolean compensationInitiated,
+        @JsonProperty("startedAt") Instant startedAt,
+        @JsonProperty("failedAt") Instant failedAt,
+        @JsonProperty("durationMs") Long durationMs
+    ) {
+        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
+        this.correlationId = correlationId;
+        this.documentType = documentType;
+        this.documentId = documentId;
+        this.invoiceNumber = invoiceNumber;
+        this.failedStep = failedStep;
+        this.errorMessage = errorMessage;
+        this.retryCount = retryCount;
+        this.compensationInitiated = compensationInitiated;
+        this.startedAt = startedAt;
+        this.failedAt = failedAt;
+        this.durationMs = durationMs;
+    }
+}

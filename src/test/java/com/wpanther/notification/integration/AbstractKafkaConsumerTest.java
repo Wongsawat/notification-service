@@ -3,8 +3,8 @@ package com.wpanther.notification.integration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.wpanther.notification.infrastructure.notification.EmailNotificationSender;
-import com.wpanther.notification.infrastructure.notification.WebhookNotificationSender;
+import com.wpanther.notification.adapter.out.notification.EmailNotificationSenderAdapter;
+import com.wpanther.notification.adapter.out.notification.WebhookNotificationSenderAdapter;
 import com.wpanther.notification.integration.config.ConsumerTestConfiguration;
 import com.wpanther.notification.integration.config.TestKafkaProducerConfig;
 import org.junit.jupiter.api.BeforeAll;
@@ -48,10 +48,10 @@ public abstract class AbstractKafkaConsumerTest {
     protected JdbcTemplate testJdbcTemplate;
 
     @MockBean
-    protected EmailNotificationSender emailNotificationSender;
+    protected EmailNotificationSenderAdapter emailNotificationSenderAdapter;
 
     @MockBean
-    protected WebhookNotificationSender webhookNotificationSender;
+    protected WebhookNotificationSenderAdapter webhookNotificationSenderAdapter;
 
     protected ObjectMapper objectMapper;
 
@@ -65,10 +65,10 @@ public abstract class AbstractKafkaConsumerTest {
     @BeforeEach
     void setupMocksAndCleanup() throws Exception {
         // Configure mock senders
-        when(emailNotificationSender.supports(any())).thenReturn(true);
-        doNothing().when(emailNotificationSender).send(any());
+        when(emailNotificationSenderAdapter.supports(any())).thenReturn(true);
+        doNothing().when(emailNotificationSenderAdapter).send(any());
 
-        when(webhookNotificationSender.supports(any())).thenReturn(false);
+        when(webhookNotificationSenderAdapter.supports(any())).thenReturn(false);
 
         // Clean database (order matters for FK constraints)
         testJdbcTemplate.execute("DELETE FROM outbox_events");

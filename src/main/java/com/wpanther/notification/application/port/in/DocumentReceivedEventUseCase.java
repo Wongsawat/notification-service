@@ -1,7 +1,7 @@
 package com.wpanther.notification.application.port.in;
 
-import com.wpanther.notification.infrastructure.messaging.DocumentReceivedCountingEvent;
-import com.wpanther.notification.infrastructure.messaging.DocumentReceivedEvent;
+import com.wpanther.notification.adapter.in.kafka.DocumentReceivedCountingEvent;
+import com.wpanther.notification.adapter.in.kafka.DocumentReceivedEvent;
 
 /**
  * Input port: use case for handling document received events (statistics and counting).
