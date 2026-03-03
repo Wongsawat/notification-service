@@ -1,12 +1,12 @@
 package com.wpanther.notification.integration;
 
-import com.wpanther.notification.adapter.in.kafka.EbmsSentEvent;
-import com.wpanther.notification.adapter.in.kafka.InvoiceProcessedEvent;
-import com.wpanther.notification.adapter.in.kafka.PdfGeneratedEvent;
-import com.wpanther.notification.adapter.in.kafka.PdfSignedEvent;
-import com.wpanther.notification.adapter.in.kafka.TaxInvoiceProcessedEvent;
-import com.wpanther.notification.adapter.in.kafka.saga.SagaCompletedEvent;
-import com.wpanther.notification.adapter.in.kafka.saga.SagaFailedEvent;
+import com.wpanther.notification.application.dto.event.EbmsSentEvent;
+import com.wpanther.notification.application.dto.event.InvoiceProcessedEvent;
+import com.wpanther.notification.application.dto.event.PdfGeneratedEvent;
+import com.wpanther.notification.application.dto.event.PdfSignedEvent;
+import com.wpanther.notification.application.dto.event.TaxInvoiceProcessedEvent;
+import com.wpanther.notification.application.dto.event.saga.SagaCompletedEvent;
+import com.wpanther.notification.application.dto.event.saga.SagaFailedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

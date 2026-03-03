@@ -1,9 +1,17 @@
 package com.wpanther.notification.adapter.in.kafka;
 
-import com.wpanther.notification.adapter.in.kafka.saga.SagaCompletedEvent;
-import com.wpanther.notification.adapter.in.kafka.saga.SagaFailedEvent;
-import com.wpanther.notification.adapter.in.kafka.saga.SagaStartedEvent;
-import com.wpanther.notification.adapter.in.kafka.saga.SagaStepCompletedEvent;
+import com.wpanther.notification.application.dto.event.DocumentReceivedCountingEvent;
+import com.wpanther.notification.application.dto.event.DocumentReceivedEvent;
+import com.wpanther.notification.application.dto.event.EbmsSentEvent;
+import com.wpanther.notification.application.dto.event.InvoiceProcessedEvent;
+import com.wpanther.notification.application.dto.event.PdfGeneratedEvent;
+import com.wpanther.notification.application.dto.event.PdfSignedEvent;
+import com.wpanther.notification.application.dto.event.TaxInvoiceProcessedEvent;
+import com.wpanther.notification.application.dto.event.XmlSignedEvent;
+import com.wpanther.notification.application.dto.event.saga.SagaCompletedEvent;
+import com.wpanther.notification.application.dto.event.saga.SagaFailedEvent;
+import com.wpanther.notification.application.dto.event.saga.SagaStartedEvent;
+import com.wpanther.notification.application.dto.event.saga.SagaStepCompletedEvent;
 import com.wpanther.notification.application.port.in.DocumentReceivedEventUseCase;
 import com.wpanther.notification.application.port.in.ProcessingEventUseCase;
 import com.wpanther.notification.application.port.in.SagaEventUseCase;

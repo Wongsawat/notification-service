@@ -1,9 +1,9 @@
 package com.wpanther.notification.application.port.in;
 
-import com.wpanther.notification.adapter.in.kafka.saga.SagaCompletedEvent;
-import com.wpanther.notification.adapter.in.kafka.saga.SagaFailedEvent;
-import com.wpanther.notification.adapter.in.kafka.saga.SagaStartedEvent;
-import com.wpanther.notification.adapter.in.kafka.saga.SagaStepCompletedEvent;
+import com.wpanther.notification.application.dto.event.saga.SagaCompletedEvent;
+import com.wpanther.notification.application.dto.event.saga.SagaFailedEvent;
+import com.wpanther.notification.application.dto.event.saga.SagaStartedEvent;
+import com.wpanther.notification.application.dto.event.saga.SagaStepCompletedEvent;
 
 /**
  * Input port: use case for handling saga orchestration lifecycle events.

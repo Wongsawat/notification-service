@@ -1,19 +1,19 @@
-package com.wpanther.notification.adapter.in.kafka;
+package com.wpanther.notification.application.dto.event;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.wpanther.saga.domain.model.TraceEvent;
 import lombok.Getter;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event published when XML document signing is completed.
- * Consumed from xml.signed topic.
+ * Event published when invoice processing is completed
  */
 @Getter
-public class XmlSignedEvent extends TraceEvent {
+public class InvoiceProcessedEvent extends TraceEvent {
 
     @JsonProperty("invoiceId")
     private final String invoiceId;
@@ -21,23 +21,37 @@ public class XmlSignedEvent extends TraceEvent {
     @JsonProperty("invoiceNumber")
     private final String invoiceNumber;
 
-    @JsonProperty("documentType")
-    private final String documentType;
+    @JsonProperty("totalAmount")
+    private final BigDecimal totalAmount;
+
+    @JsonProperty("currency")
+    private final String currency;
 
     @JsonProperty("correlationId")
     private final String correlationId;
 
-    public XmlSignedEvent(String invoiceId, String invoiceNumber,
-                          String documentType, String correlationId) {
-        super(correlationId, "xml-signing-service", "XML_SIGNED");
+    /**
+     * Constructor for creating new events.
+     * Generates eventId, occurredAt, eventType, and version automatically.
+     */
+    public InvoiceProcessedEvent(String invoiceId, String invoiceNumber,
+                                  BigDecimal totalAmount, String currency,
+                                  String correlationId) {
+        super(invoiceId, "invoice-processing-service", "INVOICE_PROCESSED");
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
-        this.documentType = documentType;
+        this.totalAmount = totalAmount;
+        this.currency = currency;
         this.correlationId = correlationId;
     }
 
+    /**
+     * Constructor for deserialization from JSON.
+     * Used by Jackson when reading events from Kafka.
+     * sagaId/source/traceType/context are TraceEvent fields — may be null for older events.
+     */
     @JsonCreator
-    public XmlSignedEvent(
+    public InvoiceProcessedEvent(
         @JsonProperty("eventId") UUID eventId,
         @JsonProperty("occurredAt") Instant occurredAt,
         @JsonProperty("eventType") String eventType,
@@ -48,13 +62,15 @@ public class XmlSignedEvent extends TraceEvent {
         @JsonProperty("context") String context,
         @JsonProperty("invoiceId") String invoiceId,
         @JsonProperty("invoiceNumber") String invoiceNumber,
-        @JsonProperty("documentType") String documentType,
+        @JsonProperty("totalAmount") BigDecimal totalAmount,
+        @JsonProperty("currency") String currency,
         @JsonProperty("correlationId") String correlationId
     ) {
         super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
-        this.documentType = documentType;
+        this.totalAmount = totalAmount;
+        this.currency = currency;
         this.correlationId = correlationId;
     }
 }

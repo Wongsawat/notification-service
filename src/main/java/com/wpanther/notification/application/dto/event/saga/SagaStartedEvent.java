@@ -1,4 +1,4 @@
-package com.wpanther.notification.adapter.in.kafka.saga;
+package com.wpanther.notification.application.dto.event.saga;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;

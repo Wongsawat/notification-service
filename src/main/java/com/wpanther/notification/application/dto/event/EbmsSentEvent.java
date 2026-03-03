@@ -1,4 +1,4 @@
-package com.wpanther.notification.adapter.in.kafka;
+package com.wpanther.notification.application.dto.event;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -9,10 +9,14 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event published when PDF generation is completed
+ * Event published when a document is successfully submitted to the
+ * Thailand Revenue Department via ebMS protocol.
  */
 @Getter
-public class PdfGeneratedEvent extends TraceEvent {
+public class EbmsSentEvent extends TraceEvent {
+
+    @JsonProperty("documentId")
+    private final String documentId;
 
     @JsonProperty("invoiceId")
     private final String invoiceId;
@@ -20,20 +24,14 @@ public class PdfGeneratedEvent extends TraceEvent {
     @JsonProperty("invoiceNumber")
     private final String invoiceNumber;
 
-    @JsonProperty("documentId")
-    private final String documentId;
+    @JsonProperty("documentType")
+    private final String documentType;
 
-    @JsonProperty("documentUrl")
-    private final String documentUrl;
+    @JsonProperty("ebmsMessageId")
+    private final String ebmsMessageId;
 
-    @JsonProperty("fileSize")
-    private final long fileSize;
-
-    @JsonProperty("xmlEmbedded")
-    private final boolean xmlEmbedded;
-
-    @JsonProperty("digitallySigned")
-    private final boolean digitallySigned;
+    @JsonProperty("sentAt")
+    private final Instant sentAt;
 
     @JsonProperty("correlationId")
     private final String correlationId;
@@ -42,17 +40,16 @@ public class PdfGeneratedEvent extends TraceEvent {
      * Constructor for creating new events.
      * Generates eventId, occurredAt, eventType, and version automatically.
      */
-    public PdfGeneratedEvent(String invoiceId, String invoiceNumber, String documentId,
-                              String documentUrl, long fileSize, boolean xmlEmbedded,
-                              boolean digitallySigned, String correlationId) {
-        super(invoiceId, "pdf-generation-service", "PDF_GENERATED");
+    public EbmsSentEvent(String documentId, String invoiceId, String invoiceNumber,
+                          String documentType, String ebmsMessageId, Instant sentAt,
+                          String correlationId) {
+        super(documentId, "ebms-sending-service", "EBMS_SENT");
+        this.documentId = documentId;
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
-        this.documentId = documentId;
-        this.documentUrl = documentUrl;
-        this.fileSize = fileSize;
-        this.xmlEmbedded = xmlEmbedded;
-        this.digitallySigned = digitallySigned;
+        this.documentType = documentType;
+        this.ebmsMessageId = ebmsMessageId;
+        this.sentAt = sentAt;
         this.correlationId = correlationId;
     }
 
@@ -61,7 +58,7 @@ public class PdfGeneratedEvent extends TraceEvent {
      * Used by Jackson when reading events from Kafka.
      */
     @JsonCreator
-    public PdfGeneratedEvent(
+    public EbmsSentEvent(
         @JsonProperty("eventId") UUID eventId,
         @JsonProperty("occurredAt") Instant occurredAt,
         @JsonProperty("eventType") String eventType,
@@ -70,23 +67,21 @@ public class PdfGeneratedEvent extends TraceEvent {
         @JsonProperty("source") String source,
         @JsonProperty("traceType") String traceType,
         @JsonProperty("context") String context,
+        @JsonProperty("documentId") String documentId,
         @JsonProperty("invoiceId") String invoiceId,
         @JsonProperty("invoiceNumber") String invoiceNumber,
-        @JsonProperty("documentId") String documentId,
-        @JsonProperty("documentUrl") String documentUrl,
-        @JsonProperty("fileSize") long fileSize,
-        @JsonProperty("xmlEmbedded") boolean xmlEmbedded,
-        @JsonProperty("digitallySigned") boolean digitallySigned,
+        @JsonProperty("documentType") String documentType,
+        @JsonProperty("ebmsMessageId") String ebmsMessageId,
+        @JsonProperty("sentAt") Instant sentAt,
         @JsonProperty("correlationId") String correlationId
     ) {
         super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
+        this.documentId = documentId;
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
-        this.documentId = documentId;
-        this.documentUrl = documentUrl;
-        this.fileSize = fileSize;
-        this.xmlEmbedded = xmlEmbedded;
-        this.digitallySigned = digitallySigned;
+        this.documentType = documentType;
+        this.ebmsMessageId = ebmsMessageId;
+        this.sentAt = sentAt;
         this.correlationId = correlationId;
     }
 }
