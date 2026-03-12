@@ -936,23 +936,42 @@ docker exec test-kafka kafka-consumer-groups \
 src/main/java/com/wpanther/notification/
 ├── NotificationServiceApplication.java
 ├── domain/
-│   ├── model/              # Notification, NotificationType, NotificationChannel, NotificationStatus
-│   ├── repository/         # NotificationRepository interface
-│   └── service/            # NotificationSender interface
+│   ├── model/              # Notification aggregate, NotificationType, NotificationChannel, NotificationStatus
+│   ├── repository/         # NotificationRepository interface (domain-owned outbound port)
+│   └── exception/         # NotificationException
 ├── application/
-│   ├── controller/         # NotificationController (REST API)
-│   └── service/            # NotificationService (orchestration)
+│   ├── usecase/           # Input ports: SendNotificationUseCase, QueryNotificationUseCase,
+│   │                     # RetryNotificationUseCase, ProcessingEventUseCase,
+│   │                     # DocumentReceivedEventUseCase, SagaEventUseCase
+│   ├── service/           # NotificationService, NotificationSendingService, NotificationDispatcherService
+│   ├── dto/               # ErrorResponse
+│   └── port/out/          # NotificationSenderPort (outbound port)
 └── infrastructure/
-    ├── persistence/        # JPA entities, repositories
-    ├── notification/       # Email, webhook senders, TemplateEngine
-    ├── messaging/          # Kafka routes, event DTOs (all extend IntegrationEvent)
-    └── config/             # Kafka, WebClient configuration
+    ├── adapter/
+    │   ├── in/
+    │   │   ├── kafka/    # NotificationEventRoutes (Apache Camel Kafka consumer)
+    │   │   ├── rest/     # NotificationController
+    │   │   └── scheduler/ # NotificationSchedulerAdapter (@Scheduled tasks)
+    │   └── out/
+    │       ├── persistence/     # NotificationEntity, JpaNotificationRepository,
+    │       │                    # NotificationRepositoryAdapter, JsonMapConverter
+    │       ├── persistence/outbox/  # OutboxEventEntity, SpringDataOutboxRepository,
+    │       │                        # JpaOutboxEventRepository
+    │       └── notification/   # EmailNotificationSenderAdapter, WebhookNotificationSenderAdapter,
+    │                           # TemplateEngine
+    └── config/               # KafkaTopicsConfig, AsyncConfig, WebClientConfig,
+                              # GlobalExceptionHandler, OpenTelemetryConfig
 
 src/main/resources/
 ├── templates/              # Thymeleaf email templates
 ├── db/migration/           # Flyway SQL migrations
 └── application.yml         # Configuration
 ```
+
+> **Note**: This service follows **Hexagonal Architecture** (Ports & Adapters):
+> - **Domain Layer**: Core business logic, owns `NotificationRepository` interface
+> - **Application Layer**: Use cases (`usecase/`) and orchestration services
+> - **Infrastructure Layer**: Adapters for inbound (Kafka, REST, Scheduler) and outbound (Persistence, Notifications)
 
 ## License
 
