@@ -1,8 +1,8 @@
 package com.wpanther.notification;
 
-import com.wpanther.notification.adapter.in.rest.NotificationController;
+import com.wpanther.notification.infrastructure.adapter.in.rest.NotificationController;
 import com.wpanther.notification.application.service.NotificationService;
-import com.wpanther.notification.application.port.out.NotificationRepositoryPort;
+import com.wpanther.notification.domain.repository.NotificationRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +31,7 @@ class NotificationServiceApplicationTest {
     void testRequiredBeansExist() {
         assertThat(context.getBean(NotificationService.class)).isNotNull();
         assertThat(context.getBean(NotificationController.class)).isNotNull();
-        assertThat(context.getBean(NotificationRepositoryPort.class)).isNotNull();
+        assertThat(context.getBean(NotificationRepository.class)).isNotNull();
         assertThat(context.getBean("notificationTemplateEngine")).isNotNull();
     }
 

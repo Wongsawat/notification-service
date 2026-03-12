@@ -1,4 +1,4 @@
-package com.wpanther.notification.adapter.out.persistence;
+package com.wpanther.notification.infrastructure.adapter.out.persistence;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

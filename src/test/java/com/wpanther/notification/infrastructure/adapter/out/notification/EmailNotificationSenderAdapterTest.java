@@ -1,4 +1,4 @@
-package com.wpanther.notification.adapter.out.notification;
+package com.wpanther.notification.infrastructure.adapter.out.notification;
 
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;

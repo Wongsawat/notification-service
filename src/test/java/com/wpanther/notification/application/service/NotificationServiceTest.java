@@ -4,7 +4,7 @@ import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.model.NotificationType;
-import com.wpanther.notification.application.port.out.NotificationRepositoryPort;
+import com.wpanther.notification.domain.repository.NotificationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,7 +32,7 @@ import static org.mockito.Mockito.*;
 class NotificationServiceTest {
 
     @Mock
-    private NotificationRepositoryPort repository;
+    private NotificationRepository repository;
 
     @Mock
     private NotificationSendingService sendingService;
@@ -59,7 +59,6 @@ class NotificationServiceTest {
             .build();
 
         ReflectionTestUtils.setField(notificationService, "maxRetries", 3);
-        ReflectionTestUtils.setField(notificationService, "staleSendingTimeoutMs", 300000L);
     }
 
     // ── Delegation tests ──────────────────────────────────────────────────────────────────
@@ -191,172 +190,4 @@ class NotificationServiceTest {
         verify(dispatcherService, never()).dispatchAsync(any());
     }
 
-    // ── Scheduler: retryFailedNotifications tests ─────────────────────────────────────────
-
-    @Test
-    @DisplayName("retryFailedNotifications retries notifications with retryCount < maxRetries")
-    void testRetryFailedNotificationsRetries() {
-        Notification failedNotification = Notification.builder()
-            .id(UUID.randomUUID())
-            .type(NotificationType.INVOICE_PROCESSED)
-            .channel(NotificationChannel.EMAIL)
-            .recipient("test@example.com")
-            .subject("Test")
-            .status(NotificationStatus.FAILED)
-            .retryCount(1)
-            .build();
-
-        when(repository.findFailedNotifications(3, 100)).thenReturn(List.of(failedNotification));
-        when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        notificationService.retryFailedNotifications();
-
-        verify(repository, atLeastOnce()).save(any(Notification.class));
-        assertThat(failedNotification.getRetryCount()).isEqualTo(2);
-    }
-
-    @Test
-    @DisplayName("retryFailedNotifications does nothing when no failed notifications")
-    void testRetryFailedNotificationsWhenNoneFound() {
-        when(repository.findFailedNotifications(3, 100)).thenReturn(List.of());
-
-        notificationService.retryFailedNotifications();
-
-        verify(repository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("retryFailedNotifications handles exception gracefully")
-    void testRetryFailedNotificationsHandlesException() {
-        Notification failedNotification = Notification.builder()
-            .id(UUID.randomUUID())
-            .type(NotificationType.INVOICE_PROCESSED)
-            .channel(NotificationChannel.EMAIL)
-            .recipient("test@example.com")
-            .subject("Test")
-            .status(NotificationStatus.FAILED)
-            .retryCount(1)
-            .build();
-
-        when(repository.findFailedNotifications(3, 100)).thenReturn(List.of(failedNotification));
-        when(repository.save(any(Notification.class))).thenThrow(new RuntimeException("Database error"));
-
-        notificationService.retryFailedNotifications(); // must not throw
-
-        verify(repository).save(any(Notification.class));
-    }
-
-    // ── Scheduler: processPendingNotifications tests ──────────────────────────────────────
-
-    @Test
-    @DisplayName("processPendingNotifications dispatches each pending notification")
-    void testProcessPendingNotifications() {
-        Notification pendingNotification = Notification.builder()
-            .id(UUID.randomUUID())
-            .type(NotificationType.INVOICE_PROCESSED)
-            .channel(NotificationChannel.EMAIL)
-            .recipient("test@example.com")
-            .subject("Test")
-            .status(NotificationStatus.PENDING)
-            .retryCount(0)
-            .build();
-
-        when(repository.findPendingNotifications(100)).thenReturn(List.of(pendingNotification));
-
-        notificationService.processPendingNotifications();
-
-        verify(repository).findPendingNotifications(100);
-        verify(dispatcherService).dispatchAsync(pendingNotification);
-    }
-
-    @Test
-    @DisplayName("processPendingNotifications does nothing when no pending notifications")
-    void testProcessPendingNotificationsWhenNoneFound() {
-        when(repository.findPendingNotifications(100)).thenReturn(List.of());
-
-        notificationService.processPendingNotifications();
-
-        verify(repository).findPendingNotifications(100);
-        verify(repository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("processPendingNotifications handles dispatch exception gracefully")
-    void testProcessPendingNotificationsHandlesException() {
-        Notification pendingNotification = Notification.builder()
-            .id(UUID.randomUUID())
-            .type(NotificationType.INVOICE_PROCESSED)
-            .channel(NotificationChannel.EMAIL)
-            .recipient("test@example.com")
-            .subject("Test")
-            .status(NotificationStatus.PENDING)
-            .retryCount(0)
-            .build();
-
-        when(repository.findPendingNotifications(100)).thenReturn(List.of(pendingNotification));
-        doThrow(new RuntimeException("Dispatch error")).when(dispatcherService).dispatchAsync(any());
-
-        notificationService.processPendingNotifications(); // must not throw
-
-        verify(dispatcherService).dispatchAsync(pendingNotification);
-    }
-
-    // ── Scheduler: recoverStaleSendingNotifications tests ────────────────────────────────
-
-    @Test
-    @DisplayName("recoverStaleSendingNotifications marks stale SENDING notifications as FAILED")
-    void testRecoverStaleSendingNotifications() {
-        Notification staleSending = Notification.builder()
-            .id(UUID.randomUUID())
-            .type(NotificationType.INVOICE_PROCESSED)
-            .channel(NotificationChannel.EMAIL)
-            .recipient("test@example.com")
-            .subject("Test")
-            .status(NotificationStatus.SENDING)
-            .retryCount(0)
-            .build();
-
-        when(repository.findStaleSendingNotifications(any(LocalDateTime.class), eq(100)))
-            .thenReturn(List.of(staleSending));
-        when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        notificationService.recoverStaleSendingNotifications();
-
-        verify(repository).save(staleSending);
-        assertThat(staleSending.getStatus()).isEqualTo(NotificationStatus.FAILED);
-        assertThat(staleSending.getErrorMessage()).contains("stale SENDING");
-    }
-
-    @Test
-    @DisplayName("recoverStaleSendingNotifications does nothing when no stale notifications")
-    void testRecoverStaleSendingNotificationsWhenNone() {
-        when(repository.findStaleSendingNotifications(any(LocalDateTime.class), eq(100)))
-            .thenReturn(List.of());
-
-        notificationService.recoverStaleSendingNotifications();
-
-        verify(repository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("recoverStaleSendingNotifications handles per-notification exception gracefully")
-    void testRecoverStaleSendingNotificationsHandlesException() {
-        Notification staleSending = Notification.builder()
-            .id(UUID.randomUUID())
-            .type(NotificationType.INVOICE_PROCESSED)
-            .channel(NotificationChannel.EMAIL)
-            .recipient("test@example.com")
-            .subject("Test")
-            .status(NotificationStatus.SENDING)
-            .retryCount(0)
-            .build();
-
-        when(repository.findStaleSendingNotifications(any(LocalDateTime.class), eq(100)))
-            .thenReturn(List.of(staleSending));
-        when(repository.save(any(Notification.class))).thenThrow(new RuntimeException("DB error"));
-
-        notificationService.recoverStaleSendingNotifications(); // must not throw
-
-        verify(repository).save(any(Notification.class));
-    }
 }

@@ -1,9 +1,9 @@
-package com.wpanther.notification.adapter.in.rest;
+package com.wpanther.notification.infrastructure.adapter.in.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wpanther.notification.application.port.in.QueryNotificationUseCase;
-import com.wpanther.notification.application.port.in.RetryNotificationUseCase;
-import com.wpanther.notification.application.port.in.SendNotificationUseCase;
+import com.wpanther.notification.application.usecase.QueryNotificationUseCase;
+import com.wpanther.notification.application.usecase.RetryNotificationUseCase;
+import com.wpanther.notification.application.usecase.SendNotificationUseCase;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationStatus;

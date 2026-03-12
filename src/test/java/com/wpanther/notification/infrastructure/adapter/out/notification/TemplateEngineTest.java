@@ -1,4 +1,4 @@
-package com.wpanther.notification.adapter.out.notification;
+package com.wpanther.notification.infrastructure.adapter.out.notification;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
