@@ -1,4 +1,4 @@
-package com.wpanther.notification.application.port.in;
+package com.wpanther.notification.application.usecase;
 
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationStatus;

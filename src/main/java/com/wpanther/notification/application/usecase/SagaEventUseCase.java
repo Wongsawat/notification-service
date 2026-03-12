@@ -1,4 +1,4 @@
-package com.wpanther.notification.application.port.in;
+package com.wpanther.notification.application.usecase;
 
 import com.wpanther.notification.application.dto.event.saga.SagaCompletedEvent;
 import com.wpanther.notification.application.dto.event.saga.SagaFailedEvent;

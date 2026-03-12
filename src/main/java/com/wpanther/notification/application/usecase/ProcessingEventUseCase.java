@@ -1,4 +1,4 @@
-package com.wpanther.notification.application.port.in;
+package com.wpanther.notification.application.usecase;
 
 import com.wpanther.notification.application.dto.event.EbmsSentEvent;
 import com.wpanther.notification.application.dto.event.InvoiceProcessedEvent;
