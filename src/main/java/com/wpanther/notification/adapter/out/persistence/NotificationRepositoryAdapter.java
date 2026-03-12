@@ -3,7 +3,7 @@ package com.wpanther.notification.adapter.out.persistence;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.model.NotificationType;
-import com.wpanther.notification.application.port.out.NotificationRepositoryPort;
+import com.wpanther.notification.domain.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
@@ -14,12 +14,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Adapter implementation of NotificationRepositoryPort using JPA.
+ * Adapter implementation of NotificationRepository using JPA.
  * Bridges between domain Notification model and JPA NotificationEntity.
  */
 @Component
 @RequiredArgsConstructor
-public class NotificationRepositoryAdapter implements NotificationRepositoryPort {
+public class NotificationRepositoryAdapter implements NotificationRepository {
 
     private final JpaNotificationRepository jpaRepository;
 

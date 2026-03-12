@@ -1,4 +1,4 @@
-package com.wpanther.notification.application.port.out;
+package com.wpanther.notification.domain.repository;
 
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationStatus;
@@ -10,10 +10,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Output port: persistence contract for the Notification aggregate.
- * Implemented by {@link com.wpanther.notification.adapter.out.persistence.NotificationRepositoryAdapter}.
+ * Domain-owned outbound port for persisting Notification aggregates.
+ * Infrastructure layer provides the implementation via JPA adapter.
  */
-public interface NotificationRepositoryPort {
+public interface NotificationRepository {
 
     Notification save(Notification notification);
 

@@ -4,7 +4,7 @@ import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.model.NotificationType;
-import com.wpanther.notification.application.port.out.NotificationRepositoryPort;
+import com.wpanther.notification.domain.repository.NotificationRepository;
 import com.wpanther.notification.application.port.out.NotificationSenderPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,14 +31,14 @@ import java.util.Map;
 @Slf4j
 public class NotificationSendingService {
 
-    private final NotificationRepositoryPort repository;
+    private final NotificationRepository repository;
     private final List<NotificationSenderPort> senders;
     private final TransactionTemplate requiresNewTx;
 
     @Value("${app.notification.max-retries:3}")
     private int maxRetries;
 
-    public NotificationSendingService(NotificationRepositoryPort repository,
+    public NotificationSendingService(NotificationRepository repository,
                                       List<NotificationSenderPort> senders,
                                       PlatformTransactionManager txManager) {
         this.repository = repository;

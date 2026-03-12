@@ -6,7 +6,7 @@ import com.wpanther.notification.application.port.in.QueryNotificationUseCase;
 import com.wpanther.notification.application.port.in.RetryNotificationUseCase;
 import com.wpanther.notification.application.port.in.SagaEventUseCase;
 import com.wpanther.notification.application.port.in.SendNotificationUseCase;
-import com.wpanther.notification.application.port.out.NotificationRepositoryPort;
+import com.wpanther.notification.domain.repository.NotificationRepository;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationStatus;
@@ -65,7 +65,7 @@ public class NotificationService
     private static final DateTimeFormatter DATE_FORMATTER =
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    private final NotificationRepositoryPort repository;
+    private final NotificationRepository repository;
     private final NotificationSendingService sendingService;
     private final NotificationDispatcherService dispatcherService;
 
