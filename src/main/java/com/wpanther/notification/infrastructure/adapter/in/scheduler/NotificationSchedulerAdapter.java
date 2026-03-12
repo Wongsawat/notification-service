@@ -3,7 +3,6 @@ package com.wpanther.notification.infrastructure.adapter.in.scheduler;
 import com.wpanther.notification.application.usecase.QueryNotificationUseCase;
 import com.wpanther.notification.application.usecase.RetryNotificationUseCase;
 import com.wpanther.notification.domain.model.Notification;
-import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

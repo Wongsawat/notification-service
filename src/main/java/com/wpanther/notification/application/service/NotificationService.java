@@ -44,8 +44,9 @@ import java.util.UUID;
  * Application service implementing all six input port interfaces.
  *
  * <p>Thin orchestrator that delegates sending to {@link NotificationSendingService} and
- * dispatching to {@link NotificationDispatcherService}. Owns scheduled retry/pending
- * sweepers. Implements event handler use cases (previously inline in Camel routes).</p>
+ * dispatching to {@link NotificationDispatcherService}. Implements event handler use cases
+ * (previously inline in Camel routes). Scheduled maintenance tasks are handled by
+ * {@link com.wpanther.notification.infrastructure.adapter.in.scheduler.NotificationSchedulerAdapter}.</p>
  *
  * <p>Dependency chain (no cycles):
  * NotificationService → NotificationDispatcherService → NotificationSendingService</p>
