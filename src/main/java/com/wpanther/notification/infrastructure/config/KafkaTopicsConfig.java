@@ -1,4 +1,4 @@
-package com.wpanther.notification.adapter.in.kafka;
+package com.wpanther.notification.infrastructure.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

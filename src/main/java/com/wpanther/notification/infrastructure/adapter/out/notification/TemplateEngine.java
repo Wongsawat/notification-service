@@ -1,4 +1,4 @@
-package com.wpanther.notification.adapter.out.notification;
+package com.wpanther.notification.infrastructure.adapter.out.notification;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

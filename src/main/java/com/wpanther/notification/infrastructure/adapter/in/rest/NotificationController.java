@@ -1,4 +1,4 @@
-package com.wpanther.notification.adapter.in.rest;
+package com.wpanther.notification.infrastructure.adapter.in.rest;
 
 import com.wpanther.notification.application.usecase.QueryNotificationUseCase;
 import com.wpanther.notification.application.usecase.RetryNotificationUseCase;

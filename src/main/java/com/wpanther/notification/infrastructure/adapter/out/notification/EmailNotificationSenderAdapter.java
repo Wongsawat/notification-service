@@ -1,4 +1,4 @@
-package com.wpanther.notification.adapter.out.notification;
+package com.wpanther.notification.infrastructure.adapter.out.notification;
 
 import com.wpanther.notification.application.port.out.NotificationSenderPort;
 import com.wpanther.notification.domain.exception.NotificationException;

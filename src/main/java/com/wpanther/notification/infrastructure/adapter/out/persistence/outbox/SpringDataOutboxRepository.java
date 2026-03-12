@@ -1,4 +1,4 @@
-package com.wpanther.notification.adapter.out.persistence.outbox;
+package com.wpanther.notification.infrastructure.adapter.out.persistence.outbox;
 
 import com.wpanther.saga.domain.outbox.OutboxStatus;
 import org.springframework.data.domain.Pageable;

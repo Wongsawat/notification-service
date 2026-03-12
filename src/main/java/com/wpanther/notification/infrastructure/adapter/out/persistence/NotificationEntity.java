@@ -1,4 +1,4 @@
-package com.wpanther.notification.adapter.out.persistence;
+package com.wpanther.notification.infrastructure.adapter.out.persistence;
 
 import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationStatus;

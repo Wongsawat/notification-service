@@ -1,4 +1,4 @@
-package com.wpanther.notification.adapter.in.kafka;
+package com.wpanther.notification.infrastructure.adapter.in.kafka;
 
 import com.wpanther.notification.application.dto.event.DocumentReceivedCountingEvent;
 import com.wpanther.notification.application.dto.event.DocumentReceivedEvent;
@@ -15,6 +15,7 @@ import com.wpanther.notification.application.dto.event.saga.SagaStepCompletedEve
 import com.wpanther.notification.application.usecase.DocumentReceivedEventUseCase;
 import com.wpanther.notification.application.usecase.ProcessingEventUseCase;
 import com.wpanther.notification.application.usecase.SagaEventUseCase;
+import com.wpanther.notification.infrastructure.config.KafkaTopicsConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;

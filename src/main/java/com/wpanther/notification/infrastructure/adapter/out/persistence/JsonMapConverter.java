@@ -1,4 +1,4 @@
-package com.wpanther.notification.adapter.out.persistence;
+package com.wpanther.notification.infrastructure.adapter.out.persistence;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
