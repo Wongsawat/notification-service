@@ -18,9 +18,6 @@ import java.util.UUID;
 @Getter
 public class SagaStepCompletedEvent extends TraceEvent {
 
-    @JsonProperty("correlationId")
-    private final String correlationId;
-
     @JsonProperty("documentType")
     private final String documentType;
 
@@ -46,8 +43,7 @@ public class SagaStepCompletedEvent extends TraceEvent {
     public SagaStepCompletedEvent(String sagaId, String correlationId, String documentType,
                                    String documentId, String completedStep, String nextStep,
                                    String invoiceNumber, Long stepDurationMs) {
-        super(sagaId, "orchestrator-service", "SAGA_STEP_COMPLETED");
-        this.correlationId = correlationId;
+        super(sagaId, correlationId, "orchestrator-service", "SAGA_STEP_COMPLETED", null);
         this.documentType = documentType;
         this.documentId = documentId;
         this.completedStep = completedStep;
@@ -67,10 +63,10 @@ public class SagaStepCompletedEvent extends TraceEvent {
         @JsonProperty("eventType") String eventType,
         @JsonProperty("version") int version,
         @JsonProperty("sagaId") String sagaId,
+        @JsonProperty("correlationId") String correlationId,
         @JsonProperty("source") String source,
         @JsonProperty("traceType") String traceType,
         @JsonProperty("context") String context,
-        @JsonProperty("correlationId") String correlationId,
         @JsonProperty("documentType") String documentType,
         @JsonProperty("documentId") String documentId,
         @JsonProperty("completedStep") String completedStep,
@@ -78,8 +74,7 @@ public class SagaStepCompletedEvent extends TraceEvent {
         @JsonProperty("invoiceNumber") String invoiceNumber,
         @JsonProperty("stepDurationMs") Long stepDurationMs
     ) {
-        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
-        this.correlationId = correlationId;
+        super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.documentType = documentType;
         this.documentId = documentId;
         this.completedStep = completedStep;

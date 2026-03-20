@@ -35,9 +35,6 @@ public class PdfGeneratedEvent extends TraceEvent {
     @JsonProperty("digitallySigned")
     private final boolean digitallySigned;
 
-    @JsonProperty("correlationId")
-    private final String correlationId;
-
     /**
      * Constructor for creating new events.
      * Generates eventId, occurredAt, eventType, and version automatically.
@@ -45,7 +42,7 @@ public class PdfGeneratedEvent extends TraceEvent {
     public PdfGeneratedEvent(String invoiceId, String invoiceNumber, String documentId,
                               String documentUrl, long fileSize, boolean xmlEmbedded,
                               boolean digitallySigned, String correlationId) {
-        super(invoiceId, "pdf-generation-service", "PDF_GENERATED");
+        super(invoiceId, correlationId, "pdf-generation-service", "PDF_GENERATED", null);
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
         this.documentId = documentId;
@@ -53,7 +50,6 @@ public class PdfGeneratedEvent extends TraceEvent {
         this.fileSize = fileSize;
         this.xmlEmbedded = xmlEmbedded;
         this.digitallySigned = digitallySigned;
-        this.correlationId = correlationId;
     }
 
     /**
@@ -67,6 +63,7 @@ public class PdfGeneratedEvent extends TraceEvent {
         @JsonProperty("eventType") String eventType,
         @JsonProperty("version") int version,
         @JsonProperty("sagaId") String sagaId,
+        @JsonProperty("correlationId") String correlationId,
         @JsonProperty("source") String source,
         @JsonProperty("traceType") String traceType,
         @JsonProperty("context") String context,
@@ -76,10 +73,9 @@ public class PdfGeneratedEvent extends TraceEvent {
         @JsonProperty("documentUrl") String documentUrl,
         @JsonProperty("fileSize") long fileSize,
         @JsonProperty("xmlEmbedded") boolean xmlEmbedded,
-        @JsonProperty("digitallySigned") boolean digitallySigned,
-        @JsonProperty("correlationId") String correlationId
+        @JsonProperty("digitallySigned") boolean digitallySigned
     ) {
-        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
+        super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
         this.documentId = documentId;
@@ -87,6 +83,5 @@ public class PdfGeneratedEvent extends TraceEvent {
         this.fileSize = fileSize;
         this.xmlEmbedded = xmlEmbedded;
         this.digitallySigned = digitallySigned;
-        this.correlationId = correlationId;
     }
 }

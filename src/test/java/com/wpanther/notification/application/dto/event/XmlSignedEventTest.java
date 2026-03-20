@@ -83,7 +83,7 @@ class XmlSignedEventTest {
         @DisplayName("Should serialize to JSON correctly")
         void testSerializeToJson() throws Exception {
             XmlSignedEvent event = new XmlSignedEvent(
-                "doc-789", "INV-002", "TAX_INVOICE", "corr-101"
+                "saga-789", "corr-101", "doc-789", "INV-002", "TAX_INVOICE"
             );
 
             String json = objectMapper.writeValueAsString(event);
@@ -106,7 +106,7 @@ class XmlSignedEventTest {
         @DisplayName("Should create event with convenience constructor")
         void testConvenienceConstructor() {
             XmlSignedEvent event = new XmlSignedEvent(
-                "doc-abc", "INV-100", "RECEIPT", "corr-xyz"
+                "saga-abc", "corr-xyz", "doc-abc", "INV-100", "RECEIPT"
             );
 
             assertThat(event.getInvoiceId()).isEqualTo("doc-abc");

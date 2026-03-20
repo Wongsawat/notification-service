@@ -18,9 +18,6 @@ import java.util.UUID;
 @Getter
 public class SagaStartedEvent extends TraceEvent {
 
-    @JsonProperty("correlationId")
-    private final String correlationId;
-
     @JsonProperty("documentType")
     private final String documentType;
 
@@ -43,8 +40,7 @@ public class SagaStartedEvent extends TraceEvent {
     public SagaStartedEvent(String sagaId, String correlationId, String documentType,
                             String documentId, String currentStep, String invoiceNumber,
                             Instant startedAt) {
-        super(sagaId, "orchestrator-service", "SAGA_STARTED");
-        this.correlationId = correlationId;
+        super(sagaId, correlationId, "orchestrator-service", "SAGA_STARTED", null);
         this.documentType = documentType;
         this.documentId = documentId;
         this.currentStep = currentStep;
@@ -63,18 +59,17 @@ public class SagaStartedEvent extends TraceEvent {
         @JsonProperty("eventType") String eventType,
         @JsonProperty("version") int version,
         @JsonProperty("sagaId") String sagaId,
+        @JsonProperty("correlationId") String correlationId,
         @JsonProperty("source") String source,
         @JsonProperty("traceType") String traceType,
         @JsonProperty("context") String context,
-        @JsonProperty("correlationId") String correlationId,
         @JsonProperty("documentType") String documentType,
         @JsonProperty("documentId") String documentId,
         @JsonProperty("currentStep") String currentStep,
         @JsonProperty("invoiceNumber") String invoiceNumber,
         @JsonProperty("startedAt") Instant startedAt
     ) {
-        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
-        this.correlationId = correlationId;
+        super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.documentType = documentType;
         this.documentId = documentId;
         this.currentStep = currentStep;

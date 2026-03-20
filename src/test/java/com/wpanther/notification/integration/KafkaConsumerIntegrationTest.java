@@ -157,7 +157,7 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
         Instant signatureTimestamp = Instant.now();
 
         PdfSignedEvent event = new PdfSignedEvent(
-            correlationId, invoiceId, invoiceNumber, documentType,
+            invoiceId, correlationId, invoiceId, invoiceNumber, documentType,
             signedDocumentId, signedPdfUrl, signedPdfSize, transactionId,
             certificate, signatureLevel, signatureTimestamp
         );

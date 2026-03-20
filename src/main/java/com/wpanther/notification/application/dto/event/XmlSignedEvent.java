@@ -24,16 +24,12 @@ public class XmlSignedEvent extends TraceEvent {
     @JsonProperty("documentType")
     private final String documentType;
 
-    @JsonProperty("correlationId")
-    private final String correlationId;
-
-    public XmlSignedEvent(String invoiceId, String invoiceNumber,
-                          String documentType, String correlationId) {
-        super(correlationId, "xml-signing-service", "XML_SIGNED");
+    public XmlSignedEvent(String sagaId, String correlationId, String invoiceId, String invoiceNumber,
+                          String documentType) {
+        super(sagaId, correlationId, "xml-signing-service", "XML_SIGNED", null);
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
         this.documentType = documentType;
-        this.correlationId = correlationId;
     }
 
     @JsonCreator
@@ -43,18 +39,17 @@ public class XmlSignedEvent extends TraceEvent {
         @JsonProperty("eventType") String eventType,
         @JsonProperty("version") int version,
         @JsonProperty("sagaId") String sagaId,
+        @JsonProperty("correlationId") String correlationId,
         @JsonProperty("source") String source,
         @JsonProperty("traceType") String traceType,
         @JsonProperty("context") String context,
         @JsonProperty("invoiceId") String invoiceId,
         @JsonProperty("invoiceNumber") String invoiceNumber,
-        @JsonProperty("documentType") String documentType,
-        @JsonProperty("correlationId") String correlationId
+        @JsonProperty("documentType") String documentType
     ) {
-        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
+        super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
         this.documentType = documentType;
-        this.correlationId = correlationId;
     }
 }

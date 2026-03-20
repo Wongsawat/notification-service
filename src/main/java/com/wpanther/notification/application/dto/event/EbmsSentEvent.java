@@ -33,9 +33,6 @@ public class EbmsSentEvent extends TraceEvent {
     @JsonProperty("sentAt")
     private final Instant sentAt;
 
-    @JsonProperty("correlationId")
-    private final String correlationId;
-
     /**
      * Constructor for creating new events.
      * Generates eventId, occurredAt, eventType, and version automatically.
@@ -43,14 +40,13 @@ public class EbmsSentEvent extends TraceEvent {
     public EbmsSentEvent(String documentId, String invoiceId, String invoiceNumber,
                           String documentType, String ebmsMessageId, Instant sentAt,
                           String correlationId) {
-        super(documentId, "ebms-sending-service", "EBMS_SENT");
+        super(documentId, correlationId, "ebms-sending-service", "EBMS_SENT", null);
         this.documentId = documentId;
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
         this.documentType = documentType;
         this.ebmsMessageId = ebmsMessageId;
         this.sentAt = sentAt;
-        this.correlationId = correlationId;
     }
 
     /**
@@ -64,6 +60,7 @@ public class EbmsSentEvent extends TraceEvent {
         @JsonProperty("eventType") String eventType,
         @JsonProperty("version") int version,
         @JsonProperty("sagaId") String sagaId,
+        @JsonProperty("correlationId") String correlationId,
         @JsonProperty("source") String source,
         @JsonProperty("traceType") String traceType,
         @JsonProperty("context") String context,
@@ -72,16 +69,14 @@ public class EbmsSentEvent extends TraceEvent {
         @JsonProperty("invoiceNumber") String invoiceNumber,
         @JsonProperty("documentType") String documentType,
         @JsonProperty("ebmsMessageId") String ebmsMessageId,
-        @JsonProperty("sentAt") Instant sentAt,
-        @JsonProperty("correlationId") String correlationId
+        @JsonProperty("sentAt") Instant sentAt
     ) {
-        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
+        super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.documentId = documentId;
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
         this.documentType = documentType;
         this.ebmsMessageId = ebmsMessageId;
         this.sentAt = sentAt;
-        this.correlationId = correlationId;
     }
 }

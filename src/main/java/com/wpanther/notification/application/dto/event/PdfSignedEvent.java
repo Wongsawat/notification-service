@@ -16,10 +16,6 @@ import java.util.UUID;
 @Getter
 public class PdfSignedEvent extends TraceEvent {
 
-    // Document identifiers
-    @JsonProperty("correlationId")
-    private final String correlationId;
-
     @JsonProperty("invoiceId")
     private final String invoiceId;
 
@@ -56,12 +52,11 @@ public class PdfSignedEvent extends TraceEvent {
      * Constructor for creating new events.
      * Generates eventId, occurredAt, eventType, and version automatically.
      */
-    public PdfSignedEvent(String correlationId, String invoiceId, String invoiceNumber,
+    public PdfSignedEvent(String sagaId, String correlationId, String invoiceId, String invoiceNumber,
                           String documentType, String signedDocumentId, String signedPdfUrl,
                           Long signedPdfSize, String transactionId, String certificate,
                           String signatureLevel, Instant signatureTimestamp) {
-        super(correlationId, "pdf-signing-service", "PDF_SIGNED");
-        this.correlationId = correlationId;
+        super(sagaId, correlationId, "pdf-signing-service", "PDF_SIGNED", null);
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
         this.documentType = documentType;
@@ -85,10 +80,10 @@ public class PdfSignedEvent extends TraceEvent {
         @JsonProperty("eventType") String eventType,
         @JsonProperty("version") int version,
         @JsonProperty("sagaId") String sagaId,
+        @JsonProperty("correlationId") String correlationId,
         @JsonProperty("source") String source,
         @JsonProperty("traceType") String traceType,
         @JsonProperty("context") String context,
-        @JsonProperty("correlationId") String correlationId,
         @JsonProperty("invoiceId") String invoiceId,
         @JsonProperty("invoiceNumber") String invoiceNumber,
         @JsonProperty("documentType") String documentType,
@@ -100,8 +95,7 @@ public class PdfSignedEvent extends TraceEvent {
         @JsonProperty("signatureLevel") String signatureLevel,
         @JsonProperty("signatureTimestamp") Instant signatureTimestamp
     ) {
-        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
-        this.correlationId = correlationId;
+        super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
         this.documentType = documentType;

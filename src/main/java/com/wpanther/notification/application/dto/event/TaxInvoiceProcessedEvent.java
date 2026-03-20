@@ -27,9 +27,6 @@ public class TaxInvoiceProcessedEvent extends TraceEvent {
     @JsonProperty("currency")
     private final String currency;
 
-    @JsonProperty("correlationId")
-    private final String correlationId;
-
     /**
      * Constructor for creating new events.
      * Generates eventId, occurredAt, eventType, and version automatically.
@@ -37,12 +34,11 @@ public class TaxInvoiceProcessedEvent extends TraceEvent {
     public TaxInvoiceProcessedEvent(String invoiceId, String invoiceNumber,
                                      BigDecimal total, String currency,
                                      String correlationId) {
-        super(invoiceId, "taxinvoice-processing-service", "TAXINVOICE_PROCESSED");
+        super(invoiceId, correlationId, "taxinvoice-processing-service", "TAXINVOICE_PROCESSED", null);
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
         this.total = total;
         this.currency = currency;
-        this.correlationId = correlationId;
     }
 
     /**
@@ -56,20 +52,19 @@ public class TaxInvoiceProcessedEvent extends TraceEvent {
         @JsonProperty("eventType") String eventType,
         @JsonProperty("version") int version,
         @JsonProperty("sagaId") String sagaId,
+        @JsonProperty("correlationId") String correlationId,
         @JsonProperty("source") String source,
         @JsonProperty("traceType") String traceType,
         @JsonProperty("context") String context,
         @JsonProperty("invoiceId") String invoiceId,
         @JsonProperty("invoiceNumber") String invoiceNumber,
         @JsonProperty("total") BigDecimal total,
-        @JsonProperty("currency") String currency,
-        @JsonProperty("correlationId") String correlationId
+        @JsonProperty("currency") String currency
     ) {
-        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
+        super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
         this.total = total;
         this.currency = currency;
-        this.correlationId = correlationId;
     }
 }

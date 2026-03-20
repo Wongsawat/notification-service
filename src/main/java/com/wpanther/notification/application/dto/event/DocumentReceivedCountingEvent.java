@@ -20,9 +20,6 @@ public class DocumentReceivedCountingEvent extends TraceEvent {
     @JsonProperty("documentId")
     private final String documentId;
 
-    @JsonProperty("correlationId")
-    private final String correlationId;
-
     @JsonProperty("receivedAt")
     private final Instant receivedAt;
 
@@ -31,9 +28,8 @@ public class DocumentReceivedCountingEvent extends TraceEvent {
      * Generates eventId, occurredAt, eventType, and version automatically.
      */
     public DocumentReceivedCountingEvent(String documentId, String correlationId, Instant receivedAt) {
-        super(documentId, "document-intake-service", "DOCUMENT_RECEIVED_COUNTING");
+        super(documentId, correlationId, "document-intake-service", "DOCUMENT_RECEIVED_COUNTING", null);
         this.documentId = documentId;
-        this.correlationId = correlationId;
         this.receivedAt = receivedAt;
     }
 
@@ -48,16 +44,15 @@ public class DocumentReceivedCountingEvent extends TraceEvent {
         @JsonProperty("eventType") String eventType,
         @JsonProperty("version") int version,
         @JsonProperty("sagaId") String sagaId,
+        @JsonProperty("correlationId") String correlationId,
         @JsonProperty("source") String source,
         @JsonProperty("traceType") String traceType,
         @JsonProperty("context") String context,
         @JsonProperty("documentId") String documentId,
-        @JsonProperty("correlationId") String correlationId,
         @JsonProperty("receivedAt") Instant receivedAt
     ) {
-        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
+        super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.documentId = documentId;
-        this.correlationId = correlationId;
         this.receivedAt = receivedAt;
     }
 }

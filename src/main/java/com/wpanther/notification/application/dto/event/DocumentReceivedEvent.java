@@ -28,9 +28,6 @@ public class DocumentReceivedEvent extends TraceEvent {
     @JsonProperty("xmlContent")
     private final String xmlContent;
 
-    @JsonProperty("correlationId")
-    private final String correlationId;
-
     @JsonProperty("documentType")
     private final String documentType;
 
@@ -40,11 +37,10 @@ public class DocumentReceivedEvent extends TraceEvent {
      */
     public DocumentReceivedEvent(String documentId, String invoiceNumber, String xmlContent,
                                   String correlationId, String documentType) {
-        super(documentId, "document-intake-service", "DOCUMENT_RECEIVED");
+        super(documentId, correlationId, "document-intake-service", "DOCUMENT_RECEIVED", null);
         this.documentId = documentId;
         this.invoiceNumber = invoiceNumber;
         this.xmlContent = xmlContent;
-        this.correlationId = correlationId;
         this.documentType = documentType;
     }
 
@@ -59,20 +55,19 @@ public class DocumentReceivedEvent extends TraceEvent {
         @JsonProperty("eventType") String eventType,
         @JsonProperty("version") int version,
         @JsonProperty("sagaId") String sagaId,
+        @JsonProperty("correlationId") String correlationId,
         @JsonProperty("source") String source,
         @JsonProperty("traceType") String traceType,
         @JsonProperty("context") String context,
         @JsonProperty("documentId") String documentId,
         @JsonProperty("invoiceNumber") String invoiceNumber,
         @JsonProperty("xmlContent") String xmlContent,
-        @JsonProperty("correlationId") String correlationId,
         @JsonProperty("documentType") String documentType
     ) {
-        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
+        super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.documentId = documentId;
         this.invoiceNumber = invoiceNumber;
         this.xmlContent = xmlContent;
-        this.correlationId = correlationId;
         this.documentType = documentType;
     }
 }
