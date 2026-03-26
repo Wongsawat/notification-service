@@ -76,7 +76,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         /*
          * Error handling strategy: Dead Letter Channel + breakOnFirstError
          * ----------------------------------------------------------------
-         * All 16 routes share this single global error handler.
+         * All 17 routes share this single global error handler.
          *
          * breakOnFirstError=true (set on each Kafka consumer URI below) tells
          * the Camel Kafka component to stop polling new messages from a partition
@@ -160,7 +160,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .process(this::handlePdfGenerated)
             .log("Created notification for PDF generated: ${header.invoiceNumber}");
 
-        // Route 17: Tax Invoice PDF Generated Events
+        // Route 4: Tax Invoice PDF Generated Events
         from("kafka:" + topics.pdfGeneratedTaxInvoice() + kafkaOptions)
             .routeId("notification-taxinvoice-pdf-generated")
             .log("Received TaxInvoicePdfGeneratedEvent from Kafka")
@@ -173,7 +173,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .process(this::handleTaxInvoicePdfGenerated)
             .log("Created notification for tax invoice PDF generated: ${header.taxInvoiceNumber}");
 
-        // Route 4: PDF Signed Events
+        // Route 5: PDF Signed Events
         from("kafka:" + topics.pdfSigned() + kafkaOptions)
             .routeId("notification-pdf-signed")
             .log("Received PdfSignedEvent from Kafka")
@@ -186,7 +186,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .process(this::handlePdfSigned)
             .log("Created notification for PDF signed: ${header.invoiceNumber}");
 
-        // Route 5: XML Signed Events
+        // Route 6: XML Signed Events
         from("kafka:" + topics.xmlSigned() + kafkaOptions)
             .routeId("notification-xml-signed")
             .log("Received XmlSignedEvent from Kafka")
@@ -199,7 +199,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .process(this::handleXmlSigned)
             .log("Created notification for XML signed: ${header.invoiceNumber}");
 
-        // Route 6: Document Received Counting Events (before validation - all documents)
+        // Route 7: Document Received Counting Events (before validation - all documents)
         // This lightweight event tracks ALL received documents regardless of validation outcome
         from("kafka:" + topics.documentReceived() + kafkaOptions)
             .routeId("notification-document-counting")
@@ -213,7 +213,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .process(this::handleDocumentReceivedCounting)
             .log("Processed document counting event: documentId=${header.documentId}");
 
-        // Route 6: Tax Invoice Document Received Events (after validation)
+        // Route 8: Tax Invoice Document Received Events (after validation)
         // Statistics event for validated tax invoice documents
         from("kafka:" + topics.taxInvoiceReceived() + kafkaOptions)
             .routeId("notification-tax-invoice-received")
@@ -227,7 +227,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .process(this::handleDocumentReceivedStats)
             .log("Processed tax invoice statistics event");
 
-        // Route 7: Invoice Document Received Events (after validation)
+        // Route 9: Invoice Document Received Events (after validation)
         // Statistics event for validated invoice documents
         from("kafka:" + topics.invoiceReceived() + kafkaOptions)
             .routeId("notification-invoice-received")
@@ -242,7 +242,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .log("Processed invoice statistics event");
 
         // Additional routes for other document types follow the same pattern
-        // Route 8: Receipt Document Received Events (after validation)
+        // Route 10: Receipt Document Received Events (after validation)
         from("kafka:" + topics.receiptReceived() + kafkaOptions)
             .routeId("notification-receipt-received")
             .log("Received DocumentReceivedEvent (RECEIPT) from Kafka")
@@ -255,7 +255,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .process(this::handleDocumentReceivedStats)
             .log("Processed receipt statistics event");
 
-        // Route 9: Debit/Credit Note Document Received Events (after validation)
+        // Route 11: Debit/Credit Note Document Received Events (after validation)
         from("kafka:" + topics.debitCreditNoteReceived() + kafkaOptions)
             .routeId("notification-debit-credit-note-received")
             .log("Received DocumentReceivedEvent (DEBIT_CREDIT_NOTE) from Kafka")
@@ -268,7 +268,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .process(this::handleDocumentReceivedStats)
             .log("Processed debit/credit note statistics event");
 
-        // Route 10: Cancellation Note Document Received Events (after validation)
+        // Route 12: Cancellation Note Document Received Events (after validation)
         from("kafka:" + topics.cancellationReceived() + kafkaOptions)
             .routeId("notification-cancellation-received")
             .log("Received DocumentReceivedEvent (CANCELLATION) from Kafka")
@@ -281,7 +281,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .process(this::handleDocumentReceivedStats)
             .log("Processed cancellation note statistics event");
 
-        // Route 11: Abbreviated Tax Invoice Document Received Events (after validation)
+        // Route 13: Abbreviated Tax Invoice Document Received Events (after validation)
         from("kafka:" + topics.abbreviatedReceived() + kafkaOptions)
             .routeId("notification-abbreviated-received")
             .log("Received DocumentReceivedEvent (ABBREVIATED) from Kafka")
@@ -294,7 +294,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .process(this::handleDocumentReceivedStats)
             .log("Processed abbreviated tax invoice statistics event");
 
-        // Route 12: ebMS Sent Events
+        // Route 14: ebMS Sent Events
         from("kafka:" + topics.ebmsSent() + kafkaOptions)
             .routeId("notification-ebms-sent")
             .log("Received EbmsSentEvent from Kafka")
@@ -307,7 +307,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .process(this::handleEbmsSent)
             .log("Created notification for ebMS sent: ${header.invoiceNumber}");
 
-        // Route 13: Saga Started Events (logging only)
+        // Route 15: Saga Started Events (logging only)
         from("kafka:" + topics.sagaLifecycleStarted() + kafkaOptions)
             .routeId("notification-saga-started")
             .log("Received SagaStartedEvent from Kafka")
@@ -320,7 +320,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .process(this::handleSagaStarted)
             .log("Processed saga started: sagaId=${header.sagaId}");
 
-        // Route 14: Saga Step Completed Events (logging only - no notifications)
+        // Route 16: Saga Step Completed Events (logging only - no notifications)
         from("kafka:" + topics.sagaLifecycleStepCompleted() + kafkaOptions)
             .routeId("notification-saga-step-completed")
             .log("Received SagaStepCompletedEvent from Kafka")
@@ -333,7 +333,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .process(this::handleSagaStepCompleted)
             .log("Processed saga step completed: step=${header.completedStep}");
 
-        // Route 15: Saga Completed Events (creates email notification)
+        // Route 17: Saga Completed Events (creates email notification)
         from("kafka:" + topics.sagaLifecycleCompleted() + kafkaOptions)
             .routeId("notification-saga-completed")
             .log("Received SagaCompletedEvent from Kafka")
@@ -346,7 +346,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .process(this::handleSagaCompleted)
             .log("Created notification for saga completed: sagaId=${header.sagaId}");
 
-        // Route 16: Saga Failed Events (creates urgent email notification)
+        // Route 18: Saga Failed Events (creates urgent email notification)
         from("kafka:" + topics.sagaLifecycleFailed() + kafkaOptions)
             .routeId("notification-saga-failed")
             .log("Received SagaFailedEvent from Kafka")
