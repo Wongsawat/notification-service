@@ -12,7 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -47,7 +47,7 @@ public class NotificationSchedulerAdapter {
     @Scheduled(fixedDelayString = "${app.notification.stale-sending-check-interval:120000}")
     @Transactional
     public void recoverStaleSendingNotifications() {
-        LocalDateTime threshold = LocalDateTime.now().minusSeconds(staleSendingTimeoutMs / 1000);
+        Instant threshold = Instant.now().minusSeconds(staleSendingTimeoutMs / 1000);
         List<Notification> stale = repository.findStaleSendingNotifications(threshold, 100);
 
         if (stale.isEmpty()) {

@@ -4,7 +4,7 @@ import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.model.NotificationType;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,13 +29,13 @@ public interface NotificationRepository {
 
     List<Notification> findByType(NotificationType type, int limit);
 
-    List<Notification> findStaleSendingNotifications(LocalDateTime threshold, int limit);
+    List<Notification> findStaleSendingNotifications(Instant threshold, int limit);
 
     List<Notification> findFailedNotifications(int maxRetries, int limit);
 
     List<Notification> findPendingNotifications(int limit);
 
-    List<Notification> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end, int limit);
+    List<Notification> findByCreatedAtBetween(Instant start, Instant end, int limit);
 
     long countByStatus(NotificationStatus status);
 

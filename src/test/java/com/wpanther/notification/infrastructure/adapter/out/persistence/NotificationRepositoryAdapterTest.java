@@ -13,7 +13,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,7 +50,7 @@ class NotificationRepositoryAdapterTest {
                 .body("Test Body")
                 .metadata(java.util.Map.of("key", "value"))
                 .templateVariables(java.util.Map.of())
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .retryCount(0)
                 .build();
 
@@ -88,7 +88,7 @@ class NotificationRepositoryAdapterTest {
                 .body("Original Body")
                 .metadata(java.util.Map.of())
                 .templateVariables(java.util.Map.of())
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .retryCount(0)
                 .build();
 
@@ -188,7 +188,7 @@ class NotificationRepositoryAdapterTest {
                 .body("Body")
                 .metadata(new java.util.HashMap<>())
                 .templateVariables(new java.util.HashMap<>())
-                .createdAt(LocalDateTime.now().minusMinutes(10))
+                .createdAt(Instant.now().minusSeconds(600))
                 .retryCount(0)
                 .build();
             adapter.save(stale);
@@ -204,13 +204,13 @@ class NotificationRepositoryAdapterTest {
                 .body("Body")
                 .metadata(new java.util.HashMap<>())
                 .templateVariables(new java.util.HashMap<>())
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .retryCount(0)
                 .build();
             adapter.save(recent);
 
             // Act — threshold is 5 minutes ago
-            LocalDateTime threshold = LocalDateTime.now().minusMinutes(5);
+            Instant threshold = Instant.now().minusSeconds(300);
             List<Notification> staleFound = adapter.findStaleSendingNotifications(threshold, 100);
 
             // Assert
@@ -305,7 +305,7 @@ class NotificationRepositoryAdapterTest {
             .body("Body")
             .metadata(new java.util.HashMap<>())
             .templateVariables(new java.util.HashMap<>())
-            .createdAt(LocalDateTime.now())
+            .createdAt(Instant.now())
             .retryCount(retryCount)
             .build();
     }

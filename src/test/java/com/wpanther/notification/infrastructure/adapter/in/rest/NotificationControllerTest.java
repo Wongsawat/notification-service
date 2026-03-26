@@ -17,7 +17,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -62,8 +62,8 @@ class NotificationControllerTest {
             .recipient("test@example.com")
             .subject("Test Subject")
             .status(NotificationStatus.SENT)
-            .createdAt(LocalDateTime.now())
-            .sentAt(LocalDateTime.now())
+            .createdAt(Instant.now())
+            .sentAt(Instant.now())
             .build();
     }
 

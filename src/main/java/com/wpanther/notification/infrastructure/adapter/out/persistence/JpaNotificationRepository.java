@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,7 +30,7 @@ public interface JpaNotificationRepository extends JpaRepository<NotificationEnt
     List<NotificationEntity> findByType(NotificationType type, Pageable pageable);
 
     @Query("SELECT n FROM NotificationEntity n WHERE n.status = 'SENDING' AND n.createdAt < :threshold ORDER BY n.createdAt ASC")
-    List<NotificationEntity> findStaleSendingNotifications(@Param("threshold") LocalDateTime threshold, Pageable pageable);
+    List<NotificationEntity> findStaleSendingNotifications(@Param("threshold") Instant threshold, Pageable pageable);
 
     @Query("SELECT n FROM NotificationEntity n WHERE n.status = 'FAILED' AND n.retryCount < :maxRetries")
     List<NotificationEntity> findFailedNotifications(@Param("maxRetries") int maxRetries, Pageable pageable);
@@ -38,7 +38,7 @@ public interface JpaNotificationRepository extends JpaRepository<NotificationEnt
     @Query("SELECT n FROM NotificationEntity n WHERE n.status = 'PENDING' ORDER BY n.createdAt ASC")
     List<NotificationEntity> findPendingNotifications(Pageable pageable);
 
-    List<NotificationEntity> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end, Pageable pageable);
+    List<NotificationEntity> findByCreatedAtBetween(Instant start, Instant end, Pageable pageable);
 
     long countByStatus(NotificationStatus status);
 

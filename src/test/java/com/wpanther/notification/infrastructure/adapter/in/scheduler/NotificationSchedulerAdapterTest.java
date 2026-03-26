@@ -15,7 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import java.lang.reflect.Method;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -102,7 +102,7 @@ class NotificationSchedulerAdapterTest {
     @Test
     void recoverStaleSendingNotifications_marksStaleFailed() {
         Notification n = mock(Notification.class);
-        when(repository.findStaleSendingNotifications(any(LocalDateTime.class), anyInt()))
+        when(repository.findStaleSendingNotifications(any(Instant.class), anyInt()))
             .thenReturn(List.of(n));
 
         scheduler.recoverStaleSendingNotifications();

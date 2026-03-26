@@ -1,6 +1,6 @@
 package com.wpanther.notification.domain.model;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -33,9 +33,9 @@ public class Notification {
     private String invoiceId;
     private String invoiceNumber;
     private String correlationId;
-    private final LocalDateTime createdAt;
-    private LocalDateTime sentAt;
-    private LocalDateTime failedAt;
+    private final Instant createdAt;
+    private Instant sentAt;
+    private Instant failedAt;
     private int retryCount;
     private String errorMessage;
 
@@ -75,9 +75,9 @@ public class Notification {
     public String getInvoiceId()                         { return invoiceId; }
     public String getInvoiceNumber()                     { return invoiceNumber; }
     public String getCorrelationId()                     { return correlationId; }
-    public LocalDateTime getCreatedAt()                  { return createdAt; }
-    public LocalDateTime getSentAt()                     { return sentAt; }
-    public LocalDateTime getFailedAt()                   { return failedAt; }
+    public Instant getCreatedAt()                        { return createdAt; }
+    public Instant getSentAt()                           { return sentAt; }
+    public Instant getFailedAt()                         { return failedAt; }
     public int getRetryCount()                           { return retryCount; }
     public String getErrorMessage()                      { return errorMessage; }
 
@@ -134,7 +134,7 @@ public class Notification {
                 .body(body)
                 .metadata(new HashMap<>())
                 .templateVariables(new HashMap<>())
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .retryCount(0)
                 .build();
     }
@@ -162,7 +162,7 @@ public class Notification {
                 .templateName(templateName)
                 .templateVariables(new HashMap<>(templateVariables))
                 .metadata(new HashMap<>())
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .retryCount(0)
                 .build();
     }
@@ -187,7 +187,7 @@ public class Notification {
             throw new IllegalStateException("Can only mark as sent from SENDING status");
         }
         this.status = NotificationStatus.SENT;
-        this.sentAt = LocalDateTime.now();
+        this.sentAt = Instant.now();
         this.errorMessage = null;
     }
 
@@ -199,7 +199,7 @@ public class Notification {
             throw new IllegalStateException("Can only mark as failed from SENDING status");
         }
         this.status = NotificationStatus.FAILED;
-        this.failedAt = LocalDateTime.now();
+        this.failedAt = Instant.now();
         this.errorMessage = errorMessage;
     }
 
@@ -294,9 +294,9 @@ public class Notification {
         private String invoiceId;
         private String invoiceNumber;
         private String correlationId;
-        private LocalDateTime createdAt;
-        private LocalDateTime sentAt;
-        private LocalDateTime failedAt;
+        private Instant createdAt;
+        private Instant sentAt;
+        private Instant failedAt;
         private int retryCount;
         private String errorMessage;
 
@@ -315,9 +315,9 @@ public class Notification {
         public Builder invoiceId(String invoiceId)                          { this.invoiceId = invoiceId; return this; }
         public Builder invoiceNumber(String invoiceNumber)                  { this.invoiceNumber = invoiceNumber; return this; }
         public Builder correlationId(String correlationId)                  { this.correlationId = correlationId; return this; }
-        public Builder createdAt(LocalDateTime createdAt)                   { this.createdAt = createdAt; return this; }
-        public Builder sentAt(LocalDateTime sentAt)                         { this.sentAt = sentAt; return this; }
-        public Builder failedAt(LocalDateTime failedAt)                     { this.failedAt = failedAt; return this; }
+        public Builder createdAt(Instant createdAt)                          { this.createdAt = createdAt; return this; }
+        public Builder sentAt(Instant sentAt)                               { this.sentAt = sentAt; return this; }
+        public Builder failedAt(Instant failedAt)                           { this.failedAt = failedAt; return this; }
         public Builder retryCount(int retryCount)                           { this.retryCount = retryCount; return this; }
         public Builder errorMessage(String errorMessage)                    { this.errorMessage = errorMessage; return this; }
 

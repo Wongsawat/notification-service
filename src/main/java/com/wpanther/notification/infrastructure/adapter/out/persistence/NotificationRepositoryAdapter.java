@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -71,7 +71,7 @@ public class NotificationRepositoryAdapter implements NotificationRepository {
     }
 
     @Override
-    public List<Notification> findStaleSendingNotifications(LocalDateTime threshold, int limit) {
+    public List<Notification> findStaleSendingNotifications(Instant threshold, int limit) {
         return jpaRepository.findStaleSendingNotifications(threshold, PageRequest.of(0, limit)).stream()
             .map(this::toDomain)
             .toList();
@@ -92,7 +92,7 @@ public class NotificationRepositoryAdapter implements NotificationRepository {
     }
 
     @Override
-    public List<Notification> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end, int limit) {
+    public List<Notification> findByCreatedAtBetween(Instant start, Instant end, int limit) {
         return jpaRepository.findByCreatedAtBetween(start, end, PageRequest.of(0, limit)).stream()
             .map(this::toDomain)
             .toList();

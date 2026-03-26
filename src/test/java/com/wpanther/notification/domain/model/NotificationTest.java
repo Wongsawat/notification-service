@@ -4,7 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -27,7 +27,7 @@ class NotificationTest {
             .status(NotificationStatus.PENDING)
             .metadata(new HashMap<>())
             .templateVariables(new HashMap<>())
-            .createdAt(LocalDateTime.now())
+            .createdAt(Instant.now())
             .retryCount(0);
     }
 
@@ -38,7 +38,7 @@ class NotificationTest {
     void testBuilderWithAllFields() {
         // Arrange
         UUID id = UUID.randomUUID();
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         Map<String, Object> metadata = Map.of("key1", "value1");
         Map<String, Object> templateVars = Map.of("var1", "val1");
 

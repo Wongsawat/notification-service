@@ -6,7 +6,7 @@ import com.wpanther.notification.domain.model.NotificationType;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
@@ -75,13 +75,13 @@ public class NotificationEntity {
     private String correlationId;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @Column(name = "sent_at")
-    private LocalDateTime sentAt;
+    private Instant sentAt;
 
     @Column(name = "failed_at")
-    private LocalDateTime failedAt;
+    private Instant failedAt;
 
     @Column(name = "retry_count", nullable = false)
     private int retryCount;

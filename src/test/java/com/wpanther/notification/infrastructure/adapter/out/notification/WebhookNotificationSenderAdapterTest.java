@@ -20,7 +20,7 @@ import org.springframework.web.reactive.function.client.WebClient.RequestHeaders
 import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
 import reactor.core.publisher.Mono;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -85,7 +85,7 @@ class WebhookNotificationSenderAdapterTest {
                 .invoiceId("INV-123")
                 .invoiceNumber("INV-001")
                 .correlationId("CORR-456")
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .metadata(new HashMap<>())
                 .templateVariables(new HashMap<>())
                 .build();
@@ -126,7 +126,7 @@ class WebhookNotificationSenderAdapterTest {
                 .invoiceId("INV-123")
                 .invoiceNumber("INV-001")
                 .correlationId("CORR-456")
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .metadata(metadata)
                 .templateName("template-name")
                 .templateVariables(templateVars)
@@ -166,7 +166,7 @@ class WebhookNotificationSenderAdapterTest {
                 .recipient(webhookUrl)
                 .subject("Test Subject")
                 .body("Test Body")
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .metadata(new HashMap<>())
                 .templateVariables(new HashMap<>())
                 .build();
@@ -192,7 +192,7 @@ class WebhookNotificationSenderAdapterTest {
                 .recipient(webhookUrl)
                 .subject("Test Subject")
                 .body("Test Body")
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .metadata(new HashMap<>())
                 .templateVariables(new HashMap<>())
                 .build();
@@ -219,7 +219,7 @@ class WebhookNotificationSenderAdapterTest {
                 .recipient(webhookUrl)
                 .subject("Test Subject")
                 .body("Test Body")
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .metadata(null)
                 .templateVariables(null)
                 .build();
@@ -251,7 +251,7 @@ class WebhookNotificationSenderAdapterTest {
                 .body("Test Body")
                 .templateName("invoice-processed")
                 .templateVariables(templateVars)
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .metadata(new HashMap<>())
                 .build();
 
@@ -284,7 +284,7 @@ class WebhookNotificationSenderAdapterTest {
                 .recipient(webhookUrl)
                 .subject("Test Subject")
                 .body("Test Body")
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .build();
 
             lenient().doReturn(Mono.error(new java.util.concurrent.TimeoutException("Timeout")))
@@ -363,7 +363,7 @@ class WebhookNotificationSenderAdapterTest {
                 .recipient(url)
                 .subject("Test")
                 .body("Test")
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .metadata(new HashMap<>())
                 .templateVariables(new HashMap<>())
                 .build();
