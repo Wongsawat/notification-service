@@ -126,6 +126,15 @@ app:
     processing-interval: ${PROCESSING_INTERVAL:60000}  # 1 minute
     stale-sending-timeout-ms: ${STALE_SENDING_TIMEOUT_MS:300000}  # mark SENDING as stale after 5 min
     stale-sending-check-interval: ${STALE_SENDING_CHECK_INTERVAL:120000}  # check every 2 min
+    # Camel Dead Letter Channel — controls how long a single poison-pill stalls a partition.
+    # With breakOnFirstError=true the consumer halts the partition during all redelivery attempts.
+    # Worst-case stall = sum(redelivery-delay-ms * back-off-multiplier^n, n=0..max-redeliveries-1).
+    # Default: 1 000 + 2 000 + 4 000 = 7 000 ms of delay + per-attempt processing time.
+    # Monitor the notification.dlq topic to detect messages that exhaust all retries.
+    dlq-max-redeliveries: ${DLQ_MAX_REDELIVERIES:3}
+    dlq-redelivery-delay-ms: ${DLQ_REDELIVERY_DELAY_MS:1000}
+    dlq-back-off-multiplier: ${DLQ_BACK_OFF_MULTIPLIER:2}
+    dlq-max-redelivery-delay-ms: ${DLQ_MAX_REDELIVERY_DELAY_MS:30000}
 
 # Actuator endpoints
 management:

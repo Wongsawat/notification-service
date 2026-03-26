@@ -40,6 +40,10 @@ public class NotificationEventRoutes extends RouteBuilder {
     private final String consumerGroup;
     private final String kafkaBrokers;
     private final KafkaTopicsConfig topics;
+    private final int dlqMaxRedeliveries;
+    private final long dlqRedeliveryDelayMs;
+    private final double dlqBackOffMultiplier;
+    private final long dlqMaxRedeliveryDelayMs;
 
     public NotificationEventRoutes(
             ProcessingEventUseCase processingEventUseCase,
@@ -48,7 +52,11 @@ public class NotificationEventRoutes extends RouteBuilder {
             @Value("${app.notification.enabled:true}") boolean notificationEnabled,
             @Value("${spring.kafka.consumer.group-id}") String consumerGroup,
             @Value("${spring.kafka.bootstrap-servers}") String kafkaBrokers,
-            KafkaTopicsConfig topics) {
+            KafkaTopicsConfig topics,
+            @Value("${app.notification.dlq-max-redeliveries:3}") int dlqMaxRedeliveries,
+            @Value("${app.notification.dlq-redelivery-delay-ms:1000}") long dlqRedeliveryDelayMs,
+            @Value("${app.notification.dlq-back-off-multiplier:2}") double dlqBackOffMultiplier,
+            @Value("${app.notification.dlq-max-redelivery-delay-ms:30000}") long dlqMaxRedeliveryDelayMs) {
         this.processingEventUseCase = processingEventUseCase;
         this.documentReceivedEventUseCase = documentReceivedEventUseCase;
         this.sagaEventUseCase = sagaEventUseCase;
@@ -56,22 +64,56 @@ public class NotificationEventRoutes extends RouteBuilder {
         this.consumerGroup = consumerGroup;
         this.kafkaBrokers = kafkaBrokers;
         this.topics = topics;
+        this.dlqMaxRedeliveries = dlqMaxRedeliveries;
+        this.dlqRedeliveryDelayMs = dlqRedeliveryDelayMs;
+        this.dlqBackOffMultiplier = dlqBackOffMultiplier;
+        this.dlqMaxRedeliveryDelayMs = dlqMaxRedeliveryDelayMs;
     }
 
     @Override
     public void configure() throws Exception {
-        // Global error handler - Dead Letter Channel with exponential backoff
+        /*
+         * Error handling strategy: Dead Letter Channel + breakOnFirstError
+         * ----------------------------------------------------------------
+         * All 16 routes share this single global error handler.
+         *
+         * breakOnFirstError=true (set on each Kafka consumer URI below) tells
+         * the Camel Kafka component to stop polling new messages from a partition
+         * as soon as one message fails. The same failed message is retried in-place
+         * (by the Dead Letter Channel) before the partition resumes.
+         *
+         * Worst-case partition stall per poison pill:
+         *   delay_total = redeliveryDelay * (backOffMultiplier^0 + ... + backOffMultiplier^(n-1))
+         *   With defaults: 1000ms + 2000ms + 4000ms = 7000ms of sleep between attempts,
+         *   plus per-attempt processing time (typically < 1s for this service).
+         *
+         * After all redelivery attempts are exhausted the message is forwarded to the
+         * Dead Letter Queue topic below and the partition resumes normally.
+         *
+         * Operational requirements:
+         *   - Monitor topic '${topics.notificationDlq()}' for messages — presence means
+         *     a poison pill survived all retries. Alerts should fire on non-zero consumer lag.
+         *   - Tune DLQ_MAX_REDELIVERIES / DLQ_REDELIVERY_DELAY_MS env vars to adjust
+         *     the stall window vs. retry aggressiveness trade-off.
+         */
+        log.info("Configuring Dead Letter Channel: dlq={}, maxRedeliveries={}, "
+                + "redeliveryDelayMs={}, backOffMultiplier={}, maxRedeliveryDelayMs={}",
+                topics.notificationDlq(), dlqMaxRedeliveries, dlqRedeliveryDelayMs,
+                dlqBackOffMultiplier, dlqMaxRedeliveryDelayMs);
+
         errorHandler(deadLetterChannel("kafka:" + topics.notificationDlq() + "?brokers=" + kafkaBrokers)
-            .maximumRedeliveries(3)
-            .redeliveryDelay(1000)
+            .maximumRedeliveries(dlqMaxRedeliveries)
+            .redeliveryDelay(dlqRedeliveryDelayMs)
             .useExponentialBackOff()
-            .backOffMultiplier(2)
-            .maximumRedeliveryDelay(30000)
+            .backOffMultiplier(dlqBackOffMultiplier)
+            .maximumRedeliveryDelay(dlqMaxRedeliveryDelayMs)
             .logExhausted(true)
             .logRetryAttempted(true)
             .retryAttemptedLogLevel(org.apache.camel.LoggingLevel.WARN));
 
-        // Common Kafka consumer options
+        // Common Kafka consumer options.
+        // breakOnFirstError=true: halt partition polling on failure so the Dead Letter
+        // Channel can retry the same message in-place before advancing the offset.
         String kafkaOptions = "?brokers=" + kafkaBrokers
             + "&groupId=" + consumerGroup
             + "&autoOffsetReset=earliest"
