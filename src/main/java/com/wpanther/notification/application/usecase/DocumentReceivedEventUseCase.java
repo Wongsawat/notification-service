@@ -1,7 +1,7 @@
 package com.wpanther.notification.application.usecase;
 
-import com.wpanther.notification.application.dto.event.DocumentReceivedCountingEvent;
-import com.wpanther.notification.application.dto.event.DocumentReceivedEvent;
+import com.wpanther.notification.application.port.in.event.DocumentReceivedCountingEvent;
+import com.wpanther.notification.application.port.in.event.DocumentReceivedEvent;
 
 /**
  * Input port: use case for handling document received events (statistics and counting).

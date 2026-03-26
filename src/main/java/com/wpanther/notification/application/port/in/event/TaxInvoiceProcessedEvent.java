@@ -1,4 +1,4 @@
-package com.wpanther.notification.application.dto.event;
+package com.wpanther.notification.application.port.in.event;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -10,10 +10,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event published when invoice processing is completed
+ * Event published when tax invoice processing is completed
  */
 @Getter
-public class InvoiceProcessedEvent extends TraceEvent {
+public class TaxInvoiceProcessedEvent extends TraceEvent {
 
     @JsonProperty("invoiceId")
     private final String invoiceId;
@@ -21,8 +21,8 @@ public class InvoiceProcessedEvent extends TraceEvent {
     @JsonProperty("invoiceNumber")
     private final String invoiceNumber;
 
-    @JsonProperty("totalAmount")
-    private final BigDecimal totalAmount;
+    @JsonProperty("total")
+    private final BigDecimal total;
 
     @JsonProperty("currency")
     private final String currency;
@@ -31,23 +31,22 @@ public class InvoiceProcessedEvent extends TraceEvent {
      * Constructor for creating new events.
      * Generates eventId, occurredAt, eventType, and version automatically.
      */
-    public InvoiceProcessedEvent(String invoiceId, String invoiceNumber,
-                                  BigDecimal totalAmount, String currency,
-                                  String correlationId) {
-        super(invoiceId, correlationId, "invoice-processing-service", "INVOICE_PROCESSED", null);
+    public TaxInvoiceProcessedEvent(String invoiceId, String invoiceNumber,
+                                     BigDecimal total, String currency,
+                                     String correlationId) {
+        super(invoiceId, correlationId, "taxinvoice-processing-service", "TAXINVOICE_PROCESSED", null);
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
-        this.totalAmount = totalAmount;
+        this.total = total;
         this.currency = currency;
     }
 
     /**
      * Constructor for deserialization from JSON.
      * Used by Jackson when reading events from Kafka.
-     * sagaId/source/traceType/context are TraceEvent fields — may be null for older events.
      */
     @JsonCreator
-    public InvoiceProcessedEvent(
+    public TaxInvoiceProcessedEvent(
         @JsonProperty("eventId") UUID eventId,
         @JsonProperty("occurredAt") Instant occurredAt,
         @JsonProperty("eventType") String eventType,
@@ -59,13 +58,13 @@ public class InvoiceProcessedEvent extends TraceEvent {
         @JsonProperty("context") String context,
         @JsonProperty("invoiceId") String invoiceId,
         @JsonProperty("invoiceNumber") String invoiceNumber,
-        @JsonProperty("totalAmount") BigDecimal totalAmount,
+        @JsonProperty("total") BigDecimal total,
         @JsonProperty("currency") String currency
     ) {
         super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
-        this.totalAmount = totalAmount;
+        this.total = total;
         this.currency = currency;
     }
 }

@@ -1,11 +1,11 @@
 package com.wpanther.notification.application.usecase;
 
-import com.wpanther.notification.application.dto.event.EbmsSentEvent;
-import com.wpanther.notification.application.dto.event.InvoiceProcessedEvent;
-import com.wpanther.notification.application.dto.event.PdfGeneratedEvent;
-import com.wpanther.notification.application.dto.event.PdfSignedEvent;
-import com.wpanther.notification.application.dto.event.TaxInvoiceProcessedEvent;
-import com.wpanther.notification.application.dto.event.XmlSignedEvent;
+import com.wpanther.notification.application.port.in.event.EbmsSentEvent;
+import com.wpanther.notification.application.port.in.event.InvoiceProcessedEvent;
+import com.wpanther.notification.application.port.in.event.PdfGeneratedEvent;
+import com.wpanther.notification.application.port.in.event.PdfSignedEvent;
+import com.wpanther.notification.application.port.in.event.TaxInvoiceProcessedEvent;
+import com.wpanther.notification.application.port.in.event.XmlSignedEvent;
 
 /**
  * Input port: use case for handling invoice/PDF/XML processing completion events.

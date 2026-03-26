@@ -1,4 +1,4 @@
-package com.wpanther.notification.application.dto.event;
+package com.wpanther.notification.application.port.in.event;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;

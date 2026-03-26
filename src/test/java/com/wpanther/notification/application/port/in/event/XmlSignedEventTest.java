@@ -1,4 +1,4 @@
-package com.wpanther.notification.application.dto.event;
+package com.wpanther.notification.application.port.in.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;

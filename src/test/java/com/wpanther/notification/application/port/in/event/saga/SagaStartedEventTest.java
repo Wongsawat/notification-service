@@ -1,4 +1,4 @@
-package com.wpanther.notification.application.dto.event.saga;
+package com.wpanther.notification.application.port.in.event.saga;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;

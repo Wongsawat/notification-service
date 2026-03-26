@@ -1,9 +1,9 @@
 package com.wpanther.notification.application.usecase;
 
-import com.wpanther.notification.application.dto.event.saga.SagaCompletedEvent;
-import com.wpanther.notification.application.dto.event.saga.SagaFailedEvent;
-import com.wpanther.notification.application.dto.event.saga.SagaStartedEvent;
-import com.wpanther.notification.application.dto.event.saga.SagaStepCompletedEvent;
+import com.wpanther.notification.application.port.in.event.saga.SagaCompletedEvent;
+import com.wpanther.notification.application.port.in.event.saga.SagaFailedEvent;
+import com.wpanther.notification.application.port.in.event.saga.SagaStartedEvent;
+import com.wpanther.notification.application.port.in.event.saga.SagaStepCompletedEvent;
 
 /**
  * Input port: use case for handling saga orchestration lifecycle events.

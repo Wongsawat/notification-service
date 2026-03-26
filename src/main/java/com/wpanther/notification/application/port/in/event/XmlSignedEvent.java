@@ -1,19 +1,19 @@
-package com.wpanther.notification.application.dto.event;
+package com.wpanther.notification.application.port.in.event;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.wpanther.saga.domain.model.TraceEvent;
 import lombok.Getter;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event published when tax invoice processing is completed
+ * Event published when XML document signing is completed.
+ * Consumed from xml.signed topic.
  */
 @Getter
-public class TaxInvoiceProcessedEvent extends TraceEvent {
+public class XmlSignedEvent extends TraceEvent {
 
     @JsonProperty("invoiceId")
     private final String invoiceId;
@@ -21,32 +21,19 @@ public class TaxInvoiceProcessedEvent extends TraceEvent {
     @JsonProperty("invoiceNumber")
     private final String invoiceNumber;
 
-    @JsonProperty("total")
-    private final BigDecimal total;
+    @JsonProperty("documentType")
+    private final String documentType;
 
-    @JsonProperty("currency")
-    private final String currency;
-
-    /**
-     * Constructor for creating new events.
-     * Generates eventId, occurredAt, eventType, and version automatically.
-     */
-    public TaxInvoiceProcessedEvent(String invoiceId, String invoiceNumber,
-                                     BigDecimal total, String currency,
-                                     String correlationId) {
-        super(invoiceId, correlationId, "taxinvoice-processing-service", "TAXINVOICE_PROCESSED", null);
+    public XmlSignedEvent(String sagaId, String correlationId, String invoiceId, String invoiceNumber,
+                          String documentType) {
+        super(sagaId, correlationId, "xml-signing-service", "XML_SIGNED", null);
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
-        this.total = total;
-        this.currency = currency;
+        this.documentType = documentType;
     }
 
-    /**
-     * Constructor for deserialization from JSON.
-     * Used by Jackson when reading events from Kafka.
-     */
     @JsonCreator
-    public TaxInvoiceProcessedEvent(
+    public XmlSignedEvent(
         @JsonProperty("eventId") UUID eventId,
         @JsonProperty("occurredAt") Instant occurredAt,
         @JsonProperty("eventType") String eventType,
@@ -58,13 +45,11 @@ public class TaxInvoiceProcessedEvent extends TraceEvent {
         @JsonProperty("context") String context,
         @JsonProperty("invoiceId") String invoiceId,
         @JsonProperty("invoiceNumber") String invoiceNumber,
-        @JsonProperty("total") BigDecimal total,
-        @JsonProperty("currency") String currency
+        @JsonProperty("documentType") String documentType
     ) {
         super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
-        this.total = total;
-        this.currency = currency;
+        this.documentType = documentType;
     }
 }
