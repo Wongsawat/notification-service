@@ -22,7 +22,7 @@ public class TemplateEngine {
     /**
      * Render template with variables
      */
-    public String render(String templateName, Map<String, Object> variables) throws TemplateException {
+    public String render(String templateName, Map<String, Object> variables) {
         try {
             log.debug("Rendering template: {} with {} variables", templateName, variables.size());
 
@@ -45,7 +45,7 @@ public class TemplateEngine {
     /**
      * Exception for template rendering failures
      */
-    public static class TemplateException extends Exception {
+    public static class TemplateException extends RuntimeException {
         public TemplateException(String message, Throwable cause) {
             super(message, cause);
         }

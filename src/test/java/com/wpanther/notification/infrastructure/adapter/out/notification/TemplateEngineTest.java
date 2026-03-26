@@ -41,7 +41,7 @@ class TemplateEngineTest {
 
         @Test
         @DisplayName("Should render template successfully")
-        void testRenderTemplateSuccessfully() throws TemplateEngine.TemplateException {
+        void testRenderTemplateSuccessfully() {
             // Arrange
             String templateName = "test-template";
             Map<String, Object> variables = new HashMap<>();
@@ -63,7 +63,7 @@ class TemplateEngineTest {
 
         @Test
         @DisplayName("Should handle empty variables map")
-        void testHandleNullVariables() throws TemplateEngine.TemplateException {
+        void testHandleNullVariables() {
             // Arrange - use empty map instead of null due to NPE in production code at variables.size()
             String templateName = "test-template";
             Map<String, Object> variables = new HashMap<>();
@@ -98,7 +98,7 @@ class TemplateEngineTest {
 
         @Test
         @DisplayName("Should pass all variables to Thymeleaf context")
-        void testPassAllVariablesToThymeleafContext() throws TemplateEngine.TemplateException {
+        void testPassAllVariablesToThymeleafContext() {
             // Arrange
             Map<String, Object> variables = new HashMap<>();
             variables.put("var1", "value1");
@@ -138,7 +138,7 @@ class TemplateEngineTest {
 
         @Test
         @DisplayName("xml-signed template exists and renders invoice number")
-        void testXmlSignedTemplateRendersInvoiceNumber() throws TemplateEngine.TemplateException {
+        void testXmlSignedTemplateRendersInvoiceNumber() {
             Map<String, Object> variables = new HashMap<>();
             variables.put("invoiceNumber", "INV-2025-001");
             variables.put("documentType", "TAX_INVOICE");
@@ -152,7 +152,7 @@ class TemplateEngineTest {
 
         @Test
         @DisplayName("xml-signed template renders without invoiceId field")
-        void testXmlSignedTemplateRendersBasicStructure() throws TemplateEngine.TemplateException {
+        void testXmlSignedTemplateRendersBasicStructure() {
             Map<String, Object> variables = new HashMap<>();
             variables.put("invoiceNumber", "INV-TEST-999");
             variables.put("documentType", "INVOICE");

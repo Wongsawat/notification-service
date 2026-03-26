@@ -74,7 +74,7 @@ class EmailNotificationSenderAdapterTest {
 
         @Test
         @DisplayName("Should send email successfully with template")
-        void testSendEmailWithTemplate() throws Exception, TemplateEngine.TemplateException {
+        void testSendEmailWithTemplate() throws Exception {
             // Arrange
             Map<String, Object> templateVars = new HashMap<>();
             templateVars.put("invoiceNumber", "INV-001");
@@ -127,7 +127,7 @@ class EmailNotificationSenderAdapterTest {
 
         @Test
         @DisplayName("Should throw NotificationException when TemplateException occurs")
-        void testThrowNotificationExceptionOnTemplateException() throws TemplateEngine.TemplateException {
+        void testThrowNotificationExceptionOnTemplateException() {
             // Arrange
             Notification notification = Notification.builder()
                 .id(java.util.UUID.randomUUID())
