@@ -2,6 +2,7 @@ package com.wpanther.notification.infrastructure.adapter.in.scheduler;
 
 import com.wpanther.notification.application.usecase.QueryNotificationUseCase;
 import com.wpanther.notification.application.usecase.RetryNotificationUseCase;
+import com.wpanther.notification.application.usecase.SendNotificationUseCase;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.repository.NotificationRepository;
@@ -29,6 +30,7 @@ class NotificationSchedulerAdapterTest {
 
     @Mock private RetryNotificationUseCase retryUseCase;
     @Mock private QueryNotificationUseCase queryUseCase;
+    @Mock private SendNotificationUseCase sendNotificationUseCase;
     @Mock private NotificationRepository repository;
 
     @InjectMocks private NotificationSchedulerAdapter scheduler;
@@ -61,15 +63,40 @@ class NotificationSchedulerAdapterTest {
     }
 
     @Test
-    void processPendingNotifications_delegatesToRetryUseCaseForEachPending() {
-        UUID id = UUID.randomUUID();
-        Notification n = mock(Notification.class);
-        when(n.getId()).thenReturn(id);
-        when(repository.findPendingNotifications(anyInt())).thenReturn(List.of(n));
+    void processPendingNotifications_callsDispatchPendingForEachPending() {
+        UUID id1 = UUID.randomUUID();
+        UUID id2 = UUID.randomUUID();
+        Notification n1 = mock(Notification.class);
+        Notification n2 = mock(Notification.class);
+        when(n1.getId()).thenReturn(id1);
+        when(n2.getId()).thenReturn(id2);
+        when(repository.findPendingNotifications(anyInt())).thenReturn(List.of(n1, n2));
 
         scheduler.processPendingNotifications();
 
-        verify(retryUseCase).prepareAndDispatchRetry(id);
+        verify(sendNotificationUseCase).dispatchPending(id1);
+        verify(sendNotificationUseCase).dispatchPending(id2);
+        verifyNoInteractions(retryUseCase);
+    }
+
+    @Test
+    void processPendingNotifications_continuesOnException() {
+        Notification n = mock(Notification.class);
+        when(n.getId()).thenReturn(UUID.randomUUID());
+        when(repository.findPendingNotifications(anyInt())).thenReturn(List.of(n));
+        doThrow(new RuntimeException("dispatch failed")).when(sendNotificationUseCase).dispatchPending(any());
+
+        // Should not throw
+        scheduler.processPendingNotifications();
+    }
+
+    @Test
+    void processPendingNotifications_neverCallsRetryUseCase() {
+        when(repository.findPendingNotifications(anyInt())).thenReturn(List.of());
+
+        scheduler.processPendingNotifications();
+
+        verifyNoInteractions(retryUseCase);
     }
 
     @Test
@@ -118,5 +145,11 @@ class NotificationSchedulerAdapterTest {
     void injectsQueryUseCaseInterface_notConcreteClass() throws Exception {
         var field = NotificationSchedulerAdapter.class.getDeclaredField("queryUseCase");
         assertThat(field.getType()).isEqualTo(QueryNotificationUseCase.class);
+    }
+
+    @Test
+    void injectsSendNotificationUseCaseInterface_notConcreteClass() throws Exception {
+        var field = NotificationSchedulerAdapter.class.getDeclaredField("sendNotificationUseCase");
+        assertThat(field.getType()).isEqualTo(SendNotificationUseCase.class);
     }
 }

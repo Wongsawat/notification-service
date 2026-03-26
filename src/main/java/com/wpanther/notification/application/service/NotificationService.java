@@ -89,6 +89,19 @@ public class NotificationService
         return sendingService.createAndSend(type, channel, recipient, templateName, templateVariables);
     }
 
+    @Override
+    public void dispatchPending(UUID id) {
+        Notification notification = repository.findById(id)
+            .orElseThrow(() -> new NoSuchElementException("Notification not found: " + id));
+
+        if (notification.getStatus() != NotificationStatus.PENDING) {
+            throw new IllegalStateException(
+                "Cannot dispatch non-PENDING notification (status=" + notification.getStatus() + ")");
+        }
+
+        dispatcherService.dispatchAsync(notification);
+    }
+
     // ── QueryNotificationUseCase ─────────────────────────────────────────────────────────
 
     @Override

@@ -2,6 +2,7 @@ package com.wpanther.notification.infrastructure.adapter.in.scheduler;
 
 import com.wpanther.notification.application.usecase.QueryNotificationUseCase;
 import com.wpanther.notification.application.usecase.RetryNotificationUseCase;
+import com.wpanther.notification.application.usecase.SendNotificationUseCase;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class NotificationSchedulerAdapter {
 
     private final RetryNotificationUseCase retryUseCase;
     private final QueryNotificationUseCase queryUseCase;
+    private final SendNotificationUseCase sendNotificationUseCase;
     private final NotificationRepository repository;
 
     @Value("${app.notification.max-retries:3}")
@@ -84,9 +86,9 @@ public class NotificationSchedulerAdapter {
         log.debug("Processing {} pending notifications", pending.size());
         pending.forEach(n -> {
             try {
-                retryUseCase.prepareAndDispatchRetry(n.getId());
+                sendNotificationUseCase.dispatchPending(n.getId());
             } catch (Exception e) {
-                log.error("Failed to process pending notification: id={}", n.getId(), e);
+                log.error("Failed to dispatch pending notification: id={}", n.getId(), e);
             }
         });
     }
