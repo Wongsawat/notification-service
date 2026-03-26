@@ -19,15 +19,15 @@ public interface NotificationRepository {
 
     Optional<Notification> findById(UUID id);
 
-    List<Notification> findByStatus(NotificationStatus status);
+    List<Notification> findByStatus(NotificationStatus status, int limit);
 
-    List<Notification> findByInvoiceId(String invoiceId);
+    List<Notification> findByInvoiceId(String invoiceId, int limit);
 
-    List<Notification> findByInvoiceNumber(String invoiceNumber);
+    List<Notification> findByInvoiceNumber(String invoiceNumber, int limit);
 
-    List<Notification> findByRecipient(String recipient);
+    List<Notification> findByRecipient(String recipient, int limit);
 
-    List<Notification> findByType(NotificationType type);
+    List<Notification> findByType(NotificationType type, int limit);
 
     List<Notification> findStaleSendingNotifications(LocalDateTime threshold, int limit);
 
@@ -35,7 +35,7 @@ public interface NotificationRepository {
 
     List<Notification> findPendingNotifications(int limit);
 
-    List<Notification> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+    List<Notification> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end, int limit);
 
     long countByStatus(NotificationStatus status);
 

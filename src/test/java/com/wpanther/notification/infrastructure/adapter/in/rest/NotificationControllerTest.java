@@ -180,28 +180,41 @@ class NotificationControllerTest {
     @DisplayName("GET /api/v1/notifications/invoice/{invoiceId} should return notifications for invoice")
     void testGetNotificationsByInvoiceId() throws Exception {
         String invoiceId = "invoice-uuid";
-        when(queryNotificationUseCase.findByInvoiceId(invoiceId)).thenReturn(List.of(testNotification));
+        when(queryNotificationUseCase.findByInvoiceId(invoiceId, 200)).thenReturn(List.of(testNotification));
 
         mockMvc.perform(get("/api/v1/notifications/invoice/" + invoiceId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$[0].id").value(testId.toString()));
 
-        verify(queryNotificationUseCase).findByInvoiceId(invoiceId);
+        verify(queryNotificationUseCase).findByInvoiceId(invoiceId, 200);
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/notifications/invoice/{invoiceId} should honour explicit limit param")
+    void testGetNotificationsByInvoiceIdWithLimit() throws Exception {
+        String invoiceId = "invoice-uuid";
+        when(queryNotificationUseCase.findByInvoiceId(invoiceId, 50)).thenReturn(List.of(testNotification));
+
+        mockMvc.perform(get("/api/v1/notifications/invoice/" + invoiceId).param("limit", "50"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(testId.toString()));
+
+        verify(queryNotificationUseCase).findByInvoiceId(invoiceId, 50);
     }
 
     @Test
     @DisplayName("GET /api/v1/notifications/invoice/{invoiceId} should return empty list when none found")
     void testGetNotificationsByInvoiceIdEmpty() throws Exception {
         String invoiceId = "unknown-invoice";
-        when(queryNotificationUseCase.findByInvoiceId(invoiceId)).thenReturn(List.of());
+        when(queryNotificationUseCase.findByInvoiceId(invoiceId, 200)).thenReturn(List.of());
 
         mockMvc.perform(get("/api/v1/notifications/invoice/" + invoiceId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$").isEmpty());
 
-        verify(queryNotificationUseCase).findByInvoiceId(invoiceId);
+        verify(queryNotificationUseCase).findByInvoiceId(invoiceId, 200);
     }
 
     // ── GET /api/v1/notifications/status/{status} Tests ──────────────────────────────────
@@ -209,14 +222,26 @@ class NotificationControllerTest {
     @Test
     @DisplayName("GET /api/v1/notifications/status/{status} should return notifications by status")
     void testGetNotificationsByStatus() throws Exception {
-        when(queryNotificationUseCase.findByStatus(NotificationStatus.SENT)).thenReturn(List.of(testNotification));
+        when(queryNotificationUseCase.findByStatus(NotificationStatus.SENT, 200)).thenReturn(List.of(testNotification));
 
         mockMvc.perform(get("/api/v1/notifications/status/SENT"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$[0].status").value("SENT"));
 
-        verify(queryNotificationUseCase).findByStatus(NotificationStatus.SENT);
+        verify(queryNotificationUseCase).findByStatus(NotificationStatus.SENT, 200);
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/notifications/status/{status} should honour explicit limit param")
+    void testGetNotificationsByStatusWithLimit() throws Exception {
+        when(queryNotificationUseCase.findByStatus(NotificationStatus.FAILED, 10)).thenReturn(List.of(testNotification));
+
+        mockMvc.perform(get("/api/v1/notifications/status/FAILED").param("limit", "10"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].status").value("SENT"));
+
+        verify(queryNotificationUseCase).findByStatus(NotificationStatus.FAILED, 10);
     }
 
     // ── GET /api/v1/notifications/statistics Tests ────────────────────────────────────────

@@ -19,15 +19,15 @@ import java.util.UUID;
 @Repository
 public interface JpaNotificationRepository extends JpaRepository<NotificationEntity, UUID> {
 
-    List<NotificationEntity> findByStatus(NotificationStatus status);
+    List<NotificationEntity> findByStatus(NotificationStatus status, Pageable pageable);
 
-    List<NotificationEntity> findByInvoiceId(String invoiceId);
+    List<NotificationEntity> findByInvoiceId(String invoiceId, Pageable pageable);
 
-    List<NotificationEntity> findByInvoiceNumber(String invoiceNumber);
+    List<NotificationEntity> findByInvoiceNumber(String invoiceNumber, Pageable pageable);
 
-    List<NotificationEntity> findByRecipient(String recipient);
+    List<NotificationEntity> findByRecipient(String recipient, Pageable pageable);
 
-    List<NotificationEntity> findByType(NotificationType type);
+    List<NotificationEntity> findByType(NotificationType type, Pageable pageable);
 
     @Query("SELECT n FROM NotificationEntity n WHERE n.status = 'SENDING' AND n.createdAt < :threshold ORDER BY n.createdAt ASC")
     List<NotificationEntity> findStaleSendingNotifications(@Param("threshold") LocalDateTime threshold, Pageable pageable);
@@ -38,7 +38,7 @@ public interface JpaNotificationRepository extends JpaRepository<NotificationEnt
     @Query("SELECT n FROM NotificationEntity n WHERE n.status = 'PENDING' ORDER BY n.createdAt ASC")
     List<NotificationEntity> findPendingNotifications(Pageable pageable);
 
-    List<NotificationEntity> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+    List<NotificationEntity> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end, Pageable pageable);
 
     long countByStatus(NotificationStatus status);
 

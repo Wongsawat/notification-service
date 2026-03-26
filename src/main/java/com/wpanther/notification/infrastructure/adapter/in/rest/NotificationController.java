@@ -97,9 +97,10 @@ public class NotificationController {
      */
     @GetMapping("/invoice/{invoiceId}")
     public ResponseEntity<List<Notification>> getNotificationsByInvoice(
-        @PathVariable String invoiceId
+        @PathVariable String invoiceId,
+        @RequestParam(defaultValue = "200") int limit
     ) {
-        return ResponseEntity.ok(queryNotificationUseCase.findByInvoiceId(invoiceId));
+        return ResponseEntity.ok(queryNotificationUseCase.findByInvoiceId(invoiceId, limit));
     }
 
     /**
@@ -107,9 +108,10 @@ public class NotificationController {
      */
     @GetMapping("/status/{status}")
     public ResponseEntity<List<Notification>> getNotificationsByStatus(
-        @PathVariable NotificationStatus status
+        @PathVariable NotificationStatus status,
+        @RequestParam(defaultValue = "200") int limit
     ) {
-        return ResponseEntity.ok(queryNotificationUseCase.findByStatus(status));
+        return ResponseEntity.ok(queryNotificationUseCase.findByStatus(status, limit));
     }
 
     /**

@@ -110,24 +110,24 @@ class NotificationServiceTest {
     }
 
     @Test
-    @DisplayName("findByInvoiceId delegates to repository")
+    @DisplayName("findByInvoiceId delegates to repository with limit")
     void testFindByInvoiceId_delegatesToRepository() {
-        when(repository.findByInvoiceId("INV-001")).thenReturn(List.of(testNotification));
+        when(repository.findByInvoiceId("INV-001", 50)).thenReturn(List.of(testNotification));
 
-        List<Notification> result = notificationService.findByInvoiceId("INV-001");
+        List<Notification> result = notificationService.findByInvoiceId("INV-001", 50);
 
-        verify(repository).findByInvoiceId("INV-001");
+        verify(repository).findByInvoiceId("INV-001", 50);
         assertThat(result).containsExactly(testNotification);
     }
 
     @Test
-    @DisplayName("findByStatus delegates to repository")
+    @DisplayName("findByStatus delegates to repository with limit")
     void testFindByStatus_delegatesToRepository() {
-        when(repository.findByStatus(NotificationStatus.SENT)).thenReturn(List.of(testNotification));
+        when(repository.findByStatus(NotificationStatus.SENT, 50)).thenReturn(List.of(testNotification));
 
-        List<Notification> result = notificationService.findByStatus(NotificationStatus.SENT);
+        List<Notification> result = notificationService.findByStatus(NotificationStatus.SENT, 50);
 
-        verify(repository).findByStatus(NotificationStatus.SENT);
+        verify(repository).findByStatus(NotificationStatus.SENT, 50);
         assertThat(result).containsExactly(testNotification);
     }
 

@@ -36,36 +36,36 @@ public class NotificationRepositoryAdapter implements NotificationRepository {
     }
 
     @Override
-    public List<Notification> findByStatus(NotificationStatus status) {
-        return jpaRepository.findByStatus(status).stream()
+    public List<Notification> findByStatus(NotificationStatus status, int limit) {
+        return jpaRepository.findByStatus(status, PageRequest.of(0, limit)).stream()
             .map(this::toDomain)
             .toList();
     }
 
     @Override
-    public List<Notification> findByInvoiceId(String invoiceId) {
-        return jpaRepository.findByInvoiceId(invoiceId).stream()
+    public List<Notification> findByInvoiceId(String invoiceId, int limit) {
+        return jpaRepository.findByInvoiceId(invoiceId, PageRequest.of(0, limit)).stream()
             .map(this::toDomain)
             .toList();
     }
 
     @Override
-    public List<Notification> findByInvoiceNumber(String invoiceNumber) {
-        return jpaRepository.findByInvoiceNumber(invoiceNumber).stream()
+    public List<Notification> findByInvoiceNumber(String invoiceNumber, int limit) {
+        return jpaRepository.findByInvoiceNumber(invoiceNumber, PageRequest.of(0, limit)).stream()
             .map(this::toDomain)
             .toList();
     }
 
     @Override
-    public List<Notification> findByRecipient(String recipient) {
-        return jpaRepository.findByRecipient(recipient).stream()
+    public List<Notification> findByRecipient(String recipient, int limit) {
+        return jpaRepository.findByRecipient(recipient, PageRequest.of(0, limit)).stream()
             .map(this::toDomain)
             .toList();
     }
 
     @Override
-    public List<Notification> findByType(NotificationType type) {
-        return jpaRepository.findByType(type).stream()
+    public List<Notification> findByType(NotificationType type, int limit) {
+        return jpaRepository.findByType(type, PageRequest.of(0, limit)).stream()
             .map(this::toDomain)
             .toList();
     }
@@ -92,8 +92,8 @@ public class NotificationRepositoryAdapter implements NotificationRepository {
     }
 
     @Override
-    public List<Notification> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end) {
-        return jpaRepository.findByCreatedAtBetween(start, end).stream()
+    public List<Notification> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end, int limit) {
+        return jpaRepository.findByCreatedAtBetween(start, end, PageRequest.of(0, limit)).stream()
             .map(this::toDomain)
             .toList();
     }

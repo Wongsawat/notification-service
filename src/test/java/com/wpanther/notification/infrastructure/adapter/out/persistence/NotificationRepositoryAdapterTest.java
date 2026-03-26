@@ -123,8 +123,8 @@ class NotificationRepositoryAdapterTest {
             adapter.save(createNotification(NotificationStatus.PENDING));
 
             // Act
-            List<Notification> pendingNotifications = adapter.findByStatus(NotificationStatus.PENDING);
-            List<Notification> sentNotifications = adapter.findByStatus(NotificationStatus.SENT);
+            List<Notification> pendingNotifications = adapter.findByStatus(NotificationStatus.PENDING, 100);
+            List<Notification> sentNotifications = adapter.findByStatus(NotificationStatus.SENT, 100);
 
             // Assert
             assertThat(pendingNotifications).hasSize(2);
@@ -148,7 +148,7 @@ class NotificationRepositoryAdapterTest {
             adapter.save(notif3);
 
             // Act
-            List<Notification> inv001Notifications = adapter.findByInvoiceId("INV-001");
+            List<Notification> inv001Notifications = adapter.findByInvoiceId("INV-001", 100);
 
             // Assert
             assertThat(inv001Notifications).hasSize(2);
@@ -167,7 +167,7 @@ class NotificationRepositoryAdapterTest {
             adapter.save(notif2);
 
             // Act
-            List<Notification> notifications = adapter.findByInvoiceNumber("INV-2024-001");
+            List<Notification> notifications = adapter.findByInvoiceNumber("INV-2024-001", 100);
 
             // Assert
             assertThat(notifications).hasSize(1);

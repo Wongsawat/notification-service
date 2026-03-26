@@ -110,13 +110,13 @@ public class NotificationService
     }
 
     @Override
-    public List<Notification> findByInvoiceId(String invoiceId) {
-        return repository.findByInvoiceId(invoiceId);
+    public List<Notification> findByInvoiceId(String invoiceId, int limit) {
+        return repository.findByInvoiceId(invoiceId, limit);
     }
 
     @Override
-    public List<Notification> findByStatus(NotificationStatus status) {
-        return repository.findByStatus(status);
+    public List<Notification> findByStatus(NotificationStatus status, int limit) {
+        return repository.findByStatus(status, limit);
     }
 
     @Override
