@@ -102,7 +102,14 @@ class NotificationSendingServiceTest {
     @Test
     @DisplayName("Should return FAILED when no sender found for channel")
     void testSendNotification_returnsFailed_whenNoSenderFound() throws Exception {
-        testNotification.setChannel(NotificationChannel.SMS);
+        testNotification = Notification.builder()
+            .id(UUID.randomUUID())
+            .type(NotificationType.INVOICE_PROCESSED)
+            .channel(NotificationChannel.SMS)
+            .recipient("sms-recipient")
+            .subject("Test Subject")
+            .status(NotificationStatus.PENDING)
+            .build();
         when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Notification result = sendingService.sendNotification(testNotification);
@@ -117,7 +124,7 @@ class NotificationSendingServiceTest {
     @Test
     @DisplayName("Should select EMAIL sender for EMAIL channel")
     void testFindSenderForEmail() throws Exception {
-        testNotification.setChannel(NotificationChannel.EMAIL);
+        // testNotification is already EMAIL channel (set in setUp)
         when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
         doNothing().when(emailSender).send(any());
 
@@ -130,8 +137,14 @@ class NotificationSendingServiceTest {
     @Test
     @DisplayName("Should select WEBHOOK sender for WEBHOOK channel")
     void testFindSenderForWebhook() throws Exception {
-        testNotification.setChannel(NotificationChannel.WEBHOOK);
-        testNotification.setRecipient("https://api.example.com/webhook");
+        testNotification = Notification.builder()
+            .id(UUID.randomUUID())
+            .type(NotificationType.INVOICE_PROCESSED)
+            .channel(NotificationChannel.WEBHOOK)
+            .recipient("https://api.example.com/webhook")
+            .subject("Test Subject")
+            .status(NotificationStatus.PENDING)
+            .build();
         when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
         doNothing().when(webhookSender).send(any());
 

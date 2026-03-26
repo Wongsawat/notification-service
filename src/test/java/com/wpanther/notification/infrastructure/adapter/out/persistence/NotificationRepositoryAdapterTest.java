@@ -94,10 +94,10 @@ class NotificationRepositoryAdapterTest {
 
             Notification saved = adapter.save(notification);
 
-            // Act - update the notification
+            // Act - update the notification via state machine and permitted setter
             saved.setSubject("Updated Subject");
-            saved.setStatus(NotificationStatus.SENT);
-            saved.setSentAt(LocalDateTime.now());
+            saved.markSending();
+            saved.markSent(); // sets sentAt automatically
 
             Notification updated = adapter.save(saved);
             Optional<Notification> found = adapter.findById(updated.getId());
@@ -222,20 +222,9 @@ class NotificationRepositoryAdapterTest {
         @DisplayName("Should find failed notifications")
         void testFindFailedNotifications() {
             // Arrange
-            Notification failed1 = createNotification();
-            failed1.setStatus(NotificationStatus.FAILED);
-            failed1.setRetryCount(1);
-            adapter.save(failed1);
-
-            Notification failed2 = createNotification();
-            failed2.setStatus(NotificationStatus.FAILED);
-            failed2.setRetryCount(2);
-            adapter.save(failed2);
-
-            Notification failed3 = createNotification();
-            failed3.setStatus(NotificationStatus.FAILED);
-            failed3.setRetryCount(5); // Above max
-            adapter.save(failed3);
+            adapter.save(createNotification(NotificationStatus.FAILED, 1));
+            adapter.save(createNotification(NotificationStatus.FAILED, 2));
+            adapter.save(createNotification(NotificationStatus.FAILED, 5)); // Above max
 
             // Act
             List<Notification> failed = adapter.findFailedNotifications(3, 100);
@@ -302,6 +291,10 @@ class NotificationRepositoryAdapterTest {
     }
 
     private Notification createNotification(NotificationStatus status) {
+        return createNotification(status, 0);
+    }
+
+    private Notification createNotification(NotificationStatus status, int retryCount) {
         return Notification.builder()
             .id(UUID.randomUUID())
             .type(NotificationType.INVOICE_PROCESSED)
@@ -313,7 +306,7 @@ class NotificationRepositoryAdapterTest {
             .metadata(new java.util.HashMap<>())
             .templateVariables(new java.util.HashMap<>())
             .createdAt(LocalDateTime.now())
-            .retryCount(0)
+            .retryCount(retryCount)
             .build();
     }
 }

@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.*;
 @DisplayName("Notification Aggregate Root Tests")
 class NotificationTest {
 
-    private Notification.NotificationBuilder builder;
+    private Notification.Builder builder;
 
     @BeforeEach
     void setUp() {
