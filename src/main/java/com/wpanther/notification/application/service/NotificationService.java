@@ -17,6 +17,7 @@ import com.wpanther.notification.application.port.in.event.EbmsSentEvent;
 import com.wpanther.notification.application.port.in.event.InvoiceProcessedEvent;
 import com.wpanther.notification.application.port.in.event.PdfGeneratedEvent;
 import com.wpanther.notification.application.port.in.event.PdfSignedEvent;
+import com.wpanther.notification.application.port.in.event.TaxInvoicePdfGeneratedEvent;
 import com.wpanther.notification.application.port.in.event.TaxInvoiceProcessedEvent;
 import com.wpanther.notification.application.port.in.event.XmlSignedEvent;
 import com.wpanther.notification.application.port.in.event.saga.SagaCompletedEvent;
@@ -224,6 +225,38 @@ public class NotificationService
         notification.setSubject("PDF Invoice Ready: " + event.getInvoiceNumber());
         notification.setInvoiceId(event.getInvoiceId());
         notification.setInvoiceNumber(event.getInvoiceNumber());
+        notification.setCorrelationId(event.getCorrelationId());
+        notification.addMetadata("documentUrl", event.getDocumentUrl());
+        notification.addMetadata("documentId", event.getDocumentId());
+
+        dispatcherService.dispatchAsync(notification);
+    }
+
+    @Override
+    public void handleTaxInvoicePdfGenerated(TaxInvoicePdfGeneratedEvent event) {
+        log.info("Processing TaxInvoicePdfGeneratedEvent: taxInvoiceId={}, taxInvoiceNumber={}",
+            event.getTaxInvoiceId(), event.getTaxInvoiceNumber());
+
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put("taxInvoiceId", event.getTaxInvoiceId());
+        templateVariables.put("taxInvoiceNumber", event.getTaxInvoiceNumber());
+        templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("documentUrl", event.getDocumentUrl());
+        templateVariables.put("fileSize", formatFileSize(event.getFileSize()));
+        templateVariables.put("generatedAt", formatInstant(event.getOccurredAt()));
+        templateVariables.put("xmlEmbedded", event.isXmlEmbedded());
+
+        Notification notification = Notification.createFromTemplate(
+            NotificationType.TAX_INVOICE_PDF_GENERATED,
+            NotificationChannel.EMAIL,
+            defaultRecipient,
+            "taxinvoice-pdf-generated",
+            templateVariables
+        );
+
+        notification.setSubject("Tax Invoice PDF Ready: " + event.getTaxInvoiceNumber());
+        notification.setInvoiceId(event.getTaxInvoiceId());
+        notification.setInvoiceNumber(event.getTaxInvoiceNumber());
         notification.setCorrelationId(event.getCorrelationId());
         notification.addMetadata("documentUrl", event.getDocumentUrl());
         notification.addMetadata("documentId", event.getDocumentId());

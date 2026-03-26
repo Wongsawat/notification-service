@@ -11,6 +11,7 @@ public record KafkaTopicsConfig(
     String invoiceProcessed,
     String taxinvoiceProcessed,
     String pdfGenerated,
+    String pdfGeneratedTaxInvoice,
     String pdfSigned,
     String xmlSigned,
     String ebmsSent,

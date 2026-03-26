@@ -1,5 +1,7 @@
 package com.wpanther.notification.application.service;
 
+import com.wpanther.notification.application.port.in.event.PdfGeneratedEvent;
+import com.wpanther.notification.application.port.in.event.TaxInvoicePdfGeneratedEvent;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationStatus;
@@ -9,11 +11,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -128,6 +132,51 @@ class NotificationServiceTest {
 
         verify(repository).findByStatus(NotificationStatus.SENT, 50);
         assertThat(result).containsExactly(testNotification);
+    }
+
+    // ── ProcessingEventUseCase: handlePdfGenerated (pdf.generated.invoice) ───────────────
+
+    @Test
+    @DisplayName("handlePdfGenerated creates PDF_GENERATED notification and dispatches async")
+    void testHandlePdfGenerated_dispatchesAsync() {
+        PdfGeneratedEvent event = new PdfGeneratedEvent(
+            UUID.randomUUID(), Instant.now(), "pdf.generated.invoice", 1,
+            "saga-1", "corr-1", "invoice-pdf-generation-service", "PDF_GENERATED", null,
+            "INV-001", "INV-2025-001", "doc-001", "http://example.com/doc", 102400L, true, false);
+
+        ReflectionTestUtils.setField(notificationService, "defaultRecipient", "admin@example.com");
+
+        notificationService.handlePdfGenerated(event);
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(dispatcherService).dispatchAsync(captor.capture());
+        Notification notification = captor.getValue();
+        assertThat(notification.getType()).isEqualTo(NotificationType.PDF_GENERATED);
+        assertThat(notification.getChannel()).isEqualTo(NotificationChannel.EMAIL);
+        assertThat(notification.getTemplateName()).isEqualTo("pdf-generated");
+    }
+
+    // ── ProcessingEventUseCase: handleTaxInvoicePdfGenerated ─────────────────────────────
+
+    @Test
+    @DisplayName("handleTaxInvoicePdfGenerated creates TAX_INVOICE_PDF_GENERATED notification and dispatches async")
+    void testHandleTaxInvoicePdfGenerated_dispatchesAsync() {
+        TaxInvoicePdfGeneratedEvent event = new TaxInvoicePdfGeneratedEvent(
+            UUID.randomUUID(), Instant.now(), "pdf.generated.tax-invoice", 1,
+            "saga-1", "corr-1", "taxinvoice-pdf-generation-service", "PDF_GENERATED", null,
+            "doc-001", "TAX-001", "TAXINV-2025-001", "http://example.com/taxdoc", 204800L, true);
+
+        ReflectionTestUtils.setField(notificationService, "defaultRecipient", "admin@example.com");
+
+        notificationService.handleTaxInvoicePdfGenerated(event);
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(dispatcherService).dispatchAsync(captor.capture());
+        Notification notification = captor.getValue();
+        assertThat(notification.getType()).isEqualTo(NotificationType.TAX_INVOICE_PDF_GENERATED);
+        assertThat(notification.getChannel()).isEqualTo(NotificationChannel.EMAIL);
+        assertThat(notification.getTemplateName()).isEqualTo("taxinvoice-pdf-generated");
+        assertThat(notification.getInvoiceNumber()).isEqualTo("TAXINV-2025-001");
     }
 
     // ── prepareAndDispatchRetry tests ─────────────────────────────────────────────────────

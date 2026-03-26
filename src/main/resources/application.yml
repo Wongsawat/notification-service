@@ -96,7 +96,8 @@ kafka:
   topics:
     invoice-processed: invoice.processed
     taxinvoice-processed: taxinvoice.processed
-    pdf-generated: pdf.generated
+    pdf-generated: pdf.generated.invoice
+    pdf-generated-tax-invoice: pdf.generated.tax-invoice
     pdf-signed: pdf.signed
     xml-signed: xml.signed
     ebms-sent: ebms.sent

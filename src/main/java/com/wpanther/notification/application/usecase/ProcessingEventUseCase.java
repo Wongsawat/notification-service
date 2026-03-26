@@ -4,6 +4,7 @@ import com.wpanther.notification.application.port.in.event.EbmsSentEvent;
 import com.wpanther.notification.application.port.in.event.InvoiceProcessedEvent;
 import com.wpanther.notification.application.port.in.event.PdfGeneratedEvent;
 import com.wpanther.notification.application.port.in.event.PdfSignedEvent;
+import com.wpanther.notification.application.port.in.event.TaxInvoicePdfGeneratedEvent;
 import com.wpanther.notification.application.port.in.event.TaxInvoiceProcessedEvent;
 import com.wpanther.notification.application.port.in.event.XmlSignedEvent;
 
@@ -20,6 +21,8 @@ public interface ProcessingEventUseCase {
     void handleTaxInvoiceProcessed(TaxInvoiceProcessedEvent event);
 
     void handlePdfGenerated(PdfGeneratedEvent event);
+
+    void handleTaxInvoicePdfGenerated(TaxInvoicePdfGeneratedEvent event);
 
     void handlePdfSigned(PdfSignedEvent event);
 
