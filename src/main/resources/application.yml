@@ -35,16 +35,16 @@ spring:
     baseline-on-migrate: true
 
   # Kafka configuration
+  # NOTE: This service uses Apache Camel (not Spring Kafka) for all Kafka consumption.
+  # The two properties below are read via @Value in NotificationEventRoutes and injected
+  # directly into each Camel Kafka URI (brokers=..., groupId=...).
+  # Consumer behaviour (autoOffsetReset, autoCommitEnable, breakOnFirstError) is set
+  # inside the Camel URI string in NotificationEventRoutes — adjusting Spring Kafka
+  # consumer.* settings here has NO effect on the running consumers.
   kafka:
     bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
     consumer:
       group-id: notification-service
-      auto-offset-reset: earliest
-      enable-auto-commit: false
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: "com.wpanther.*"
 
   # Mail configuration
   mail:

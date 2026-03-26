@@ -32,12 +32,11 @@ spring:
     enabled: false
 
   # Kafka configuration (mock for unit tests)
+  # Only bootstrap-servers and consumer.group-id are read by NotificationEventRoutes (@Value).
   kafka:
     bootstrap-servers: localhost:9093
     consumer:
       group-id: notification-service-test
-      auto-offset-reset: earliest
-      enable-auto-commit: false
 
   # Mail configuration (mock SMTP)
   mail:

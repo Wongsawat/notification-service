@@ -34,12 +34,11 @@ spring:
     baseline-on-migrate: true
 
   # Kafka configuration (Docker test container on port 9093)
+  # Only bootstrap-servers and consumer.group-id are read by NotificationEventRoutes (@Value).
   kafka:
     bootstrap-servers: ${KAFKA_BROKERS:localhost:9093}
     consumer:
       group-id: notification-service-consumer-test
-      auto-offset-reset: earliest
-      enable-auto-commit: false
 
   # Mail configuration (not used - senders are mocked)
   mail:
