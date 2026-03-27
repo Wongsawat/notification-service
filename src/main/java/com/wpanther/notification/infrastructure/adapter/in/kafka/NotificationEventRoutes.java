@@ -76,7 +76,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         /*
          * Error handling strategy: Dead Letter Channel + breakOnFirstError
          * ----------------------------------------------------------------
-         * All 17 routes share this single global error handler.
+         * All 18 routes share this single global error handler.
          *
          * breakOnFirstError=true (set on each Kafka consumer URI below) tells
          * the Camel Kafka component to stop polling new messages from a partition

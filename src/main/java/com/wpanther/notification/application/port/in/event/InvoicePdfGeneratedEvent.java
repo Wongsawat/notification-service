@@ -9,7 +9,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event published when invoice PDF generation is completed
+ * Event published by invoice-pdf-generation-service when invoice PDF generation completes.
+ * Consumed from topic {@code pdf.generated.invoice}.
  */
 @Getter
 public class InvoicePdfGeneratedEvent extends TraceEvent {
