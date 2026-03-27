@@ -80,7 +80,7 @@ com.wpanther.notification/
 │       └── event/                       (UNCHANGED — already application-layer objects, no move needed)
 │           ├── InvoiceProcessedEvent.java
 │           ├── TaxInvoiceProcessedEvent.java
-│           ├── PdfGeneratedEvent.java
+│           ├── InvoicePdfGeneratedEvent.java
 │           ├── PdfSignedEvent.java
 │           ├── XmlSignedEvent.java
 │           ├── EbmsSentEvent.java

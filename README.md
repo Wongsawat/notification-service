@@ -273,7 +273,7 @@ All Kafka consumption is defined in `NotificationEventRoutes.java` with **17 tot
 |-------|-------|-------|--------|
 | `invoice.processed` | InvoiceProcessedEvent | notification-invoice-processed | Email notification |
 | `taxinvoice.processed` | TaxInvoiceProcessedEvent | notification-taxinvoice-processed | Email notification |
-| `pdf.generated.invoice` | PdfGeneratedEvent | notification-pdf-generated | Email notification |
+| `pdf.generated.invoice` | InvoicePdfGeneratedEvent | notification-pdf-generated | Email notification |
 | `pdf.generated.tax-invoice` | TaxInvoicePdfGeneratedEvent | notification-taxinvoice-pdf-generated | Email notification |
 | `pdf.signed` | PdfSignedEvent | notification-pdf-signed | Email notification |
 | `ebms.sent` | EbmsSentEvent | notification-ebms-sent | Email notification |
@@ -314,12 +314,12 @@ All Kafka consumption is defined in `NotificationEventRoutes.java` with **17 tot
 }
 ```
 
-**PdfGeneratedEvent** (extends IntegrationEvent, topic: `pdf.generated.invoice`)
+**InvoicePdfGeneratedEvent** (extends TraceEvent, topic: `pdf.generated.invoice`)
 ```json
 {
   "eventId": "uuid",
   "occurredAt": "2026-02-06T10:40:00Z",
-  "eventType": "PdfGeneratedEvent",
+  "eventType": "InvoicePdfGeneratedEvent",
   "version": 1,
   "invoiceId": "uuid",
   "invoiceNumber": "INV-2026-001",
@@ -809,7 +809,7 @@ mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumeTaxInvoi
 **Integration Test Coverage:**
 - `shouldConsumeInvoiceProcessedEvent()` - Verifies `invoice.processed` topic consumption and notification creation
 - `shouldConsumeTaxInvoiceProcessedEvent()` - Verifies `taxinvoice.processed` topic consumption and notification creation
-- `shouldConsumePdfGeneratedEvent()` - Verifies `pdf.generated.invoice` topic consumption and notification creation
+- `shouldConsumeInvoicePdfGeneratedEvent()` - Verifies `pdf.generated.invoice` topic consumption and notification creation
 - `shouldConsumePdfSignedEvent()` - Verifies `pdf.signed` topic consumption and notification creation
 - `shouldConsumeEbmsSentEvent()` - Verifies `ebms.sent` topic consumption and notification creation
 - `shouldConsumeSagaCompletedEvent()` - Verifies `saga.lifecycle.completed` topic consumption and notification creation

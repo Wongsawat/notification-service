@@ -60,7 +60,7 @@ The service processes notifications through three entry points:
 |-------------|----------------------------------------|-------------|----------|-----------------|
 | `invoice.processed` | InvoiceProcessedEvent | notification-invoice-processed | invoice-processed.html | "Invoice Processed: {invoiceNumber}" |
 | `taxinvoice.processed` | TaxInvoiceProcessedEvent | notification-taxinvoice-processed | taxinvoice-processed.html | "Tax Invoice Processed: {invoiceNumber}" |
-| `pdf.generated` | PdfGeneratedEvent | notification-pdf-generated | pdf-generated.html | "PDF Invoice Ready: {invoiceNumber}" |
+| `pdf.generated` | InvoicePdfGeneratedEvent | notification-pdf-generated | pdf-generated.html | "PDF Invoice Ready: {invoiceNumber}" |
 | `pdf.signed` | PdfSignedEvent | notification-pdf-signed | pdf-signed.html | "Signed PDF Ready: {invoiceNumber}" |
 | `ebms.sent` | EbmsSentEvent | notification-ebms-sent | ebms-sent.html | "Document Submitted to TRD: {invoiceNumber}" |
 
@@ -84,7 +84,7 @@ The service processes notifications through three entry points:
 **InvoiceProcessedEvent:**
 - `invoiceId`, `invoiceNumber`, `totalAmount`, `currency`, `processedAt` (from occurredAt)
 
-**PdfGeneratedEvent:**
+**InvoicePdfGeneratedEvent:**
 - `invoiceId`, `invoiceNumber`, `documentId`, `documentUrl`, `fileSize`, `generatedAt` (from occurredAt), `xmlEmbedded`, `digitallySigned`
 
 **SagaCompletedEvent:**
@@ -683,7 +683,7 @@ State Transitions:
 |-------------|-------|------------|----------|-----------|
 | `shouldConsumeInvoiceProcessedEvent()` | `invoice.processed` | InvoiceProcessedEvent | `invoice-processed.html` | Invoice processing flow |
 | `shouldConsumeTaxInvoiceProcessedEvent()` | `taxinvoice.processed` | TaxInvoiceProcessedEvent | `taxinvoice-processed.html` | Tax invoice processing flow |
-| `shouldConsumePdfGeneratedEvent()` | `pdf.generated` | PdfGeneratedEvent | `pdf-generated.html` | PDF generation flow |
+| `shouldConsumeInvoicePdfGeneratedEvent()` | `pdf.generated` | InvoicePdfGeneratedEvent | `pdf-generated.html` | PDF generation flow |
 | `shouldConsumePdfSignedEvent()` | `pdf.signed` | PdfSignedEvent | `pdf-signed.html` | PDF signing flow |
 | `shouldConsumeEbmsSentEvent()` | `ebms.sent` | EbmsSentEvent | `ebms-sent.html` | ebMS submission flow |
 | `shouldConsumeSagaCompletedEvent()` | `saga.lifecycle.completed` | SagaCompletedEvent | `saga-completed.html` | Saga completion flow |
@@ -709,17 +709,17 @@ State Transitions:
 
 ---
 
-## Flow 8: Integration Test Execution (PdfGeneratedEvent)
+## Flow 8: Integration Test Execution (InvoicePdfGeneratedEvent)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                  INTEGRATION TEST FLOW (PdfGeneratedEvent)                │
+│                  INTEGRATION TEST FLOW (InvoicePdfGeneratedEvent)                │
 └─────────────────────────────────────────────────────────────────────────────┘
 
   KafkaConsumerIntegrationTest    TestKafkaProducer          Kafka (9093)
   ────────────────────────────    ─────────────────          ──────────────
        │                                │                          │
-       │  1. Create PdfGeneratedEvent
+       │  1. Create InvoicePdfGeneratedEvent
        │     - invoiceId: "INV-{UUID}"
        │     - invoiceNumber: "T0001-{timestamp}"
        │     - documentId: "DOC-{UUID}"
@@ -752,7 +752,7 @@ State Transitions:
        │                     └──────────┬───────────┘
        │                                │
        │                                │  4. Unmarshal JSON to
-       │                                │     PdfGeneratedEvent
+       │                                │     InvoicePdfGeneratedEvent
        │                                │     (Jackson + JavaTimeModule)
        │                                │
        │                     ┌──────────┴───────────┐
@@ -798,7 +798,7 @@ State Transitions:
        │        * digitallySigned (boolean as string)
 ```
 
-### PdfGeneratedEvent Test Specifics
+### InvoicePdfGeneratedEvent Test Specifics
 
 **Template Variables Created:**
 - `invoiceId` - Invoice UUID
@@ -817,7 +817,7 @@ State Transitions:
 - Document URL and ID are properly propagated
 
 **Camel Route Handler:**
-`NotificationEventRoutes.handlePdfGenerated()` (lines 424-454)
+`NotificationEventRoutes.handleInvoicePdfGenerated()` (lines 424-454)
 - Calls `formatFileSize(event.getFileSize())` to convert bytes to human-readable format
 - Sets `generatedAt` using `formatInstant(event.getOccurredAt())`
 - Adds metadata entries for `documentUrl` and `documentId`

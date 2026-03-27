@@ -282,7 +282,7 @@ package com.wpanther.notification.application.port.in;
 
 import com.wpanther.notification.infrastructure.messaging.EbmsSentEvent;
 import com.wpanther.notification.infrastructure.messaging.InvoiceProcessedEvent;
-import com.wpanther.notification.infrastructure.messaging.PdfGeneratedEvent;
+import com.wpanther.notification.infrastructure.messaging.InvoicePdfGeneratedEvent;
 import com.wpanther.notification.infrastructure.messaging.PdfSignedEvent;
 import com.wpanther.notification.infrastructure.messaging.TaxInvoiceProcessedEvent;
 import com.wpanther.notification.infrastructure.messaging.XmlSignedEvent;
@@ -299,7 +299,7 @@ public interface ProcessingEventUseCase {
 
     void handleTaxInvoiceProcessed(TaxInvoiceProcessedEvent event);
 
-    void handlePdfGenerated(PdfGeneratedEvent event);
+    void handleInvoicePdfGenerated(InvoicePdfGeneratedEvent event);
 
     void handlePdfSigned(PdfSignedEvent event);
 
@@ -472,7 +472,7 @@ import com.wpanther.notification.infrastructure.messaging.DocumentReceivedCounti
 import com.wpanther.notification.infrastructure.messaging.DocumentReceivedEvent;
 import com.wpanther.notification.infrastructure.messaging.EbmsSentEvent;
 import com.wpanther.notification.infrastructure.messaging.InvoiceProcessedEvent;
-import com.wpanther.notification.infrastructure.messaging.PdfGeneratedEvent;
+import com.wpanther.notification.infrastructure.messaging.InvoicePdfGeneratedEvent;
 import com.wpanther.notification.infrastructure.messaging.PdfSignedEvent;
 import com.wpanther.notification.infrastructure.messaging.TaxInvoiceProcessedEvent;
 import com.wpanther.notification.infrastructure.messaging.XmlSignedEvent;
@@ -637,8 +637,8 @@ public class NotificationService
     }
 
     @Override
-    public void handlePdfGenerated(PdfGeneratedEvent event) {
-        log.info("Processing PdfGeneratedEvent: invoiceId={}, invoiceNumber={}",
+    public void handleInvoicePdfGenerated(InvoicePdfGeneratedEvent event) {
+        log.info("Processing InvoicePdfGeneratedEvent: invoiceId={}, invoiceNumber={}",
             event.getInvoiceId(), event.getInvoiceNumber());
 
         Map<String, Object> vars = new HashMap<>();
@@ -1107,11 +1107,11 @@ public class NotificationEventRoutes extends RouteBuilder {
 
         from("kafka:" + topics.pdfGenerated() + kafkaOptions)
             .routeId("notification-pdf-generated")
-            .log("Received PdfGeneratedEvent from Kafka")
+            .log("Received InvoicePdfGeneratedEvent from Kafka")
             .choice().when(exchange -> !notificationEnabled).log("Notifications disabled").stop().end()
-            .unmarshal().json(JsonLibrary.Jackson, PdfGeneratedEvent.class)
+            .unmarshal().json(JsonLibrary.Jackson, InvoicePdfGeneratedEvent.class)
             .process(this::routePdfGenerated)
-            .log("Processed PdfGeneratedEvent: ${header.invoiceNumber}");
+            .log("Processed InvoicePdfGeneratedEvent: ${header.invoiceNumber}");
 
         from("kafka:" + topics.pdfSigned() + kafkaOptions)
             .routeId("notification-pdf-signed")
@@ -1241,8 +1241,8 @@ public class NotificationEventRoutes extends RouteBuilder {
     }
 
     private void routePdfGenerated(Exchange exchange) {
-        PdfGeneratedEvent event = exchange.getIn().getBody(PdfGeneratedEvent.class);
-        processingEventUseCase.handlePdfGenerated(event);
+        InvoicePdfGeneratedEvent event = exchange.getIn().getBody(InvoicePdfGeneratedEvent.class);
+        processingEventUseCase.handleInvoicePdfGenerated(event);
         exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
     }
 
@@ -1698,7 +1698,7 @@ Move all files from `infrastructure/messaging/` to `adapter/in/kafka/`. Route fi
 - `infrastructure/messaging/NotificationEventRoutes.java` → `adapter/in/kafka/NotificationEventRoutes.java`
 - `infrastructure/messaging/InvoiceProcessedEvent.java` → `adapter/in/kafka/InvoiceProcessedEvent.java`
 - `infrastructure/messaging/TaxInvoiceProcessedEvent.java` → `adapter/in/kafka/TaxInvoiceProcessedEvent.java`
-- `infrastructure/messaging/PdfGeneratedEvent.java` → `adapter/in/kafka/PdfGeneratedEvent.java`
+- `infrastructure/messaging/InvoicePdfGeneratedEvent.java` → `adapter/in/kafka/InvoicePdfGeneratedEvent.java`
 - `infrastructure/messaging/PdfSignedEvent.java` → `adapter/in/kafka/PdfSignedEvent.java`
 - `infrastructure/messaging/XmlSignedEvent.java` → `adapter/in/kafka/XmlSignedEvent.java`
 - `infrastructure/messaging/EbmsSentEvent.java` → `adapter/in/kafka/EbmsSentEvent.java`

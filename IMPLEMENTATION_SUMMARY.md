@@ -266,7 +266,7 @@ public class InvoiceProcessedEvent extends IntegrationEvent {
 ```
 
 **Refactored Events (11 total):**
-- Processing Events (7): InvoiceProcessedEvent, TaxInvoiceProcessedEvent, PdfGeneratedEvent, PdfSignedEvent, EbmsSentEvent, DocumentReceivedEvent, DocumentReceivedCountingEvent
+- Processing Events (7): InvoiceProcessedEvent, TaxInvoiceProcessedEvent, InvoicePdfGeneratedEvent, PdfSignedEvent, EbmsSentEvent, DocumentReceivedEvent, DocumentReceivedCountingEvent
 - Saga Events (4): SagaStartedEvent, SagaStepCompletedEvent, SagaCompletedEvent, SagaFailedEvent
 
 **Benefits:**
@@ -484,7 +484,7 @@ public class InvoiceEventListener {
     public void handleInvoiceProcessed(InvoiceProcessedEvent event) { /* ... */ }
 
     @KafkaListener(topics = "${kafka.topics.pdf-generated}")
-    public void handlePdfGenerated(PdfGeneratedEvent event) { /* ... */ }
+    public void handleInvoicePdfGenerated(InvoicePdfGeneratedEvent event) { /* ... */ }
 }
 ```
 
@@ -737,7 +737,7 @@ spring:
 
 **Flow:**
 1. PDF Generation creates PDF/A-3 document
-2. Publishes `PdfGeneratedEvent` with download URL
+2. Publishes `InvoicePdfGeneratedEvent` with download URL
 3. Notification Service sends "PDF Ready" email with link
 
 ## Deployment
@@ -812,7 +812,7 @@ Integration tests verify end-to-end Kafka event consumption using Apache Camel r
 **Integration Test Coverage:**
 1. **shouldConsumeInvoiceProcessedEvent()** - Tests `invoice.processed` topic consumption
 2. **shouldConsumeTaxInvoiceProcessedEvent()** - Tests `taxinvoice.processed` topic consumption
-3. **shouldConsumePdfGeneratedEvent()** - Tests `pdf.generated` topic consumption
+3. **shouldConsumeInvoicePdfGeneratedEvent()** - Tests `pdf.generated.invoice` topic consumption
 4. **shouldConsumePdfSignedEvent()** - Tests `pdf.signed` topic consumption
 5. **shouldConsumeEbmsSentEvent()** - Tests `ebms.sent` topic consumption
 6. **shouldConsumeSagaCompletedEvent()** - Tests `saga.lifecycle.completed` topic consumption
@@ -843,7 +843,7 @@ mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumeSagaFail
 - Async processing completion (status reaches SENT)
 - Database persistence of all notification fields
 - Correct subject, recipient, and correlation ID
-- Special validation for PdfGeneratedEvent: fileSize formatting, boolean fields (xmlEmbedded, digitallySigned)
+- Special validation for InvoicePdfGeneratedEvent: fileSize formatting, boolean fields (xmlEmbedded, digitallySigned)
 - Special validation for PdfSignedEvent: documentType, signedDocumentId, signedPdfUrl, signedPdfSize formatting, transactionId, signatureLevel, signatureTimestamp formatting
 - Special validation for EbmsSentEvent: uses correlationId for lookup (invoiceId may be null), documentType, ebmsMessageId, sentAt formatting
 - Special validation for SagaCompletedEvent: uses documentId for lookup (handler sets invoiceId to documentId), sagaId, stepsExecuted, durationMs, durationSec formatting, completedAt formatting

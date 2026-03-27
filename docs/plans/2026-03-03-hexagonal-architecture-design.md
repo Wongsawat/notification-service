@@ -54,7 +54,7 @@ src/main/java/com/wpanther/notification/
 │   │       ├── NotificationEventRoutes.java ← thin: unmarshal + delegate to port interfaces
 │   │       ├── InvoiceProcessedEvent.java
 │   │       ├── TaxInvoiceProcessedEvent.java
-│   │       ├── PdfGeneratedEvent.java
+│   │       ├── InvoicePdfGeneratedEvent.java
 │   │       ├── PdfSignedEvent.java
 │   │       ├── XmlSignedEvent.java
 │   │       ├── EbmsSentEvent.java
@@ -125,7 +125,7 @@ public interface QueryNotificationUseCase {
 public interface ProcessingEventUseCase {
     void handleInvoiceProcessed(InvoiceProcessedEvent event);
     void handleTaxInvoiceProcessed(TaxInvoiceProcessedEvent event);
-    void handlePdfGenerated(PdfGeneratedEvent event);
+    void handleInvoicePdfGenerated(InvoicePdfGeneratedEvent event);
     void handlePdfSigned(PdfSignedEvent event);
     void handleXmlSigned(XmlSignedEvent event);
     void handleEbmsSent(EbmsSentEvent event);
