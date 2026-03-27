@@ -15,7 +15,7 @@ import com.wpanther.notification.application.port.in.event.DocumentReceivedCount
 import com.wpanther.notification.application.port.in.event.DocumentReceivedEvent;
 import com.wpanther.notification.application.port.in.event.EbmsSentEvent;
 import com.wpanther.notification.application.port.in.event.InvoiceProcessedEvent;
-import com.wpanther.notification.application.port.in.event.PdfGeneratedEvent;
+import com.wpanther.notification.application.port.in.event.InvoicePdfGeneratedEvent;
 import com.wpanther.notification.application.port.in.event.PdfSignedEvent;
 import com.wpanther.notification.application.port.in.event.TaxInvoicePdfGeneratedEvent;
 import com.wpanther.notification.application.port.in.event.TaxInvoiceProcessedEvent;
@@ -200,8 +200,8 @@ public class NotificationService
     }
 
     @Override
-    public void handlePdfGenerated(PdfGeneratedEvent event) {
-        log.info("Processing PdfGeneratedEvent: invoiceId={}, invoiceNumber={}",
+    public void handleInvoicePdfGenerated(InvoicePdfGeneratedEvent event) {
+        log.info("Processing InvoicePdfGeneratedEvent: invoiceId={}, invoiceNumber={}",
             event.getInvoiceId(), event.getInvoiceNumber());
 
         Map<String, Object> templateVariables = new HashMap<>();

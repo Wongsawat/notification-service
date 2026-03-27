@@ -2,7 +2,7 @@ package com.wpanther.notification.application.usecase;
 
 import com.wpanther.notification.application.port.in.event.EbmsSentEvent;
 import com.wpanther.notification.application.port.in.event.InvoiceProcessedEvent;
-import com.wpanther.notification.application.port.in.event.PdfGeneratedEvent;
+import com.wpanther.notification.application.port.in.event.InvoicePdfGeneratedEvent;
 import com.wpanther.notification.application.port.in.event.PdfSignedEvent;
 import com.wpanther.notification.application.port.in.event.TaxInvoicePdfGeneratedEvent;
 import com.wpanther.notification.application.port.in.event.TaxInvoiceProcessedEvent;
@@ -20,7 +20,7 @@ public interface ProcessingEventUseCase {
 
     void handleTaxInvoiceProcessed(TaxInvoiceProcessedEvent event);
 
-    void handlePdfGenerated(PdfGeneratedEvent event);
+    void handleInvoicePdfGenerated(InvoicePdfGeneratedEvent event);
 
     void handleTaxInvoicePdfGenerated(TaxInvoicePdfGeneratedEvent event);
 

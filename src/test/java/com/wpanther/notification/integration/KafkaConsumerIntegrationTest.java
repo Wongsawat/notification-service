@@ -2,7 +2,7 @@ package com.wpanther.notification.integration;
 
 import com.wpanther.notification.application.port.in.event.EbmsSentEvent;
 import com.wpanther.notification.application.port.in.event.InvoiceProcessedEvent;
-import com.wpanther.notification.application.port.in.event.PdfGeneratedEvent;
+import com.wpanther.notification.application.port.in.event.InvoicePdfGeneratedEvent;
 import com.wpanther.notification.application.port.in.event.PdfSignedEvent;
 import com.wpanther.notification.application.port.in.event.TaxInvoiceProcessedEvent;
 import com.wpanther.notification.application.port.in.event.saga.SagaCompletedEvent;
@@ -94,8 +94,8 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
     }
 
     @Test
-    @DisplayName("Should consume PdfGeneratedEvent and create notification")
-    void shouldConsumePdfGeneratedEvent() {
+    @DisplayName("Should consume InvoicePdfGeneratedEvent and create notification")
+    void shouldConsumeInvoicePdfGeneratedEvent() {
         // Given
         String invoiceId = "INV-" + UUID.randomUUID();
         String invoiceNumber = "T0001-" + System.currentTimeMillis();
@@ -104,7 +104,7 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
         String correlationId = UUID.randomUUID().toString();
         long fileSize = 125000; // 125 KB
 
-        PdfGeneratedEvent event = new PdfGeneratedEvent(
+        InvoicePdfGeneratedEvent event = new InvoicePdfGeneratedEvent(
             invoiceId, invoiceNumber, documentId, documentUrl, fileSize,
             true,  // xmlEmbedded
             false, // digitallySigned
@@ -112,7 +112,7 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
         );
 
         // When
-        sendEvent("pdf.generated", invoiceId, event);
+        sendEvent("pdf.generated.invoice", invoiceId, event);
 
         // Then
         Map<String, Object> notification = awaitNotificationByInvoiceId(invoiceId);

@@ -9,10 +9,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Event published when PDF generation is completed
+ * Event published when invoice PDF generation is completed
  */
 @Getter
-public class PdfGeneratedEvent extends TraceEvent {
+public class InvoicePdfGeneratedEvent extends TraceEvent {
 
     @JsonProperty("invoiceId")
     private final String invoiceId;
@@ -35,13 +35,9 @@ public class PdfGeneratedEvent extends TraceEvent {
     @JsonProperty("digitallySigned")
     private final boolean digitallySigned;
 
-    /**
-     * Constructor for creating new events.
-     * Generates eventId, occurredAt, eventType, and version automatically.
-     */
-    public PdfGeneratedEvent(String invoiceId, String invoiceNumber, String documentId,
-                              String documentUrl, long fileSize, boolean xmlEmbedded,
-                              boolean digitallySigned, String correlationId) {
+    public InvoicePdfGeneratedEvent(String invoiceId, String invoiceNumber, String documentId,
+                                    String documentUrl, long fileSize, boolean xmlEmbedded,
+                                    boolean digitallySigned, String correlationId) {
         super(invoiceId, correlationId, "pdf-generation-service", "PDF_GENERATED", null);
         this.invoiceId = invoiceId;
         this.invoiceNumber = invoiceNumber;
@@ -52,12 +48,8 @@ public class PdfGeneratedEvent extends TraceEvent {
         this.digitallySigned = digitallySigned;
     }
 
-    /**
-     * Constructor for deserialization from JSON.
-     * Used by Jackson when reading events from Kafka.
-     */
     @JsonCreator
-    public PdfGeneratedEvent(
+    public InvoicePdfGeneratedEvent(
         @JsonProperty("eventId") UUID eventId,
         @JsonProperty("occurredAt") Instant occurredAt,
         @JsonProperty("eventType") String eventType,

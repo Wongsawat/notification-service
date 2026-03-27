@@ -1,6 +1,6 @@
 package com.wpanther.notification.application.service;
 
-import com.wpanther.notification.application.port.in.event.PdfGeneratedEvent;
+import com.wpanther.notification.application.port.in.event.InvoicePdfGeneratedEvent;
 import com.wpanther.notification.application.port.in.event.TaxInvoicePdfGeneratedEvent;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
@@ -134,19 +134,19 @@ class NotificationServiceTest {
         assertThat(result).containsExactly(testNotification);
     }
 
-    // ── ProcessingEventUseCase: handlePdfGenerated (pdf.generated.invoice) ───────────────
+    // ── ProcessingEventUseCase: handleInvoicePdfGenerated (pdf.generated.invoice) ─────────
 
     @Test
-    @DisplayName("handlePdfGenerated creates PDF_GENERATED notification and dispatches async")
-    void testHandlePdfGenerated_dispatchesAsync() {
-        PdfGeneratedEvent event = new PdfGeneratedEvent(
+    @DisplayName("handleInvoicePdfGenerated creates PDF_GENERATED notification and dispatches async")
+    void testHandleInvoicePdfGenerated_dispatchesAsync() {
+        InvoicePdfGeneratedEvent event = new InvoicePdfGeneratedEvent(
             UUID.randomUUID(), Instant.now(), "pdf.generated.invoice", 1,
             "saga-1", "corr-1", "invoice-pdf-generation-service", "PDF_GENERATED", null,
             "INV-001", "INV-2025-001", "doc-001", "http://example.com/doc", 102400L, true, false);
 
         ReflectionTestUtils.setField(notificationService, "defaultRecipient", "admin@example.com");
 
-        notificationService.handlePdfGenerated(event);
+        notificationService.handleInvoicePdfGenerated(event);
 
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
         verify(dispatcherService).dispatchAsync(captor.capture());

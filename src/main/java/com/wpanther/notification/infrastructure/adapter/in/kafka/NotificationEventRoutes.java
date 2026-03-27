@@ -4,7 +4,7 @@ import com.wpanther.notification.application.port.in.event.DocumentReceivedCount
 import com.wpanther.notification.application.port.in.event.DocumentReceivedEvent;
 import com.wpanther.notification.application.port.in.event.EbmsSentEvent;
 import com.wpanther.notification.application.port.in.event.InvoiceProcessedEvent;
-import com.wpanther.notification.application.port.in.event.PdfGeneratedEvent;
+import com.wpanther.notification.application.port.in.event.InvoicePdfGeneratedEvent;
 import com.wpanther.notification.application.port.in.event.PdfSignedEvent;
 import com.wpanther.notification.application.port.in.event.TaxInvoicePdfGeneratedEvent;
 import com.wpanther.notification.application.port.in.event.TaxInvoiceProcessedEvent;
@@ -150,14 +150,14 @@ public class NotificationEventRoutes extends RouteBuilder {
         // Route 3: PDF Generated Events
         from("kafka:" + topics.pdfGenerated() + kafkaOptions)
             .routeId("notification-pdf-generated")
-            .log("Received PdfGeneratedEvent from Kafka")
+            .log("Received InvoicePdfGeneratedEvent from Kafka")
             .choice()
                 .when(exchange -> !notificationEnabled)
                     .log("Notifications disabled, skipping message")
                     .stop()
             .end()
-            .unmarshal().json(JsonLibrary.Jackson, PdfGeneratedEvent.class)
-            .process(this::handlePdfGenerated)
+            .unmarshal().json(JsonLibrary.Jackson, InvoicePdfGeneratedEvent.class)
+            .process(this::handleInvoicePdfGenerated)
             .log("Created notification for PDF generated: ${header.invoiceNumber}");
 
         // Route 4: Tax Invoice PDF Generated Events
@@ -372,9 +372,9 @@ public class NotificationEventRoutes extends RouteBuilder {
         exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
     }
 
-    private void handlePdfGenerated(Exchange exchange) {
-        PdfGeneratedEvent event = exchange.getIn().getBody(PdfGeneratedEvent.class);
-        processingEventUseCase.handlePdfGenerated(event);
+    private void handleInvoicePdfGenerated(Exchange exchange) {
+        InvoicePdfGeneratedEvent event = exchange.getIn().getBody(InvoicePdfGeneratedEvent.class);
+        processingEventUseCase.handleInvoicePdfGenerated(event);
         exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
     }
 
