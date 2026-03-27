@@ -40,7 +40,7 @@ The Notification Service:
 - `Notification` - Notification with state machine (PENDING → SENDING → SENT/FAILED)
 
 **Value Objects:**
-- `NotificationType` - INVOICE_RECEIVED, INVOICE_PROCESSED, PDF_GENERATED, etc.
+- `NotificationType` - INVOICE_RECEIVED, INVOICE_PROCESSED, PDF_GENERATED, TAX_INVOICE_PDF_GENERATED, etc.
 - `NotificationChannel` - EMAIL, SMS, WEBHOOK, IN_APP
 - `NotificationStatus` - PENDING, SENDING, SENT, FAILED, RETRYING
 
@@ -95,11 +95,19 @@ This ensures consistent event structure across all microservices in the invoice 
 - **Channel**: Email
 - **Variables**: invoiceId, invoiceNumber, total, currency, processedAt (from occurredAt)
 
-### PDF Generated
-- **Trigger**: PDF generation completed
+### PDF Generated (Invoice)
+- **Trigger**: Invoice PDF generation completed (from `invoice-pdf-generation-service`)
+- **Topic**: `pdf.generated.invoice`
 - **Template**: `pdf-generated.html`
 - **Channel**: Email
 - **Variables**: invoiceId, invoiceNumber, documentId, documentUrl, fileSize, generatedAt (from occurredAt), xmlEmbedded, digitallySigned
+
+### Tax Invoice PDF Generated
+- **Trigger**: Tax invoice PDF generation completed (from `taxinvoice-pdf-generation-service`)
+- **Topic**: `pdf.generated.tax-invoice`
+- **Template**: `taxinvoice-pdf-generated.html`
+- **Channel**: Email
+- **Variables**: taxInvoiceId, taxInvoiceNumber, documentId, documentUrl, fileSize, generatedAt (from occurredAt), xmlEmbedded
 
 ### PDF Signed
 - **Trigger**: PDF signing completed
@@ -236,12 +244,13 @@ Response: 200 OK
 
 ### Apache Camel Routes
 
-All Kafka consumption is defined in `NotificationEventRoutes.java` with **16 total routes**:
+All Kafka consumption is defined in `NotificationEventRoutes.java` with **17 total routes**:
 
-**Processing Events (12 routes):**
+**Processing Events (13 routes):**
 - `notification-invoice-processed` → `invoice.processed`
 - `notification-taxinvoice-processed` → `taxinvoice.processed`
-- `notification-pdf-generated` → `pdf.generated`
+- `notification-pdf-generated` → `pdf.generated.invoice`
+- `notification-taxinvoice-pdf-generated` → `pdf.generated.tax-invoice`
 - `notification-pdf-signed` → `pdf.signed`
 - `notification-ebms-sent` → `ebms.sent`
 - `notification-document-counting` → `document.received` (logging)
@@ -264,7 +273,8 @@ All Kafka consumption is defined in `NotificationEventRoutes.java` with **16 tot
 |-------|-------|-------|--------|
 | `invoice.processed` | InvoiceProcessedEvent | notification-invoice-processed | Email notification |
 | `taxinvoice.processed` | TaxInvoiceProcessedEvent | notification-taxinvoice-processed | Email notification |
-| `pdf.generated` | PdfGeneratedEvent | notification-pdf-generated | Email notification |
+| `pdf.generated.invoice` | PdfGeneratedEvent | notification-pdf-generated | Email notification |
+| `pdf.generated.tax-invoice` | TaxInvoicePdfGeneratedEvent | notification-taxinvoice-pdf-generated | Email notification |
 | `pdf.signed` | PdfSignedEvent | notification-pdf-signed | Email notification |
 | `ebms.sent` | EbmsSentEvent | notification-ebms-sent | Email notification |
 | `saga.lifecycle.completed` | SagaCompletedEvent | notification-saga-completed | Email notification |
@@ -304,7 +314,7 @@ All Kafka consumption is defined in `NotificationEventRoutes.java` with **16 tot
 }
 ```
 
-**PdfGeneratedEvent** (extends IntegrationEvent)
+**PdfGeneratedEvent** (extends IntegrationEvent, topic: `pdf.generated.invoice`)
 ```json
 {
   "eventId": "uuid",
@@ -319,6 +329,26 @@ All Kafka consumption is defined in `NotificationEventRoutes.java` with **16 tot
   "xmlEmbedded": true,
   "digitallySigned": false,
   "correlationId": "trace-id"
+}
+```
+
+**TaxInvoicePdfGeneratedEvent** (extends TraceEvent, topic: `pdf.generated.tax-invoice`)
+```json
+{
+  "eventId": "uuid",
+  "occurredAt": "2026-02-06T10:40:00Z",
+  "eventType": "TaxInvoicePdfGeneratedEvent",
+  "version": 1,
+  "sagaId": "saga-uuid",
+  "correlationId": "trace-id",
+  "source": "taxinvoice-pdf-generation-service",
+  "traceType": "PDF_GENERATED",
+  "documentId": "doc-uuid",
+  "taxInvoiceId": "uuid",
+  "taxInvoiceNumber": "TAX-2026-001",
+  "documentUrl": "http://minio:9000/taxinvoices/doc-uuid.pdf",
+  "fileSize": 145000,
+  "xmlEmbedded": true
 }
 ```
 
@@ -421,7 +451,7 @@ Templates are located in `src/main/resources/templates/` and use Thymeleaf synta
 - `currency` - Currency code
 - `processedAt` - Processing timestamp (from event's occurredAt)
 
-**pdf-generated.html**
+**pdf-generated.html** (invoice PDF, from `pdf.generated.invoice`)
 - `invoiceNumber` - Invoice number
 - `documentId` - Document UUID
 - `documentUrl` - Download URL
@@ -429,6 +459,15 @@ Templates are located in `src/main/resources/templates/` and use Thymeleaf synta
 - `generatedAt` - Generation timestamp (from event's occurredAt)
 - `xmlEmbedded` - Whether XML is embedded in PDF
 - `digitallySigned` - Whether PDF is signed
+
+**taxinvoice-pdf-generated.html** (tax invoice PDF, from `pdf.generated.tax-invoice`)
+- `taxInvoiceNumber` - Tax invoice number
+- `taxInvoiceId` - Tax invoice UUID
+- `documentId` - Document UUID
+- `documentUrl` - Download URL (MinIO pre-signed URL)
+- `fileSize` - Human-readable size (e.g., "145 KB")
+- `generatedAt` - Generation timestamp (from event's occurredAt)
+- `xmlEmbedded` - Whether XML is embedded in PDF
 
 **pdf-signed.html**
 - `invoiceNumber` - Invoice number
@@ -505,9 +544,9 @@ Example:
 | invoice_id | VARCHAR(100) | Related invoice ID |
 | invoice_number | VARCHAR(100) | Related invoice number |
 | correlation_id | VARCHAR(100) | Distributed trace ID |
-| created_at | TIMESTAMP | Creation time |
-| sent_at | TIMESTAMP | Successful send time |
-| failed_at | TIMESTAMP | Failure time |
+| created_at | TIMESTAMPTZ | Creation time |
+| sent_at | TIMESTAMPTZ | Successful send time |
+| failed_at | TIMESTAMPTZ | Failure time |
 | retry_count | INTEGER | Number of retries |
 | error_message | TEXT | Error details |
 
@@ -547,6 +586,8 @@ Implements the Transactional Outbox Pattern for reliable event publishing via De
 ### Migrations
 - **V1**: `create_notifications_table.sql` - Main notifications table
 - **V2**: `create_outbox_events_table.sql` - Outbox pattern for saga integration
+- **V3**: `add_status_createdat_composite_index.sql` - Composite index on (status, created_at) for retry queries
+- **V4**: `alter_timestamp_columns_to_timestamptz.sql` - Converts created_at, sent_at, failed_at from TIMESTAMP to TIMESTAMPTZ for timezone-aware storage
 
 ## Configuration
 
@@ -768,7 +809,7 @@ mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest#shouldConsumeTaxInvoi
 **Integration Test Coverage:**
 - `shouldConsumeInvoiceProcessedEvent()` - Verifies `invoice.processed` topic consumption and notification creation
 - `shouldConsumeTaxInvoiceProcessedEvent()` - Verifies `taxinvoice.processed` topic consumption and notification creation
-- `shouldConsumePdfGeneratedEvent()` - Verifies `pdf.generated` topic consumption and notification creation
+- `shouldConsumePdfGeneratedEvent()` - Verifies `pdf.generated.invoice` topic consumption and notification creation
 - `shouldConsumePdfSignedEvent()` - Verifies `pdf.signed` topic consumption and notification creation
 - `shouldConsumeEbmsSentEvent()` - Verifies `ebms.sent` topic consumption and notification creation
 - `shouldConsumeSagaCompletedEvent()` - Verifies `saga.lifecycle.completed` topic consumption and notification creation
@@ -878,7 +919,7 @@ Java 8 date/time type `java.time.Instant` not supported by default
 
 **Check Camel Routes:**
 ```bash
-# Verify all 16 routes are running
+# Verify all 17 routes are running
 curl http://localhost:8085/actuator/camel/routes | jq '.[] | select(.routeId | startswith("notification-saga"))'
 
 # Expected: 4 saga routes in "Started" state
