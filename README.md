@@ -62,7 +62,7 @@ This ensures consistent event structure across all microservices in the invoice 
 ## Notification Flow
 
 ```
-1. Invoice event published to Kafka (invoice.received, invoice.processed, pdf.generated)
+1. Invoice event published to Kafka (invoice.processed, pdf.generated.invoice, xml.signed, pdf.signed, ebms.sent, etc.)
    ↓
 2. Camel route consumes event (via NotificationEventRoutes)
    ↓
@@ -114,6 +114,13 @@ This ensures consistent event structure across all microservices in the invoice 
 - **Template**: `pdf-signed.html`
 - **Channel**: Email
 - **Variables**: invoiceId, invoiceNumber, documentType, signedDocumentId, signedPdfUrl, signedPdfSize, transactionId, signatureLevel, signatureTimestamp
+
+### XML Signed
+- **Trigger**: XML document signing completed (from `xml-signing-service`)
+- **Topic**: `xml.signed`
+- **Template**: `xml-signed.html`
+- **Channel**: Email
+- **Variables**: invoiceId, invoiceNumber, documentType, signedAt
 
 ### ebMS Sent
 - **Trigger**: Document submitted to Thailand Revenue Department
@@ -244,14 +251,15 @@ Response: 200 OK
 
 ### Apache Camel Routes
 
-All Kafka consumption is defined in `NotificationEventRoutes.java` with **17 total routes**:
+All Kafka consumption is defined in `NotificationEventRoutes.java` with **18 total routes**:
 
-**Processing Events (13 routes):**
+**Processing Events (14 routes):**
 - `notification-invoice-processed` → `invoice.processed`
 - `notification-taxinvoice-processed` → `taxinvoice.processed`
 - `notification-pdf-generated` → `pdf.generated.invoice`
 - `notification-taxinvoice-pdf-generated` → `pdf.generated.tax-invoice`
 - `notification-pdf-signed` → `pdf.signed`
+- `notification-xml-signed` → `xml.signed`
 - `notification-ebms-sent` → `ebms.sent`
 - `notification-document-counting` → `document.received` (logging)
 - `notification-tax-invoice-received` → `document.received.tax-invoice` (logging)
@@ -276,6 +284,7 @@ All Kafka consumption is defined in `NotificationEventRoutes.java` with **17 tot
 | `pdf.generated.invoice` | InvoicePdfGeneratedEvent | notification-pdf-generated | Email notification |
 | `pdf.generated.tax-invoice` | TaxInvoicePdfGeneratedEvent | notification-taxinvoice-pdf-generated | Email notification |
 | `pdf.signed` | PdfSignedEvent | notification-pdf-signed | Email notification |
+| `xml.signed` | XmlSignedEvent | notification-xml-signed | Email notification |
 | `ebms.sent` | EbmsSentEvent | notification-ebms-sent | Email notification |
 | `saga.lifecycle.completed` | SagaCompletedEvent | notification-saga-completed | Email notification |
 | `saga.lifecycle.failed` | SagaFailedEvent | notification-saga-failed | Urgent email notification |
@@ -478,6 +487,12 @@ Templates are located in `src/main/resources/templates/` and use Thymeleaf synta
 - `transactionId` - Signing transaction ID
 - `signatureLevel` - Signature level (e.g., "PAdES-BASELINE-T")
 - `signatureTimestamp` - Signature timestamp
+
+**xml-signed.html**
+- `invoiceNumber` - Invoice number
+- `invoiceId` - Invoice UUID
+- `documentType` - Document type (TAX_INVOICE, INVOICE, etc.)
+- `signedAt` - Signing timestamp (from event's occurredAt)
 
 **ebms-sent.html**
 - `documentId` - Document UUID
@@ -919,7 +934,7 @@ Java 8 date/time type `java.time.Instant` not supported by default
 
 **Check Camel Routes:**
 ```bash
-# Verify all 17 routes are running
+# Verify all 18 routes are running
 curl http://localhost:8085/actuator/camel/routes | jq '.[] | select(.routeId | startswith("notification-saga"))'
 
 # Expected: 4 saga routes in "Started" state
