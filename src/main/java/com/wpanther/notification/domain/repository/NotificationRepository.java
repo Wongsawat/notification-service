@@ -21,9 +21,9 @@ public interface NotificationRepository {
 
     List<Notification> findByStatus(NotificationStatus status, int limit);
 
-    List<Notification> findByInvoiceId(String invoiceId, int limit);
+    List<Notification> findByDocumentId(String documentId, int limit);
 
-    List<Notification> findByInvoiceNumber(String invoiceNumber, int limit);
+    List<Notification> findByDocumentNumber(String documentNumber, int limit);
 
     List<Notification> findByRecipient(String recipient, int limit);
 

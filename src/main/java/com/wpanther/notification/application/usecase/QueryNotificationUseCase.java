@@ -16,7 +16,7 @@ public interface QueryNotificationUseCase {
 
     Optional<Notification> findById(UUID id);
 
-    List<Notification> findByInvoiceId(String invoiceId, int limit);
+    List<Notification> findByDocumentId(String documentId, int limit);
 
     List<Notification> findByStatus(NotificationStatus status, int limit);
 

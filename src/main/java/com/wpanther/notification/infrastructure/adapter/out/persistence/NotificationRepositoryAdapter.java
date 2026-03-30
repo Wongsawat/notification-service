@@ -43,15 +43,15 @@ public class NotificationRepositoryAdapter implements NotificationRepository {
     }
 
     @Override
-    public List<Notification> findByInvoiceId(String invoiceId, int limit) {
-        return jpaRepository.findByInvoiceId(invoiceId, PageRequest.of(0, limit)).stream()
+    public List<Notification> findByDocumentId(String documentId, int limit) {
+        return jpaRepository.findByDocumentId(documentId, PageRequest.of(0, limit)).stream()
             .map(this::toDomain)
             .toList();
     }
 
     @Override
-    public List<Notification> findByInvoiceNumber(String invoiceNumber, int limit) {
-        return jpaRepository.findByInvoiceNumber(invoiceNumber, PageRequest.of(0, limit)).stream()
+    public List<Notification> findByDocumentNumber(String documentNumber, int limit) {
+        return jpaRepository.findByDocumentNumber(documentNumber, PageRequest.of(0, limit)).stream()
             .map(this::toDomain)
             .toList();
     }
@@ -128,8 +128,8 @@ public class NotificationRepositoryAdapter implements NotificationRepository {
             .metadata(notification.getMetadata())
             .templateName(notification.getTemplateName())
             .templateVariables(notification.getTemplateVariables())
-            .invoiceId(notification.getInvoiceId())
-            .invoiceNumber(notification.getInvoiceNumber())
+            .documentId(notification.getDocumentId())
+            .documentNumber(notification.getDocumentNumber())
             .correlationId(notification.getCorrelationId())
             .createdAt(notification.getCreatedAt())
             .sentAt(notification.getSentAt())
@@ -154,8 +154,8 @@ public class NotificationRepositoryAdapter implements NotificationRepository {
             .metadata(entity.getMetadata())
             .templateName(entity.getTemplateName())
             .templateVariables(entity.getTemplateVariables())
-            .invoiceId(entity.getInvoiceId())
-            .invoiceNumber(entity.getInvoiceNumber())
+            .documentId(entity.getDocumentId())
+            .documentNumber(entity.getDocumentNumber())
             .correlationId(entity.getCorrelationId())
             .createdAt(entity.getCreatedAt())
             .sentAt(entity.getSentAt())
