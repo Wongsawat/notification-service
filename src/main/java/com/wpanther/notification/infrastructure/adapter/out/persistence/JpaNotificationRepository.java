@@ -21,9 +21,9 @@ public interface JpaNotificationRepository extends JpaRepository<NotificationEnt
 
     List<NotificationEntity> findByStatus(NotificationStatus status, Pageable pageable);
 
-    List<NotificationEntity> findByInvoiceId(String invoiceId, Pageable pageable);
+    List<NotificationEntity> findByDocumentId(String documentId, Pageable pageable);
 
-    List<NotificationEntity> findByInvoiceNumber(String invoiceNumber, Pageable pageable);
+    List<NotificationEntity> findByDocumentNumber(String documentNumber, Pageable pageable);
 
     List<NotificationEntity> findByRecipient(String recipient, Pageable pageable);
 

@@ -17,7 +17,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "notifications", indexes = {
     @Index(name = "idx_status", columnList = "status"),
-    @Index(name = "idx_invoice_id", columnList = "invoice_id"),
+    @Index(name = "idx_document_id", columnList = "document_id"),
     @Index(name = "idx_recipient", columnList = "recipient"),
     @Index(name = "idx_created_at", columnList = "created_at"),
     @Index(name = "idx_type", columnList = "type")
@@ -65,11 +65,11 @@ public class NotificationEntity {
     @Column(name = "template_variables", columnDefinition = "TEXT")
     private Map<String, Object> templateVariables;
 
-    @Column(name = "invoice_id", length = 100)
-    private String invoiceId;
+    @Column(name = "document_id", length = 100)
+    private String documentId;
 
-    @Column(name = "invoice_number", length = 100)
-    private String invoiceNumber;
+    @Column(name = "document_number", length = 100)
+    private String documentNumber;
 
     @Column(name = "correlation_id", length = 100)
     private String correlationId;

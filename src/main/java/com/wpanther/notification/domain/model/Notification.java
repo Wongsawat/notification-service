@@ -12,8 +12,8 @@ import java.util.UUID;
  * <p>Pure-Java domain model: no framework or annotation-processor dependencies.
  * State transitions are the only way to mutate status/retryCount/timestamps —
  * no public setters exist for those fields.  Only contextual fields that must be
- * populated after construction ({@code subject}, {@code invoiceId},
- * {@code invoiceNumber}, {@code correlationId}) have explicit setters.</p>
+ * populated after construction ({@code subject}, {@code documentId},
+ * {@code documentNumber}, {@code correlationId}) have explicit setters.</p>
  *
  * <p>Equality is based on aggregate identity ({@code id}), consistent with DDD
  * aggregate-root semantics.</p>
@@ -30,8 +30,8 @@ public class Notification {
     private Map<String, Object> metadata;
     private final String templateName;
     private Map<String, Object> templateVariables;
-    private String invoiceId;
-    private String invoiceNumber;
+    private String documentId;
+    private String documentNumber;
     private String correlationId;
     private final Instant createdAt;
     private Instant sentAt;
@@ -50,8 +50,8 @@ public class Notification {
         this.metadata = builder.metadata != null ? builder.metadata : new HashMap<>();
         this.templateName = builder.templateName;
         this.templateVariables = builder.templateVariables != null ? builder.templateVariables : new HashMap<>();
-        this.invoiceId = builder.invoiceId;
-        this.invoiceNumber = builder.invoiceNumber;
+        this.documentId = builder.documentId;
+        this.documentNumber = builder.documentNumber;
         this.correlationId = builder.correlationId;
         this.createdAt = builder.createdAt;
         this.sentAt = builder.sentAt;
@@ -72,8 +72,8 @@ public class Notification {
     public Map<String, Object> getMetadata()             { return metadata; }
     public String getTemplateName()                      { return templateName; }
     public Map<String, Object> getTemplateVariables()    { return templateVariables; }
-    public String getInvoiceId()                         { return invoiceId; }
-    public String getInvoiceNumber()                     { return invoiceNumber; }
+    public String getDocumentId()                        { return documentId; }
+    public String getDocumentNumber()                    { return documentNumber; }
     public String getCorrelationId()                     { return correlationId; }
     public Instant getCreatedAt()                        { return createdAt; }
     public Instant getSentAt()                           { return sentAt; }
@@ -86,11 +86,11 @@ public class Notification {
     /** Sets the notification subject. May be called after template-based construction. */
     public void setSubject(String subject)               { this.subject = subject; }
 
-    /** Sets the associated invoice ID for correlation and querying. */
-    public void setInvoiceId(String invoiceId)           { this.invoiceId = invoiceId; }
+    /** Sets the associated document ID for correlation and querying. */
+    public void setDocumentId(String documentId)         { this.documentId = documentId; }
 
-    /** Sets the human-readable invoice number for display in notifications. */
-    public void setInvoiceNumber(String invoiceNumber)   { this.invoiceNumber = invoiceNumber; }
+    /** Sets the human-readable document number for display in notifications. */
+    public void setDocumentNumber(String documentNumber) { this.documentNumber = documentNumber; }
 
     /** Sets the saga/trace correlation ID propagated from upstream events. */
     public void setCorrelationId(String correlationId)   { this.correlationId = correlationId; }
@@ -291,8 +291,8 @@ public class Notification {
         private Map<String, Object> metadata;
         private String templateName;
         private Map<String, Object> templateVariables;
-        private String invoiceId;
-        private String invoiceNumber;
+        private String documentId;
+        private String documentNumber;
         private String correlationId;
         private Instant createdAt;
         private Instant sentAt;
@@ -312,8 +312,8 @@ public class Notification {
         public Builder metadata(Map<String, Object> metadata)               { this.metadata = metadata; return this; }
         public Builder templateName(String templateName)                    { this.templateName = templateName; return this; }
         public Builder templateVariables(Map<String, Object> vars)          { this.templateVariables = vars; return this; }
-        public Builder invoiceId(String invoiceId)                          { this.invoiceId = invoiceId; return this; }
-        public Builder invoiceNumber(String invoiceNumber)                  { this.invoiceNumber = invoiceNumber; return this; }
+        public Builder documentId(String documentId)                          { this.documentId = documentId; return this; }
+        public Builder documentNumber(String documentNumber)                  { this.documentNumber = documentNumber; return this; }
         public Builder correlationId(String correlationId)                  { this.correlationId = correlationId; return this; }
         public Builder createdAt(Instant createdAt)                          { this.createdAt = createdAt; return this; }
         public Builder sentAt(Instant sentAt)                               { this.sentAt = sentAt; return this; }
