@@ -64,8 +64,8 @@ public class NotificationController {
             );
         }
 
-        notification.setInvoiceId(request.invoiceId());
-        notification.setInvoiceNumber(request.invoiceNumber());
+        notification.setDocumentId(request.documentId());
+        notification.setDocumentNumber(request.documentNumber());
         notification.setCorrelationId(request.correlationId());
 
         if (request.metadata() != null) {
@@ -93,14 +93,14 @@ public class NotificationController {
     }
 
     /**
-     * Get notifications by invoice ID
+     * Get notifications by document ID
      */
-    @GetMapping("/invoice/{invoiceId}")
-    public ResponseEntity<List<Notification>> getNotificationsByInvoice(
-        @PathVariable String invoiceId,
+    @GetMapping("/document/{documentId}")
+    public ResponseEntity<List<Notification>> getNotificationsByDocumentId(
+        @PathVariable String documentId,
         @RequestParam(defaultValue = "200") int limit
     ) {
-        return ResponseEntity.ok(queryNotificationUseCase.findByInvoiceId(invoiceId, limit));
+        return ResponseEntity.ok(queryNotificationUseCase.findByDocumentId(documentId, limit));
     }
 
     /**
@@ -149,8 +149,8 @@ public class NotificationController {
         String templateName,
         Map<String, Object> templateVariables,
         Map<String, Object> metadata,
-        String invoiceId,
-        String invoiceNumber,
+        String documentId,
+        String documentNumber,
         String correlationId
     ) {}
 }
