@@ -84,14 +84,14 @@ public abstract class AbstractKafkaConsumerTest {
         }
     }
 
-    protected Map<String, Object> awaitNotificationByInvoiceId(String invoiceId) {
+    protected Map<String, Object> awaitNotificationByDocumentId(String documentId) {
         await().atMost(2, TimeUnit.MINUTES)
                .pollInterval(1, TimeUnit.SECONDS)
                .until(() -> {
-                   Map<String, Object> n = getNotificationByInvoiceId(invoiceId);
+                   Map<String, Object> n = getNotificationByDocumentId(documentId);
                    return n != null && "SENT".equals(n.get("status"));
                });
-        return getNotificationByInvoiceId(invoiceId);
+        return getNotificationByDocumentId(documentId);
     }
 
     protected Map<String, Object> awaitNotificationByCorrelationId(String correlationId) {
@@ -116,9 +116,9 @@ public abstract class AbstractKafkaConsumerTest {
         return count != null ? count : 0;
     }
 
-    protected Map<String, Object> getNotificationByInvoiceId(String invoiceId) {
+    protected Map<String, Object> getNotificationByDocumentId(String documentId) {
         List<Map<String, Object>> results = testJdbcTemplate.queryForList(
-            "SELECT * FROM notifications WHERE invoice_id = ?", invoiceId);
+            "SELECT * FROM notifications WHERE document_id = ?", documentId);
         return results.isEmpty() ? null : results.get(0);
     }
 
