@@ -132,7 +132,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .end()
             .unmarshal().json(JsonLibrary.Jackson, InvoiceProcessedEvent.class)
             .process(this::handleInvoiceProcessed)
-            .log("Created notification for invoice processed: ${header.invoiceNumber}");
+            .log("Created notification for invoice processed: ${header.documentNumber}");
 
         // Route 2: Tax Invoice Processed Events
         from("kafka:" + topics.taxinvoiceProcessed() + kafkaOptions)
@@ -145,7 +145,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .end()
             .unmarshal().json(JsonLibrary.Jackson, TaxInvoiceProcessedEvent.class)
             .process(this::handleTaxInvoiceProcessed)
-            .log("Created notification for tax invoice processed: ${header.invoiceNumber}");
+            .log("Created notification for tax invoice processed: ${header.documentNumber}");
 
         // Route 3: PDF Generated Events
         from("kafka:" + topics.pdfGenerated() + kafkaOptions)
@@ -158,7 +158,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .end()
             .unmarshal().json(JsonLibrary.Jackson, InvoicePdfGeneratedEvent.class)
             .process(this::handleInvoicePdfGenerated)
-            .log("Created notification for PDF generated: ${header.invoiceNumber}");
+            .log("Created notification for PDF generated: ${header.documentNumber}");
 
         // Route 4: Tax Invoice PDF Generated Events
         from("kafka:" + topics.pdfGeneratedTaxInvoice() + kafkaOptions)
@@ -171,7 +171,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .end()
             .unmarshal().json(JsonLibrary.Jackson, TaxInvoicePdfGeneratedEvent.class)
             .process(this::handleTaxInvoicePdfGenerated)
-            .log("Created notification for tax invoice PDF generated: ${header.taxInvoiceNumber}");
+            .log("Created notification for tax invoice PDF generated: ${header.documentNumber}");
 
         // Route 5: PDF Signed Events
         from("kafka:" + topics.pdfSigned() + kafkaOptions)
@@ -184,7 +184,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .end()
             .unmarshal().json(JsonLibrary.Jackson, PdfSignedEvent.class)
             .process(this::handlePdfSigned)
-            .log("Created notification for PDF signed: ${header.invoiceNumber}");
+            .log("Created notification for PDF signed: ${header.documentNumber}");
 
         // Route 6: XML Signed Events
         from("kafka:" + topics.xmlSigned() + kafkaOptions)
@@ -197,7 +197,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .end()
             .unmarshal().json(JsonLibrary.Jackson, XmlSignedEvent.class)
             .process(this::handleXmlSigned)
-            .log("Created notification for XML signed: ${header.invoiceNumber}");
+            .log("Created notification for XML signed: ${header.documentNumber}");
 
         // Route 7: Document Received Counting Events (before validation - all documents)
         // This lightweight event tracks ALL received documents regardless of validation outcome
@@ -305,7 +305,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .end()
             .unmarshal().json(JsonLibrary.Jackson, EbmsSentEvent.class)
             .process(this::handleEbmsSent)
-            .log("Created notification for ebMS sent: ${header.invoiceNumber}");
+            .log("Created notification for ebMS sent: ${header.documentNumber}");
 
         // Route 15: Saga Started Events (logging only)
         from("kafka:" + topics.sagaLifecycleStarted() + kafkaOptions)
@@ -363,44 +363,44 @@ public class NotificationEventRoutes extends RouteBuilder {
     private void handleInvoiceProcessed(Exchange exchange) {
         InvoiceProcessedEvent event = exchange.getIn().getBody(InvoiceProcessedEvent.class);
         processingEventUseCase.handleInvoiceProcessed(event);
-        exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
+        exchange.getIn().setHeader("documentNumber", event.getDocumentNumber());
     }
 
     private void handleTaxInvoiceProcessed(Exchange exchange) {
         TaxInvoiceProcessedEvent event = exchange.getIn().getBody(TaxInvoiceProcessedEvent.class);
         processingEventUseCase.handleTaxInvoiceProcessed(event);
-        exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
+        exchange.getIn().setHeader("documentNumber", event.getDocumentNumber());
     }
 
     private void handleInvoicePdfGenerated(Exchange exchange) {
         InvoicePdfGeneratedEvent event = exchange.getIn().getBody(InvoicePdfGeneratedEvent.class);
         processingEventUseCase.handleInvoicePdfGenerated(event);
-        exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
+        exchange.getIn().setHeader("documentNumber", event.getDocumentNumber());
     }
 
     private void handleTaxInvoicePdfGenerated(Exchange exchange) {
         TaxInvoicePdfGeneratedEvent event = exchange.getIn().getBody(TaxInvoicePdfGeneratedEvent.class);
         processingEventUseCase.handleTaxInvoicePdfGenerated(event);
-        exchange.getIn().setHeader("taxInvoiceNumber", event.getTaxInvoiceNumber());
+        exchange.getIn().setHeader("documentNumber", event.getDocumentNumber());
     }
 
     private void handlePdfSigned(Exchange exchange) {
         PdfSignedEvent event = exchange.getIn().getBody(PdfSignedEvent.class);
         processingEventUseCase.handlePdfSigned(event);
-        exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
+        exchange.getIn().setHeader("documentNumber", event.getDocumentNumber());
     }
 
     private void handleXmlSigned(Exchange exchange) {
         XmlSignedEvent event = exchange.getIn().getBody(XmlSignedEvent.class);
         processingEventUseCase.handleXmlSigned(event);
-        exchange.getIn().setHeader("invoiceNumber", event.getInvoiceNumber());
+        exchange.getIn().setHeader("documentNumber", event.getDocumentNumber());
     }
 
     private void handleEbmsSent(Exchange exchange) {
         EbmsSentEvent event = exchange.getIn().getBody(EbmsSentEvent.class);
         processingEventUseCase.handleEbmsSent(event);
-        exchange.getIn().setHeader("invoiceNumber",
-            event.getInvoiceNumber() != null ? event.getInvoiceNumber() : event.getDocumentId());
+        exchange.getIn().setHeader("documentNumber",
+            event.getDocumentNumber() != null ? event.getDocumentNumber() : event.getDocumentId());
     }
 
     private void handleDocumentReceivedCounting(Exchange exchange) {

@@ -127,8 +127,8 @@ public class WebhookNotificationSenderAdapter implements NotificationSenderPort 
         payload.put("type", notification.getType().name());
         payload.put("subject", notification.getSubject());
         payload.put("body", notification.getBody());
-        payload.put("invoiceId", notification.getInvoiceId());
-        payload.put("invoiceNumber", notification.getInvoiceNumber());
+        payload.put("documentId", notification.getDocumentId());
+        payload.put("documentNumber", notification.getDocumentNumber());
         payload.put("correlationId", notification.getCorrelationId());
         payload.put("timestamp", notification.getCreatedAt().toString());
 
