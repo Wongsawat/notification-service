@@ -30,16 +30,16 @@
 
             <div class="invoice-details">
                 <div class="detail-row">
-                    <span class="label">Invoice Number:</span>
-                    <span th:text="${invoiceNumber}">INV-2025-001</span>
+                    <span class="label">Document Number:</span>
+                    <span th:text="${documentNumber}">INV-2025-001</span>
                 </div>
                 <div class="detail-row">
                     <span class="label">Document Type:</span>
                     <span th:text="${documentType}">TAX_INVOICE</span>
                 </div>
-                <div class="detail-row" th:if="${invoiceId}">
-                    <span class="label">Invoice ID:</span>
-                    <span th:text="${invoiceId}">invoice-uuid</span>
+                <div class="detail-row" th:if="${documentId}">
+                    <span class="label">Document ID:</span>
+                    <span th:text="${documentId}">invoice-uuid</span>
                 </div>
                 <div class="detail-row" th:if="${signedAt}">
                     <span class="label">Signed At:</span>
