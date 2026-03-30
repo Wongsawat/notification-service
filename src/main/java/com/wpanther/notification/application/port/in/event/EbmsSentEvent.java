@@ -18,11 +18,8 @@ public class EbmsSentEvent extends TraceEvent {
     @JsonProperty("documentId")
     private final String documentId;
 
-    @JsonProperty("invoiceId")
-    private final String invoiceId;
-
-    @JsonProperty("invoiceNumber")
-    private final String invoiceNumber;
+    @JsonProperty("documentNumber")
+    private final String documentNumber;
 
     @JsonProperty("documentType")
     private final String documentType;
@@ -37,13 +34,12 @@ public class EbmsSentEvent extends TraceEvent {
      * Constructor for creating new events.
      * Generates eventId, occurredAt, eventType, and version automatically.
      */
-    public EbmsSentEvent(String documentId, String invoiceId, String invoiceNumber,
+    public EbmsSentEvent(String documentId, String documentNumber,
                           String documentType, String ebmsMessageId, Instant sentAt,
                           String correlationId) {
         super(documentId, correlationId, "ebms-sending-service", "EBMS_SENT", null);
         this.documentId = documentId;
-        this.invoiceId = invoiceId;
-        this.invoiceNumber = invoiceNumber;
+        this.documentNumber = documentNumber;
         this.documentType = documentType;
         this.ebmsMessageId = ebmsMessageId;
         this.sentAt = sentAt;
@@ -65,16 +61,14 @@ public class EbmsSentEvent extends TraceEvent {
         @JsonProperty("traceType") String traceType,
         @JsonProperty("context") String context,
         @JsonProperty("documentId") String documentId,
-        @JsonProperty("invoiceId") String invoiceId,
-        @JsonProperty("invoiceNumber") String invoiceNumber,
+        @JsonProperty("documentNumber") String documentNumber,
         @JsonProperty("documentType") String documentType,
         @JsonProperty("ebmsMessageId") String ebmsMessageId,
         @JsonProperty("sentAt") Instant sentAt
     ) {
         super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.documentId = documentId;
-        this.invoiceId = invoiceId;
-        this.invoiceNumber = invoiceNumber;
+        this.documentNumber = documentNumber;
         this.documentType = documentType;
         this.ebmsMessageId = ebmsMessageId;
         this.sentAt = sentAt;

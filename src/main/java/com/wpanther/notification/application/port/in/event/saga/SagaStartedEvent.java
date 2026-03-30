@@ -27,25 +27,20 @@ public class SagaStartedEvent extends TraceEvent {
     @JsonProperty("currentStep")
     private final String currentStep;
 
-    @JsonProperty("invoiceNumber")
-    private final String invoiceNumber;
-
-    @JsonProperty("startedAt")
-    private final Instant startedAt;
+    @JsonProperty("documentNumber")
+    private final String documentNumber;
 
     /**
      * Constructor for creating new events.
      * Generates eventId, occurredAt, eventType, and version automatically.
      */
     public SagaStartedEvent(String sagaId, String correlationId, String documentType,
-                            String documentId, String currentStep, String invoiceNumber,
-                            Instant startedAt) {
+                            String documentId, String currentStep, String documentNumber) {
         super(sagaId, correlationId, "orchestrator-service", "SAGA_STARTED", null);
         this.documentType = documentType;
         this.documentId = documentId;
         this.currentStep = currentStep;
-        this.invoiceNumber = invoiceNumber;
-        this.startedAt = startedAt;
+        this.documentNumber = documentNumber;
     }
 
     /**
@@ -66,14 +61,12 @@ public class SagaStartedEvent extends TraceEvent {
         @JsonProperty("documentType") String documentType,
         @JsonProperty("documentId") String documentId,
         @JsonProperty("currentStep") String currentStep,
-        @JsonProperty("invoiceNumber") String invoiceNumber,
-        @JsonProperty("startedAt") Instant startedAt
+        @JsonProperty("documentNumber") String documentNumber
     ) {
         super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.documentType = documentType;
         this.documentId = documentId;
         this.currentStep = currentStep;
-        this.invoiceNumber = invoiceNumber;
-        this.startedAt = startedAt;
+        this.documentNumber = documentNumber;
     }
 }

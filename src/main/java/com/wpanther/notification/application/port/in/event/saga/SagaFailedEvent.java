@@ -24,8 +24,8 @@ public class SagaFailedEvent extends TraceEvent {
     @JsonProperty("documentId")
     private final String documentId;
 
-    @JsonProperty("invoiceNumber")
-    private final String invoiceNumber;
+    @JsonProperty("documentNumber")
+    private final String documentNumber;
 
     @JsonProperty("failedStep")
     private final String failedStep;
@@ -53,13 +53,13 @@ public class SagaFailedEvent extends TraceEvent {
      * Generates eventId, occurredAt, eventType, and version automatically.
      */
     public SagaFailedEvent(String sagaId, String correlationId, String documentType,
-                           String documentId, String invoiceNumber, String failedStep,
+                           String documentId, String documentNumber, String failedStep,
                            String errorMessage, Integer retryCount, Boolean compensationInitiated,
                            Instant startedAt, Instant failedAt, Long durationMs) {
         super(sagaId, correlationId, "orchestrator-service", "SAGA_FAILED", null);
         this.documentType = documentType;
         this.documentId = documentId;
-        this.invoiceNumber = invoiceNumber;
+        this.documentNumber = documentNumber;
         this.failedStep = failedStep;
         this.errorMessage = errorMessage;
         this.retryCount = retryCount;
@@ -86,7 +86,7 @@ public class SagaFailedEvent extends TraceEvent {
         @JsonProperty("context") String context,
         @JsonProperty("documentType") String documentType,
         @JsonProperty("documentId") String documentId,
-        @JsonProperty("invoiceNumber") String invoiceNumber,
+        @JsonProperty("documentNumber") String documentNumber,
         @JsonProperty("failedStep") String failedStep,
         @JsonProperty("errorMessage") String errorMessage,
         @JsonProperty("retryCount") Integer retryCount,
@@ -98,7 +98,7 @@ public class SagaFailedEvent extends TraceEvent {
         super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.documentType = documentType;
         this.documentId = documentId;
-        this.invoiceNumber = invoiceNumber;
+        this.documentNumber = documentNumber;
         this.failedStep = failedStep;
         this.errorMessage = errorMessage;
         this.retryCount = retryCount;
