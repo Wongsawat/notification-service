@@ -159,7 +159,7 @@ class NotificationSendingServiceTest {
     @Test
     @DisplayName("Should create notification from template and send")
     void testCreateAndSend() throws Exception {
-        Map<String, Object> templateVars = Map.of("invoiceNumber", "INV-001");
+        Map<String, Object> templateVars = Map.of("documentNumber", "INV-001");
         when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
         doNothing().when(emailSender).send(any());
 

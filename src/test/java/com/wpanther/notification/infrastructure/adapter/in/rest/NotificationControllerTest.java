@@ -78,8 +78,8 @@ class NotificationControllerTest {
             "recipient", "test@example.com",
             "subject", "Invoice Processed",
             "body", "Your invoice has been processed",
-            "invoiceId", "invoice-uuid",
-            "invoiceNumber", "INV-001"
+            "documentId", "document-uuid",
+            "documentNumber", "DOC-001"
         );
 
         when(sendNotificationUseCase.sendNotification(any())).thenReturn(testNotification);
@@ -105,9 +105,9 @@ class NotificationControllerTest {
             "recipient", "test@example.com",
             "subject", "Invoice Processed",
             "templateName", "invoice-processed",
-            "templateVariables", Map.of("invoiceNumber", "INV-001", "amount", 1500.00),
-            "invoiceId", "invoice-uuid",
-            "invoiceNumber", "INV-001",
+            "templateVariables", Map.of("documentNumber", "DOC-001", "amount", 1500.00),
+            "documentId", "document-uuid",
+            "documentNumber", "DOC-001",
             "correlationId", "correlation-uuid"
         );
 
@@ -174,47 +174,47 @@ class NotificationControllerTest {
         verify(queryNotificationUseCase).findById(unknownId);
     }
 
-    // ── GET /api/v1/notifications/invoice/{invoiceId} Tests ──────────────────────────────
+    // ── GET /api/v1/notifications/document/{documentId} Tests ──────────────────────────────
 
     @Test
-    @DisplayName("GET /api/v1/notifications/invoice/{invoiceId} should return notifications for invoice")
-    void testGetNotificationsByInvoiceId() throws Exception {
-        String invoiceId = "invoice-uuid";
-        when(queryNotificationUseCase.findByInvoiceId(invoiceId, 200)).thenReturn(List.of(testNotification));
+    @DisplayName("GET /api/v1/notifications/document/{documentId} should return notifications for document")
+    void testGetNotificationsByDocumentId() throws Exception {
+        String documentId = "document-uuid";
+        when(queryNotificationUseCase.findByDocumentId(documentId, 200)).thenReturn(List.of(testNotification));
 
-        mockMvc.perform(get("/api/v1/notifications/invoice/" + invoiceId))
+        mockMvc.perform(get("/api/v1/notifications/document/" + documentId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$[0].id").value(testId.toString()));
 
-        verify(queryNotificationUseCase).findByInvoiceId(invoiceId, 200);
+        verify(queryNotificationUseCase).findByDocumentId(documentId, 200);
     }
 
     @Test
-    @DisplayName("GET /api/v1/notifications/invoice/{invoiceId} should honour explicit limit param")
-    void testGetNotificationsByInvoiceIdWithLimit() throws Exception {
-        String invoiceId = "invoice-uuid";
-        when(queryNotificationUseCase.findByInvoiceId(invoiceId, 50)).thenReturn(List.of(testNotification));
+    @DisplayName("GET /api/v1/notifications/document/{documentId} should honour explicit limit param")
+    void testGetNotificationsByDocumentIdWithLimit() throws Exception {
+        String documentId = "document-uuid";
+        when(queryNotificationUseCase.findByDocumentId(documentId, 50)).thenReturn(List.of(testNotification));
 
-        mockMvc.perform(get("/api/v1/notifications/invoice/" + invoiceId).param("limit", "50"))
+        mockMvc.perform(get("/api/v1/notifications/document/" + documentId).param("limit", "50"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].id").value(testId.toString()));
 
-        verify(queryNotificationUseCase).findByInvoiceId(invoiceId, 50);
+        verify(queryNotificationUseCase).findByDocumentId(documentId, 50);
     }
 
     @Test
-    @DisplayName("GET /api/v1/notifications/invoice/{invoiceId} should return empty list when none found")
-    void testGetNotificationsByInvoiceIdEmpty() throws Exception {
-        String invoiceId = "unknown-invoice";
-        when(queryNotificationUseCase.findByInvoiceId(invoiceId, 200)).thenReturn(List.of());
+    @DisplayName("GET /api/v1/notifications/document/{documentId} should return empty list when none found")
+    void testGetNotificationsByDocumentIdEmpty() throws Exception {
+        String documentId = "unknown-document";
+        when(queryNotificationUseCase.findByDocumentId(documentId, 200)).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/v1/notifications/invoice/" + invoiceId))
+        mockMvc.perform(get("/api/v1/notifications/document/" + documentId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$").isEmpty());
 
-        verify(queryNotificationUseCase).findByInvoiceId(invoiceId, 200);
+        verify(queryNotificationUseCase).findByDocumentId(documentId, 200);
     }
 
     // ── GET /api/v1/notifications/status/{status} Tests ──────────────────────────────────

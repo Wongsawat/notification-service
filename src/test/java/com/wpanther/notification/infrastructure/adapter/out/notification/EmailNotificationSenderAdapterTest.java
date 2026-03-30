@@ -77,7 +77,7 @@ class EmailNotificationSenderAdapterTest {
         void testSendEmailWithTemplate() throws Exception {
             // Arrange
             Map<String, Object> templateVars = new HashMap<>();
-            templateVars.put("invoiceNumber", "INV-001");
+            templateVars.put("documentNumber", "INV-001");
             templateVars.put("totalAmount", "1000.00");
 
             Notification notification = Notification.builder()
@@ -154,7 +154,7 @@ class EmailNotificationSenderAdapterTest {
         void testAddMetadataAsHeaders() throws Exception, MessagingException {
             // Arrange
             Map<String, Object> metadata = new HashMap<>();
-            metadata.put("invoiceId", "INV-123");
+            metadata.put("documentId", "INV-123");
             metadata.put("correlationId", "CORR-456");
 
             Notification notification = Notification.builder()
@@ -172,7 +172,7 @@ class EmailNotificationSenderAdapterTest {
 
             // Assert
             verify(mimeMessage, atLeastOnce()).addHeader(startsWith("X-"), any());
-            verify(mimeMessage).addHeader("X-invoiceId", "INV-123");
+            verify(mimeMessage).addHeader("X-documentId", "INV-123");
             verify(mimeMessage).addHeader("X-correlationId", "CORR-456");
         }
 

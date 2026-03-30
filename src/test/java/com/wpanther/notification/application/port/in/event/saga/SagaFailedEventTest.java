@@ -41,7 +41,7 @@ class SagaFailedEventTest {
                     "correlationId": "corr-failed-789",
                     "documentType": "TAX_INVOICE",
                     "documentId": "doc-tax-001",
-                    "invoiceNumber": "TAX-2024-001",
+                    "documentNumber": "TAX-2024-001",
                     "failedStep": "xml_signing",
                     "errorMessage": "Failed to connect to signing service",
                     "retryCount": 2,
@@ -64,7 +64,7 @@ class SagaFailedEventTest {
             assertThat(event.getCorrelationId()).isEqualTo("corr-failed-789");
             assertThat(event.getDocumentType()).isEqualTo("TAX_INVOICE");
             assertThat(event.getDocumentId()).isEqualTo("doc-tax-001");
-            assertThat(event.getInvoiceNumber()).isEqualTo("TAX-2024-001");
+            assertThat(event.getDocumentNumber()).isEqualTo("TAX-2024-001");
             assertThat(event.getFailedStep()).isEqualTo("xml_signing");
             assertThat(event.getErrorMessage()).isEqualTo("Failed to connect to signing service");
             assertThat(event.getRetryCount()).isEqualTo(2);
@@ -86,7 +86,7 @@ class SagaFailedEventTest {
                     "correlationId": null,
                     "documentType": null,
                     "documentId": null,
-                    "invoiceNumber": null,
+                    "documentNumber": null,
                     "failedStep": null,
                     "errorMessage": null,
                     "retryCount": null,

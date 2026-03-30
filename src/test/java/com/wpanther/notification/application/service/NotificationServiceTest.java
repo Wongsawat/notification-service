@@ -113,13 +113,13 @@ class NotificationServiceTest {
     }
 
     @Test
-    @DisplayName("findByInvoiceId delegates to repository with limit")
-    void testFindByInvoiceId_delegatesToRepository() {
-        when(repository.findByInvoiceId("INV-001", 50)).thenReturn(List.of(testNotification));
+    @DisplayName("findByDocumentId delegates to repository with limit")
+    void testFindByDocumentId_delegatesToRepository() {
+        when(repository.findByDocumentId("INV-001", 50)).thenReturn(List.of(testNotification));
 
-        List<Notification> result = notificationService.findByInvoiceId("INV-001", 50);
+        List<Notification> result = notificationService.findByDocumentId("INV-001", 50);
 
-        verify(repository).findByInvoiceId("INV-001", 50);
+        verify(repository).findByDocumentId("INV-001", 50);
         assertThat(result).containsExactly(testNotification);
     }
 
@@ -176,7 +176,7 @@ class NotificationServiceTest {
         assertThat(notification.getType()).isEqualTo(NotificationType.TAX_INVOICE_PDF_GENERATED);
         assertThat(notification.getChannel()).isEqualTo(NotificationChannel.EMAIL);
         assertThat(notification.getTemplateName()).isEqualTo("taxinvoice-pdf-generated");
-        assertThat(notification.getInvoiceNumber()).isEqualTo("TAXINV-2025-001");
+        assertThat(notification.getDocumentNumber()).isEqualTo("TAXINV-2025-001");
     }
 
     // ── prepareAndDispatchRetry tests ─────────────────────────────────────────────────────

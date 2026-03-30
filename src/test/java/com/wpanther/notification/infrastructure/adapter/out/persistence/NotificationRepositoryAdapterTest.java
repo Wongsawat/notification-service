@@ -132,46 +132,46 @@ class NotificationRepositoryAdapterTest {
         }
 
         @Test
-        @DisplayName("Should find notifications by invoice ID")
-        void testFindByInvoiceId() {
+        @DisplayName("Should find notifications by document ID")
+        void testFindByDocumentId() {
             // Arrange
             Notification notif1 = createNotification();
-            notif1.setInvoiceId("INV-001");
+            notif1.setDocumentId("INV-001");
             adapter.save(notif1);
 
             Notification notif2 = createNotification();
-            notif2.setInvoiceId("INV-002");
+            notif2.setDocumentId("INV-002");
             adapter.save(notif2);
 
             Notification notif3 = createNotification();
-            notif3.setInvoiceId("INV-001");
+            notif3.setDocumentId("INV-001");
             adapter.save(notif3);
 
             // Act
-            List<Notification> inv001Notifications = adapter.findByInvoiceId("INV-001", 100);
+            List<Notification> doc001Notifications = adapter.findByDocumentId("INV-001", 100);
 
             // Assert
-            assertThat(inv001Notifications).hasSize(2);
+            assertThat(doc001Notifications).hasSize(2);
         }
 
         @Test
-        @DisplayName("Should find notifications by invoice number")
-        void testFindByInvoiceNumber() {
+        @DisplayName("Should find notifications by document number")
+        void testFindByDocumentNumber() {
             // Arrange
             Notification notif1 = createNotification();
-            notif1.setInvoiceNumber("INV-2024-001");
+            notif1.setDocumentNumber("INV-2024-001");
             adapter.save(notif1);
 
             Notification notif2 = createNotification();
-            notif2.setInvoiceNumber("INV-2024-002");
+            notif2.setDocumentNumber("INV-2024-002");
             adapter.save(notif2);
 
             // Act
-            List<Notification> notifications = adapter.findByInvoiceNumber("INV-2024-001", 100);
+            List<Notification> notifications = adapter.findByDocumentNumber("INV-2024-001", 100);
 
             // Assert
             assertThat(notifications).hasSize(1);
-            assertThat(notifications.get(0).getInvoiceNumber()).isEqualTo("INV-2024-001");
+            assertThat(notifications.get(0).getDocumentNumber()).isEqualTo("INV-2024-001");
         }
 
         @Test

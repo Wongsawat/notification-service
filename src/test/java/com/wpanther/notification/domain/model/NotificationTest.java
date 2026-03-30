@@ -54,8 +54,8 @@ class NotificationTest {
             .metadata(metadata)
             .templateName("test-template")
             .templateVariables(templateVars)
-            .invoiceId("invoice-uuid")
-            .invoiceNumber("INV-001")
+            .documentId("invoice-uuid")
+            .documentNumber("INV-001")
             .correlationId("correlation-uuid")
             .createdAt(now)
             .retryCount(0)
@@ -72,8 +72,8 @@ class NotificationTest {
         assertThat(notification.getMetadata()).isEqualTo(metadata);
         assertThat(notification.getTemplateName()).isEqualTo("test-template");
         assertThat(notification.getTemplateVariables()).isEqualTo(templateVars);
-        assertThat(notification.getInvoiceId()).isEqualTo("invoice-uuid");
-        assertThat(notification.getInvoiceNumber()).isEqualTo("INV-001");
+        assertThat(notification.getDocumentId()).isEqualTo("invoice-uuid");
+        assertThat(notification.getDocumentNumber()).isEqualTo("INV-001");
         assertThat(notification.getCorrelationId()).isEqualTo("correlation-uuid");
         assertThat(notification.getCreatedAt()).isEqualTo(now);
         assertThat(notification.getRetryCount()).isZero();
@@ -112,7 +112,7 @@ class NotificationTest {
     void testCreateFromTemplateFactoryMethod() {
         // Arrange
         Map<String, Object> templateVars = Map.of(
-            "invoiceNumber", "INV-001",
+            "documentNumber", "INV-001",
             "totalAmount", 1500.00,
             "currency", "THB"
         );
@@ -713,12 +713,12 @@ class NotificationTest {
         Notification notification = builder.templateVariables(new HashMap<>()).build();
 
         // Act
-        notification.addTemplateVariable("invoiceNumber", "INV-001");
+        notification.addTemplateVariable("documentNumber", "INV-001");
         notification.addTemplateVariable("amount", 1500.00);
 
         // Assert
         assertThat(notification.getTemplateVariables())
-            .containsEntry("invoiceNumber", "INV-001")
+            .containsEntry("documentNumber", "INV-001")
             .containsEntry("amount", 1500.00);
     }
 
