@@ -140,9 +140,7 @@ class NotificationServiceTest {
     @DisplayName("handleInvoicePdfGenerated creates PDF_GENERATED notification and dispatches async")
     void testHandleInvoicePdfGenerated_dispatchesAsync() {
         InvoicePdfGeneratedEvent event = new InvoicePdfGeneratedEvent(
-            UUID.randomUUID(), Instant.now(), "pdf.generated.invoice", 1,
-            "saga-1", "corr-1", "invoice-pdf-generation-service", "PDF_GENERATED", null,
-            "INV-001", "INV-2025-001", "doc-001", "http://example.com/doc", 102400L, true, false);
+            "INV-2025-001", "doc-001", "http://example.com/doc", 102400L, true, false, "corr-1");
 
         ReflectionTestUtils.setField(notificationService, "defaultRecipient", "admin@example.com");
 
@@ -162,9 +160,7 @@ class NotificationServiceTest {
     @DisplayName("handleTaxInvoicePdfGenerated creates TAX_INVOICE_PDF_GENERATED notification and dispatches async")
     void testHandleTaxInvoicePdfGenerated_dispatchesAsync() {
         TaxInvoicePdfGeneratedEvent event = new TaxInvoicePdfGeneratedEvent(
-            UUID.randomUUID(), Instant.now(), "pdf.generated.tax-invoice", 1,
-            "saga-1", "corr-1", "taxinvoice-pdf-generation-service", "PDF_GENERATED", null,
-            "doc-001", "TAX-001", "TAXINV-2025-001", "http://example.com/taxdoc", 204800L, true);
+            "saga-1", "doc-001", "TAXINV-2025-001", "http://example.com/taxdoc", 204800L, true, "corr-1");
 
         ReflectionTestUtils.setField(notificationService, "defaultRecipient", "admin@example.com");
 

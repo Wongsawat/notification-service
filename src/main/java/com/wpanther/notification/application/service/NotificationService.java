@@ -110,8 +110,8 @@ public class NotificationService
     }
 
     @Override
-    public List<Notification> findByInvoiceId(String invoiceId, int limit) {
-        return repository.findByInvoiceId(invoiceId, limit);
+    public List<Notification> findByDocumentId(String invoiceId, int limit) {
+        return repository.findByDocumentId(invoiceId, limit);
     }
 
     @Override
@@ -146,11 +146,11 @@ public class NotificationService
     @Override
     public void handleInvoiceProcessed(InvoiceProcessedEvent event) {
         log.info("Processing InvoiceProcessedEvent: invoiceId={}, invoiceNumber={}",
-            event.getInvoiceId(), event.getInvoiceNumber());
+            event.getDocumentId(), event.getDocumentNumber());
 
         Map<String, Object> templateVariables = new HashMap<>();
-        templateVariables.put("invoiceId", event.getInvoiceId());
-        templateVariables.put("invoiceNumber", event.getInvoiceNumber());
+        templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("documentNumber", event.getDocumentNumber());
         templateVariables.put("totalAmount", String.format("%,.2f", event.getTotalAmount()));
         templateVariables.put("currency", event.getCurrency());
         templateVariables.put("processedAt", formatInstant(event.getOccurredAt()));
@@ -163,9 +163,9 @@ public class NotificationService
             templateVariables
         );
 
-        notification.setSubject("Invoice Processed: " + event.getInvoiceNumber());
-        notification.setInvoiceId(event.getInvoiceId());
-        notification.setInvoiceNumber(event.getInvoiceNumber());
+        notification.setSubject("Invoice Processed: " + event.getDocumentNumber());
+        notification.setDocumentId(event.getDocumentId());
+        notification.setDocumentNumber(event.getDocumentNumber());
         notification.setCorrelationId(event.getCorrelationId());
 
         dispatcherService.dispatchAsync(notification);
@@ -174,11 +174,11 @@ public class NotificationService
     @Override
     public void handleTaxInvoiceProcessed(TaxInvoiceProcessedEvent event) {
         log.info("Processing TaxInvoiceProcessedEvent: invoiceId={}, invoiceNumber={}",
-            event.getInvoiceId(), event.getInvoiceNumber());
+            event.getDocumentId(), event.getDocumentNumber());
 
         Map<String, Object> templateVariables = new HashMap<>();
-        templateVariables.put("invoiceId", event.getInvoiceId());
-        templateVariables.put("invoiceNumber", event.getInvoiceNumber());
+        templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("documentNumber", event.getDocumentNumber());
         templateVariables.put("totalAmount", String.format("%,.2f", event.getTotal()));
         templateVariables.put("currency", event.getCurrency());
         templateVariables.put("processedAt", formatInstant(event.getOccurredAt()));
@@ -191,9 +191,9 @@ public class NotificationService
             templateVariables
         );
 
-        notification.setSubject("Tax Invoice Processed: " + event.getInvoiceNumber());
-        notification.setInvoiceId(event.getInvoiceId());
-        notification.setInvoiceNumber(event.getInvoiceNumber());
+        notification.setSubject("Tax Invoice Processed: " + event.getDocumentNumber());
+        notification.setDocumentId(event.getDocumentId());
+        notification.setDocumentNumber(event.getDocumentNumber());
         notification.setCorrelationId(event.getCorrelationId());
 
         dispatcherService.dispatchAsync(notification);
@@ -202,11 +202,11 @@ public class NotificationService
     @Override
     public void handleInvoicePdfGenerated(InvoicePdfGeneratedEvent event) {
         log.info("Processing InvoicePdfGeneratedEvent: invoiceId={}, invoiceNumber={}",
-            event.getInvoiceId(), event.getInvoiceNumber());
+            event.getDocumentId(), event.getDocumentNumber());
 
         Map<String, Object> templateVariables = new HashMap<>();
-        templateVariables.put("invoiceId", event.getInvoiceId());
-        templateVariables.put("invoiceNumber", event.getInvoiceNumber());
+        templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("documentNumber", event.getDocumentNumber());
         templateVariables.put("documentId", event.getDocumentId());
         templateVariables.put("documentUrl", event.getDocumentUrl());
         templateVariables.put("fileSize", formatFileSize(event.getFileSize()));
@@ -222,9 +222,9 @@ public class NotificationService
             templateVariables
         );
 
-        notification.setSubject("PDF Invoice Ready: " + event.getInvoiceNumber());
-        notification.setInvoiceId(event.getInvoiceId());
-        notification.setInvoiceNumber(event.getInvoiceNumber());
+        notification.setSubject("PDF Invoice Ready: " + event.getDocumentNumber());
+        notification.setDocumentId(event.getDocumentId());
+        notification.setDocumentNumber(event.getDocumentNumber());
         notification.setCorrelationId(event.getCorrelationId());
         notification.addMetadata("documentUrl", event.getDocumentUrl());
         notification.addMetadata("documentId", event.getDocumentId());
@@ -235,11 +235,11 @@ public class NotificationService
     @Override
     public void handleTaxInvoicePdfGenerated(TaxInvoicePdfGeneratedEvent event) {
         log.info("Processing TaxInvoicePdfGeneratedEvent: taxInvoiceId={}, taxInvoiceNumber={}",
-            event.getTaxInvoiceId(), event.getTaxInvoiceNumber());
+            event.getDocumentId(), event.getDocumentNumber());
 
         Map<String, Object> templateVariables = new HashMap<>();
-        templateVariables.put("taxInvoiceId", event.getTaxInvoiceId());
-        templateVariables.put("taxInvoiceNumber", event.getTaxInvoiceNumber());
+        templateVariables.put("taxInvoiceId", event.getDocumentId());
+        templateVariables.put("taxInvoiceNumber", event.getDocumentNumber());
         templateVariables.put("documentId", event.getDocumentId());
         templateVariables.put("documentUrl", event.getDocumentUrl());
         templateVariables.put("fileSize", formatFileSize(event.getFileSize()));
@@ -254,9 +254,9 @@ public class NotificationService
             templateVariables
         );
 
-        notification.setSubject("Tax Invoice PDF Ready: " + event.getTaxInvoiceNumber());
-        notification.setInvoiceId(event.getTaxInvoiceId());
-        notification.setInvoiceNumber(event.getTaxInvoiceNumber());
+        notification.setSubject("Tax Invoice PDF Ready: " + event.getDocumentNumber());
+        notification.setDocumentId(event.getDocumentId());
+        notification.setDocumentNumber(event.getDocumentNumber());
         notification.setCorrelationId(event.getCorrelationId());
         notification.addMetadata("documentUrl", event.getDocumentUrl());
         notification.addMetadata("documentId", event.getDocumentId());
@@ -267,11 +267,11 @@ public class NotificationService
     @Override
     public void handlePdfSigned(PdfSignedEvent event) {
         log.info("Processing PdfSignedEvent: invoiceId={}, invoiceNumber={}, documentType={}",
-            event.getInvoiceId(), event.getInvoiceNumber(), event.getDocumentType());
+            event.getDocumentId(), event.getDocumentNumber(), event.getDocumentType());
 
         Map<String, Object> templateVariables = new HashMap<>();
-        templateVariables.put("invoiceId", event.getInvoiceId());
-        templateVariables.put("invoiceNumber", event.getInvoiceNumber());
+        templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("documentNumber", event.getDocumentNumber());
         templateVariables.put("documentType", event.getDocumentType());
         templateVariables.put("signedDocumentId", event.getSignedDocumentId());
         templateVariables.put("signedPdfUrl", event.getSignedPdfUrl());
@@ -288,9 +288,9 @@ public class NotificationService
             templateVariables
         );
 
-        notification.setSubject("PDF Invoice Signed: " + event.getInvoiceNumber());
-        notification.setInvoiceId(event.getInvoiceId());
-        notification.setInvoiceNumber(event.getInvoiceNumber());
+        notification.setSubject("PDF Invoice Signed: " + event.getDocumentNumber());
+        notification.setDocumentId(event.getDocumentId());
+        notification.setDocumentNumber(event.getDocumentNumber());
         notification.setCorrelationId(event.getCorrelationId());
         notification.addMetadata("signedPdfUrl", event.getSignedPdfUrl());
         notification.addMetadata("signedDocumentId", event.getSignedDocumentId());
@@ -302,11 +302,11 @@ public class NotificationService
     @Override
     public void handleXmlSigned(XmlSignedEvent event) {
         log.info("Processing XmlSignedEvent: invoiceId={}, invoiceNumber={}, documentType={}",
-            event.getInvoiceId(), event.getInvoiceNumber(), event.getDocumentType());
+            event.getDocumentId(), event.getDocumentNumber(), event.getDocumentType());
 
         Map<String, Object> templateVariables = new HashMap<>();
-        templateVariables.put("invoiceId", event.getInvoiceId());
-        templateVariables.put("invoiceNumber", event.getInvoiceNumber());
+        templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("documentNumber", event.getDocumentNumber());
         templateVariables.put("documentType", event.getDocumentType());
         templateVariables.put("signedAt", formatInstant(event.getOccurredAt()));
 
@@ -318,9 +318,9 @@ public class NotificationService
             templateVariables
         );
 
-        notification.setSubject("XML Document Signed: " + event.getInvoiceNumber());
-        notification.setInvoiceId(event.getInvoiceId());
-        notification.setInvoiceNumber(event.getInvoiceNumber());
+        notification.setSubject("XML Document Signed: " + event.getDocumentNumber());
+        notification.setDocumentId(event.getDocumentId());
+        notification.setDocumentNumber(event.getDocumentNumber());
         notification.setCorrelationId(event.getCorrelationId());
         notification.addMetadata("documentType", event.getDocumentType());
 
@@ -334,14 +334,14 @@ public class NotificationService
 
         Map<String, Object> templateVariables = new HashMap<>();
         templateVariables.put("documentId", event.getDocumentId());
-        templateVariables.put("invoiceId", event.getInvoiceId() != null ? event.getInvoiceId() : "N/A");
-        templateVariables.put("invoiceNumber", event.getInvoiceNumber() != null ? event.getInvoiceNumber() : "N/A");
+        templateVariables.put("documentId", event.getDocumentId() != null ? event.getDocumentId() : "N/A");
+        templateVariables.put("documentNumber", event.getDocumentNumber() != null ? event.getDocumentNumber() : "N/A");
         templateVariables.put("documentType", event.getDocumentType());
         templateVariables.put("ebmsMessageId", event.getEbmsMessageId());
         templateVariables.put("sentAt", formatInstant(event.getSentAt()));
         templateVariables.put("correlationId", event.getCorrelationId());
 
-        String displayNumber = event.getInvoiceNumber() != null ? event.getInvoiceNumber() : event.getDocumentId();
+        String displayNumber = event.getDocumentNumber() != null ? event.getDocumentNumber() : event.getDocumentId();
 
         Notification notification = Notification.createFromTemplate(
             NotificationType.EBMS_SENT,
@@ -352,8 +352,8 @@ public class NotificationService
         );
 
         notification.setSubject("Document Submitted to TRD: " + displayNumber);
-        notification.setInvoiceId(event.getInvoiceId());
-        notification.setInvoiceNumber(event.getInvoiceNumber());
+        notification.setDocumentId(event.getDocumentId());
+        notification.setDocumentNumber(event.getDocumentNumber());
         notification.setCorrelationId(event.getCorrelationId());
         notification.addMetadata("ebmsMessageId", event.getEbmsMessageId());
         notification.addMetadata("documentType", event.getDocumentType());
@@ -382,7 +382,7 @@ public class NotificationService
     @Override
     public void handleSagaStarted(SagaStartedEvent event) {
         log.info("Saga started: sagaId={}, documentType={}, invoiceNumber={}",
-            event.getSagaId(), event.getDocumentType(), event.getInvoiceNumber());
+            event.getSagaId(), event.getDocumentType(), event.getDocumentNumber());
         // Log only — no notification created.
     }
 
@@ -398,7 +398,7 @@ public class NotificationService
         Map<String, Object> templateVariables = new HashMap<>();
         templateVariables.put("sagaId", event.getSagaId());
         templateVariables.put("documentId", event.getDocumentId());
-        templateVariables.put("invoiceNumber", event.getInvoiceNumber() != null ? event.getInvoiceNumber() : "N/A");
+        templateVariables.put("documentNumber", event.getDocumentNumber() != null ? event.getDocumentNumber() : "N/A");
         templateVariables.put("documentType", event.getDocumentType());
         templateVariables.put("stepsExecuted", event.getStepsExecuted());
         templateVariables.put("durationMs", event.getDurationMs());
@@ -414,9 +414,9 @@ public class NotificationService
         );
 
         notification.setSubject("Saga Completed: " +
-            (event.getInvoiceNumber() != null ? event.getInvoiceNumber() : event.getDocumentId()));
-        notification.setInvoiceId(event.getDocumentId());
-        notification.setInvoiceNumber(event.getInvoiceNumber());
+            (event.getDocumentNumber() != null ? event.getDocumentNumber() : event.getDocumentId()));
+        notification.setDocumentId(event.getDocumentId());
+        notification.setDocumentNumber(event.getDocumentNumber());
         notification.setCorrelationId(event.getCorrelationId());
         notification.addMetadata("sagaId", event.getSagaId());
 
@@ -428,7 +428,7 @@ public class NotificationService
         Map<String, Object> templateVariables = new HashMap<>();
         templateVariables.put("sagaId", event.getSagaId());
         templateVariables.put("documentId", event.getDocumentId());
-        templateVariables.put("invoiceNumber", event.getInvoiceNumber() != null ? event.getInvoiceNumber() : "N/A");
+        templateVariables.put("documentNumber", event.getDocumentNumber() != null ? event.getDocumentNumber() : "N/A");
         templateVariables.put("documentType", event.getDocumentType());
         templateVariables.put("failedStep", event.getFailedStep());
         templateVariables.put("errorMessage", event.getErrorMessage());
@@ -446,9 +446,9 @@ public class NotificationService
         );
 
         notification.setSubject("URGENT: Saga Failed - " +
-            (event.getInvoiceNumber() != null ? event.getInvoiceNumber() : event.getDocumentId()));
-        notification.setInvoiceId(event.getDocumentId());
-        notification.setInvoiceNumber(event.getInvoiceNumber());
+            (event.getDocumentNumber() != null ? event.getDocumentNumber() : event.getDocumentId()));
+        notification.setDocumentId(event.getDocumentId());
+        notification.setDocumentNumber(event.getDocumentNumber());
         notification.setCorrelationId(event.getCorrelationId());
         notification.addMetadata("sagaId", event.getSagaId());
         notification.addMetadata("failedStep", event.getFailedStep());

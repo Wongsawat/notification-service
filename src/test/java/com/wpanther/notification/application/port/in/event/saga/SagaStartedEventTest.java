@@ -102,8 +102,7 @@ class SagaStartedEventTest {
                 "INVOICE",
                 "doc-inv-001",
                 "invoice_processing",
-                "INV-2024-002",
-                Instant.parse("2024-01-15T10:20:00Z")
+                "INV-2024-002"
             );
 
             // Act
@@ -128,8 +127,7 @@ class SagaStartedEventTest {
                 "TAX_INVOICE",
                 "doc-tax-001",
                 "validation",
-                "TAX-2024-001",
-                Instant.now()
+                "TAX-2024-001"
             );
 
             // Assert
