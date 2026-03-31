@@ -72,8 +72,8 @@ public class Notification {
     public Map<String, Object> getMetadata()             { return metadata; }
     public String getTemplateName()                      { return templateName; }
     public Map<String, Object> getTemplateVariables()    { return templateVariables; }
-    public String getDocumentId()                         { return documentId; }
-    public String getDocumentNumber()                     { return documentNumber; }
+    public String getDocumentId()                        { return documentId; }
+    public String getDocumentNumber()                    { return documentNumber; }
     public String getCorrelationId()                     { return correlationId; }
     public Instant getCreatedAt()                        { return createdAt; }
     public Instant getSentAt()                           { return sentAt; }
@@ -87,10 +87,10 @@ public class Notification {
     public void setSubject(String subject)               { this.subject = subject; }
 
     /** Sets the associated document ID for correlation and querying. */
-    public void setDocumentId(String documentId)           { this.documentId = documentId; }
+    public void setDocumentId(String documentId)         { this.documentId = documentId; }
 
     /** Sets the human-readable document number for display in notifications. */
-    public void setDocumentNumber(String documentNumber)   { this.documentNumber = documentNumber; }
+    public void setDocumentNumber(String documentNumber) { this.documentNumber = documentNumber; }
 
     /** Sets the saga/trace correlation ID propagated from upstream events. */
     public void setCorrelationId(String correlationId)   { this.correlationId = correlationId; }

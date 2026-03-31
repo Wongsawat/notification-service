@@ -15,11 +15,8 @@ import java.util.UUID;
 @Getter
 public class InvoicePdfGeneratedEvent extends TraceEvent {
 
-    @JsonProperty("invoiceId")
-    private final String invoiceId;
-
-    @JsonProperty("invoiceNumber")
-    private final String invoiceNumber;
+    @JsonProperty("documentNumber")
+    private final String documentNumber;
 
     @JsonProperty("documentId")
     private final String documentId;
@@ -36,12 +33,11 @@ public class InvoicePdfGeneratedEvent extends TraceEvent {
     @JsonProperty("digitallySigned")
     private final boolean digitallySigned;
 
-    public InvoicePdfGeneratedEvent(String invoiceId, String invoiceNumber, String documentId,
+    public InvoicePdfGeneratedEvent(String documentNumber, String documentId,
                                     String documentUrl, long fileSize, boolean xmlEmbedded,
                                     boolean digitallySigned, String correlationId) {
-        super(invoiceId, correlationId, "pdf-generation-service", "PDF_GENERATED", null);
-        this.invoiceId = invoiceId;
-        this.invoiceNumber = invoiceNumber;
+        super(documentId, correlationId, "pdf-generation-service", "PDF_GENERATED", null);
+        this.documentNumber = documentNumber;
         this.documentId = documentId;
         this.documentUrl = documentUrl;
         this.fileSize = fileSize;
@@ -60,8 +56,7 @@ public class InvoicePdfGeneratedEvent extends TraceEvent {
         @JsonProperty("source") String source,
         @JsonProperty("traceType") String traceType,
         @JsonProperty("context") String context,
-        @JsonProperty("invoiceId") String invoiceId,
-        @JsonProperty("invoiceNumber") String invoiceNumber,
+        @JsonProperty("documentNumber") String documentNumber,
         @JsonProperty("documentId") String documentId,
         @JsonProperty("documentUrl") String documentUrl,
         @JsonProperty("fileSize") long fileSize,
@@ -69,8 +64,7 @@ public class InvoicePdfGeneratedEvent extends TraceEvent {
         @JsonProperty("digitallySigned") boolean digitallySigned
     ) {
         super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
-        this.invoiceId = invoiceId;
-        this.invoiceNumber = invoiceNumber;
+        this.documentNumber = documentNumber;
         this.documentId = documentId;
         this.documentUrl = documentUrl;
         this.fileSize = fileSize;

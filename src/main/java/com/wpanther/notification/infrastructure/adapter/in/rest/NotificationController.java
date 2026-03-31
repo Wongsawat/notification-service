@@ -1,5 +1,7 @@
 package com.wpanther.notification.infrastructure.adapter.in.rest;
 
+import com.wpanther.notification.application.dto.DocumentIntakeStatsResponse;
+import com.wpanther.notification.application.usecase.DocumentIntakeStatUseCase;
 import com.wpanther.notification.application.usecase.QueryNotificationUseCase;
 import com.wpanther.notification.application.usecase.RetryNotificationUseCase;
 import com.wpanther.notification.application.usecase.SendNotificationUseCase;
@@ -7,6 +9,7 @@ import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.model.NotificationType;
+import com.wpanther.notification.domain.model.DocumentIntakeStat;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -32,6 +35,7 @@ public class NotificationController {
     private final SendNotificationUseCase sendNotificationUseCase;
     private final QueryNotificationUseCase queryNotificationUseCase;
     private final RetryNotificationUseCase retryNotificationUseCase;
+    private final DocumentIntakeStatUseCase documentIntakeStatUseCase;
 
     /**
      * Send notification manually
@@ -96,7 +100,7 @@ public class NotificationController {
      * Get notifications by document ID
      */
     @GetMapping("/document/{documentId}")
-    public ResponseEntity<List<Notification>> getNotificationsByDocumentId(
+    public ResponseEntity<List<Notification>> getNotificationsByDocument(
         @PathVariable String documentId,
         @RequestParam(defaultValue = "200") int limit
     ) {
@@ -120,6 +124,20 @@ public class NotificationController {
     @GetMapping("/statistics")
     public ResponseEntity<Map<String, Long>> getStatistics() {
         return ResponseEntity.ok(queryNotificationUseCase.getStatistics());
+    }
+
+    /**
+     * Get document intake statistics: counts by status and document type.
+     * Optional ?documentId param returns per-document lifecycle history.
+     */
+    @GetMapping("/statistics/intake")
+    public ResponseEntity<Object> getIntakeStatistics(
+        @RequestParam(required = false) String documentId
+    ) {
+        if (documentId != null) {
+            return ResponseEntity.ok(documentIntakeStatUseCase.getStatsByDocumentId(documentId));
+        }
+        return ResponseEntity.ok(documentIntakeStatUseCase.getIntakeStats());
     }
 
     /**

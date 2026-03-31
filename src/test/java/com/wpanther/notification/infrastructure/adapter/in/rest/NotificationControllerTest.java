@@ -1,6 +1,8 @@
 package com.wpanther.notification.infrastructure.adapter.in.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wpanther.notification.application.dto.DocumentIntakeStatsResponse;
+import com.wpanther.notification.application.usecase.DocumentIntakeStatUseCase;
 import com.wpanther.notification.application.usecase.QueryNotificationUseCase;
 import com.wpanther.notification.application.usecase.RetryNotificationUseCase;
 import com.wpanther.notification.application.usecase.SendNotificationUseCase;
@@ -8,6 +10,7 @@ import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.model.NotificationType;
+import com.wpanther.notification.domain.model.DocumentIntakeStat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,6 +49,9 @@ class NotificationControllerTest {
     @MockBean
     private RetryNotificationUseCase retryNotificationUseCase;
 
+    @MockBean
+    private DocumentIntakeStatUseCase documentIntakeStatUseCase;
+
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -78,8 +84,8 @@ class NotificationControllerTest {
             "recipient", "test@example.com",
             "subject", "Invoice Processed",
             "body", "Your invoice has been processed",
-            "invoiceId", "invoice-uuid",
-            "invoiceNumber", "INV-001"
+            "documentId", "document-uuid",
+            "documentNumber", "DOC-001"
         );
 
         when(sendNotificationUseCase.sendNotification(any())).thenReturn(testNotification);
@@ -105,9 +111,9 @@ class NotificationControllerTest {
             "recipient", "test@example.com",
             "subject", "Invoice Processed",
             "templateName", "invoice-processed",
-            "templateVariables", Map.of("invoiceNumber", "INV-001", "amount", 1500.00),
-            "invoiceId", "invoice-uuid",
-            "invoiceNumber", "INV-001",
+            "templateVariables", Map.of("documentNumber", "DOC-001", "amount", 1500.00),
+            "documentId", "document-uuid",
+            "documentNumber", "DOC-001",
             "correlationId", "correlation-uuid"
         );
 
@@ -174,47 +180,47 @@ class NotificationControllerTest {
         verify(queryNotificationUseCase).findById(unknownId);
     }
 
-    // ── GET /api/v1/notifications/invoice/{invoiceId} Tests ──────────────────────────────
+    // ── GET /api/v1/notifications/document/{documentId} Tests ──────────────────────────────
 
     @Test
-    @DisplayName("GET /api/v1/notifications/invoice/{invoiceId} should return notifications for invoice")
-    void testGetNotificationsByInvoiceId() throws Exception {
-        String invoiceId = "invoice-uuid";
-        when(queryNotificationUseCase.findByInvoiceId(invoiceId, 200)).thenReturn(List.of(testNotification));
+    @DisplayName("GET /api/v1/notifications/document/{documentId} should return notifications for document")
+    void testGetNotificationsByDocumentId() throws Exception {
+        String documentId = "document-uuid";
+        when(queryNotificationUseCase.findByDocumentId(documentId, 200)).thenReturn(List.of(testNotification));
 
-        mockMvc.perform(get("/api/v1/notifications/invoice/" + invoiceId))
+        mockMvc.perform(get("/api/v1/notifications/document/" + documentId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$[0].id").value(testId.toString()));
 
-        verify(queryNotificationUseCase).findByInvoiceId(invoiceId, 200);
+        verify(queryNotificationUseCase).findByDocumentId(documentId, 200);
     }
 
     @Test
-    @DisplayName("GET /api/v1/notifications/invoice/{invoiceId} should honour explicit limit param")
-    void testGetNotificationsByInvoiceIdWithLimit() throws Exception {
-        String invoiceId = "invoice-uuid";
-        when(queryNotificationUseCase.findByInvoiceId(invoiceId, 50)).thenReturn(List.of(testNotification));
+    @DisplayName("GET /api/v1/notifications/document/{documentId} should honour explicit limit param")
+    void testGetNotificationsByDocumentIdWithLimit() throws Exception {
+        String documentId = "document-uuid";
+        when(queryNotificationUseCase.findByDocumentId(documentId, 50)).thenReturn(List.of(testNotification));
 
-        mockMvc.perform(get("/api/v1/notifications/invoice/" + invoiceId).param("limit", "50"))
+        mockMvc.perform(get("/api/v1/notifications/document/" + documentId).param("limit", "50"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].id").value(testId.toString()));
 
-        verify(queryNotificationUseCase).findByInvoiceId(invoiceId, 50);
+        verify(queryNotificationUseCase).findByDocumentId(documentId, 50);
     }
 
     @Test
-    @DisplayName("GET /api/v1/notifications/invoice/{invoiceId} should return empty list when none found")
-    void testGetNotificationsByInvoiceIdEmpty() throws Exception {
-        String invoiceId = "unknown-invoice";
-        when(queryNotificationUseCase.findByInvoiceId(invoiceId, 200)).thenReturn(List.of());
+    @DisplayName("GET /api/v1/notifications/document/{documentId} should return empty list when none found")
+    void testGetNotificationsByDocumentIdEmpty() throws Exception {
+        String documentId = "unknown-document";
+        when(queryNotificationUseCase.findByDocumentId(documentId, 200)).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/v1/notifications/invoice/" + invoiceId))
+        mockMvc.perform(get("/api/v1/notifications/document/" + documentId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$").isEmpty());
 
-        verify(queryNotificationUseCase).findByInvoiceId(invoiceId, 200);
+        verify(queryNotificationUseCase).findByDocumentId(documentId, 200);
     }
 
     // ── GET /api/v1/notifications/status/{status} Tests ──────────────────────────────────
@@ -383,5 +389,47 @@ class NotificationControllerTest {
             .andExpect(status().isBadRequest());
 
         verify(sendNotificationUseCase, never()).sendNotification(any());
+    }
+
+    // ── GET /api/v1/notifications/statistics/intake Tests ──────────────────────────────────
+
+    @Test
+    @DisplayName("GET /api/v1/notifications/statistics/intake should return aggregate counts")
+    void testGetIntakeStatistics() throws Exception {
+        DocumentIntakeStatsResponse response = new DocumentIntakeStatsResponse(
+            Map.of("RECEIVED", 10L, "VALIDATED", 9L, "FORWARDED", 8L, "INVALID", 1L),
+            Map.of("TAX_INVOICE", 7L, "INVOICE", 3L)
+        );
+        when(documentIntakeStatUseCase.getIntakeStats()).thenReturn(response);
+
+        mockMvc.perform(get("/api/v1/notifications/statistics/intake"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCounts.RECEIVED").value(10))
+            .andExpect(jsonPath("$.statusCounts.INVALID").value(1))
+            .andExpect(jsonPath("$.documentTypeCounts.TAX_INVOICE").value(7));
+
+        verify(documentIntakeStatUseCase).getIntakeStats();
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/notifications/statistics/intake?documentId=X should return stat list")
+    void testGetIntakeStatsByDocumentId() throws Exception {
+        List<DocumentIntakeStat> stats = List.of(
+            DocumentIntakeStat.builder()
+                .id(UUID.randomUUID()).documentId("doc-001").status("RECEIVED")
+                .documentType("TAX_INVOICE").occurredAt(java.time.Instant.now()).build(),
+            DocumentIntakeStat.builder()
+                .id(UUID.randomUUID()).documentId("doc-001").status("VALIDATED")
+                .documentType("TAX_INVOICE").occurredAt(java.time.Instant.now()).build()
+        );
+        when(documentIntakeStatUseCase.getStatsByDocumentId("doc-001")).thenReturn(stats);
+
+        mockMvc.perform(get("/api/v1/notifications/statistics/intake").param("documentId", "doc-001"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$[0].status").value("RECEIVED"))
+            .andExpect(jsonPath("$[1].status").value("VALIDATED"));
+
+        verify(documentIntakeStatUseCase).getStatsByDocumentId("doc-001");
     }
 }

@@ -21,35 +21,22 @@ public class SagaStepCompletedEvent extends TraceEvent {
     @JsonProperty("documentType")
     private final String documentType;
 
-    @JsonProperty("documentId")
-    private final String documentId;
-
     @JsonProperty("completedStep")
     private final String completedStep;
 
     @JsonProperty("nextStep")
     private final String nextStep;
 
-    @JsonProperty("invoiceNumber")
-    private final String invoiceNumber;
-
-    @JsonProperty("stepDurationMs")
-    private final Long stepDurationMs;
-
     /**
      * Constructor for creating new events.
      * Generates eventId, occurredAt, eventType, and version automatically.
      */
     public SagaStepCompletedEvent(String sagaId, String correlationId, String documentType,
-                                   String documentId, String completedStep, String nextStep,
-                                   String invoiceNumber, Long stepDurationMs) {
+                                   String completedStep, String nextStep) {
         super(sagaId, correlationId, "orchestrator-service", "SAGA_STEP_COMPLETED", null);
         this.documentType = documentType;
-        this.documentId = documentId;
         this.completedStep = completedStep;
         this.nextStep = nextStep;
-        this.invoiceNumber = invoiceNumber;
-        this.stepDurationMs = stepDurationMs;
     }
 
     /**
@@ -68,18 +55,12 @@ public class SagaStepCompletedEvent extends TraceEvent {
         @JsonProperty("traceType") String traceType,
         @JsonProperty("context") String context,
         @JsonProperty("documentType") String documentType,
-        @JsonProperty("documentId") String documentId,
         @JsonProperty("completedStep") String completedStep,
-        @JsonProperty("nextStep") String nextStep,
-        @JsonProperty("invoiceNumber") String invoiceNumber,
-        @JsonProperty("stepDurationMs") Long stepDurationMs
+        @JsonProperty("nextStep") String nextStep
     ) {
         super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.documentType = documentType;
-        this.documentId = documentId;
         this.completedStep = completedStep;
         this.nextStep = nextStep;
-        this.invoiceNumber = invoiceNumber;
-        this.stepDurationMs = stepDurationMs;
     }
 }

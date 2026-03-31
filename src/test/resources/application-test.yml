@@ -74,6 +74,7 @@ kafka:
     ebms-sent: ebms.sent
     saga-lifecycle-completed: saga.lifecycle.completed
     saga-lifecycle-failed: saga.lifecycle.failed
+    trace-document-received: trace.document.received
 
 # Application config
 app:

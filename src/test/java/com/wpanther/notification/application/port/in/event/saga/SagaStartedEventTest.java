@@ -42,8 +42,7 @@ class SagaStartedEventTest {
                     "documentType": "RECEIPT",
                     "documentId": "doc-rcpt-001",
                     "currentStep": "document_intake",
-                    "invoiceNumber": "RCT-2024-001",
-                    "startedAt": "2024-01-15T10:20:00.000000000Z"
+                    "documentNumber": "RCT-2024-001"
                 }
                 """;
 
@@ -60,7 +59,7 @@ class SagaStartedEventTest {
             assertThat(event.getDocumentType()).isEqualTo("RECEIPT");
             assertThat(event.getDocumentId()).isEqualTo("doc-rcpt-001");
             assertThat(event.getCurrentStep()).isEqualTo("document_intake");
-            assertThat(event.getInvoiceNumber()).isEqualTo("RCT-2024-001");
+            assertThat(event.getDocumentNumber()).isEqualTo("RCT-2024-001");
         }
 
         @Test
@@ -78,8 +77,7 @@ class SagaStartedEventTest {
                     "documentType": null,
                     "documentId": null,
                     "currentStep": null,
-                    "invoiceNumber": null,
-                    "startedAt": null
+                    "documentNumber": null
                 }
                 """;
 
@@ -91,7 +89,7 @@ class SagaStartedEventTest {
             assertThat(event.getEventId()).isEqualTo(UUID.fromString("00000000-0000-0000-0000-000000000001"));
             assertThat(event.getCorrelationId()).isNull();
             assertThat(event.getCurrentStep()).isNull();
-            assertThat(event.getInvoiceNumber()).isNull();
+            assertThat(event.getDocumentNumber()).isNull();
         }
 
         @Test
@@ -104,8 +102,7 @@ class SagaStartedEventTest {
                 "INVOICE",
                 "doc-inv-001",
                 "invoice_processing",
-                "INV-2024-002",
-                Instant.parse("2024-01-15T10:20:00Z")
+                "INV-2024-002"
             );
 
             // Act
@@ -114,7 +111,7 @@ class SagaStartedEventTest {
             // Assert
             assertThat(json).contains("\"sagaId\":\"saga-start-123\"");
             assertThat(json).contains("\"currentStep\":\"invoice_processing\"");
-            assertThat(json).contains("\"invoiceNumber\":\"INV-2024-002\"");
+            assertThat(json).contains("\"documentNumber\":\"INV-2024-002\"");
             assertThat(json).contains("\"eventId\"");
             assertThat(json).contains("\"occurredAt\"");
             assertThat(json).contains("\"version\":1");
@@ -130,15 +127,14 @@ class SagaStartedEventTest {
                 "TAX_INVOICE",
                 "doc-tax-001",
                 "validation",
-                "TAX-2024-001",
-                Instant.now()
+                "TAX-2024-001"
             );
 
             // Assert
             assertThat(event).isNotNull();
             assertThat(event.getSagaId()).isEqualTo("saga-start-123");
             assertThat(event.getCurrentStep()).isEqualTo("validation");
-            assertThat(event.getInvoiceNumber()).isEqualTo("TAX-2024-001");
+            assertThat(event.getDocumentNumber()).isEqualTo("TAX-2024-001");
             assertThat(event.getEventId()).isNotNull();
             assertThat(event.getOccurredAt()).isNotNull();
             assertThat(event.getVersion()).isEqualTo(1);

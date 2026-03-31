@@ -24,8 +24,8 @@ public class SagaCompletedEvent extends TraceEvent {
     @JsonProperty("documentId")
     private final String documentId;
 
-    @JsonProperty("invoiceNumber")
-    private final String invoiceNumber;
+    @JsonProperty("documentNumber")
+    private final String documentNumber;
 
     @JsonProperty("stepsExecuted")
     private final Integer stepsExecuted;
@@ -44,12 +44,12 @@ public class SagaCompletedEvent extends TraceEvent {
      * Generates eventId, occurredAt, eventType, and version automatically.
      */
     public SagaCompletedEvent(String sagaId, String correlationId, String documentType,
-                              String documentId, String invoiceNumber, Integer stepsExecuted,
+                              String documentId, String documentNumber, Integer stepsExecuted,
                               Instant startedAt, Instant completedAt, Long durationMs) {
         super(sagaId, correlationId, "orchestrator-service", "SAGA_COMPLETED", null);
         this.documentType = documentType;
         this.documentId = documentId;
-        this.invoiceNumber = invoiceNumber;
+        this.documentNumber = documentNumber;
         this.stepsExecuted = stepsExecuted;
         this.startedAt = startedAt;
         this.completedAt = completedAt;
@@ -73,7 +73,7 @@ public class SagaCompletedEvent extends TraceEvent {
         @JsonProperty("context") String context,
         @JsonProperty("documentType") String documentType,
         @JsonProperty("documentId") String documentId,
-        @JsonProperty("invoiceNumber") String invoiceNumber,
+        @JsonProperty("documentNumber") String documentNumber,
         @JsonProperty("stepsExecuted") Integer stepsExecuted,
         @JsonProperty("startedAt") Instant startedAt,
         @JsonProperty("completedAt") Instant completedAt,
@@ -82,7 +82,7 @@ public class SagaCompletedEvent extends TraceEvent {
         super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.documentType = documentType;
         this.documentId = documentId;
-        this.invoiceNumber = invoiceNumber;
+        this.documentNumber = documentNumber;
         this.stepsExecuted = stepsExecuted;
         this.startedAt = startedAt;
         this.completedAt = completedAt;

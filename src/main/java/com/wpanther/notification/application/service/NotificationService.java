@@ -1,5 +1,6 @@
 package com.wpanther.notification.application.service;
 
+import com.wpanther.notification.application.usecase.DocumentIntakeStatUseCase;
 import com.wpanther.notification.application.usecase.DocumentReceivedEventUseCase;
 import com.wpanther.notification.application.usecase.ProcessingEventUseCase;
 import com.wpanther.notification.application.usecase.QueryNotificationUseCase;
@@ -7,12 +8,15 @@ import com.wpanther.notification.application.usecase.RetryNotificationUseCase;
 import com.wpanther.notification.application.usecase.SagaEventUseCase;
 import com.wpanther.notification.application.usecase.SendNotificationUseCase;
 import com.wpanther.notification.domain.repository.NotificationRepository;
+import com.wpanther.notification.domain.repository.DocumentIntakeStatRepository;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.model.NotificationType;
-import com.wpanther.notification.application.port.in.event.DocumentReceivedCountingEvent;
+import com.wpanther.notification.domain.model.DocumentIntakeStat;
+import com.wpanther.notification.application.dto.DocumentIntakeStatsResponse;
 import com.wpanther.notification.application.port.in.event.DocumentReceivedEvent;
+import com.wpanther.notification.application.port.in.event.DocumentReceivedTraceEvent;
 import com.wpanther.notification.application.port.in.event.EbmsSentEvent;
 import com.wpanther.notification.application.port.in.event.InvoiceProcessedEvent;
 import com.wpanther.notification.application.port.in.event.InvoicePdfGeneratedEvent;
@@ -60,7 +64,8 @@ public class NotificationService
                    RetryNotificationUseCase,
                    ProcessingEventUseCase,
                    DocumentReceivedEventUseCase,
-                   SagaEventUseCase {
+                   SagaEventUseCase,
+                   DocumentIntakeStatUseCase {
 
     private static final DateTimeFormatter DATE_FORMATTER =
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -68,6 +73,7 @@ public class NotificationService
     private final NotificationRepository repository;
     private final NotificationSendingService sendingService;
     private final NotificationDispatcherService dispatcherService;
+    private final DocumentIntakeStatRepository documentIntakeStatRepository;
 
     @Value("${app.notification.max-retries:3}")
     private int maxRetries;
@@ -110,8 +116,8 @@ public class NotificationService
     }
 
     @Override
-    public List<Notification> findByDocumentId(String documentId, int limit) {
-        return repository.findByDocumentId(documentId, limit);
+    public List<Notification> findByDocumentId(String invoiceId, int limit) {
+        return repository.findByDocumentId(invoiceId, limit);
     }
 
     @Override
@@ -145,7 +151,7 @@ public class NotificationService
 
     @Override
     public void handleInvoiceProcessed(InvoiceProcessedEvent event) {
-        log.info("Processing InvoiceProcessedEvent: documentId={}, documentNumber={}",
+        log.info("Processing InvoiceProcessedEvent: invoiceId={}, invoiceNumber={}",
             event.getDocumentId(), event.getDocumentNumber());
 
         Map<String, Object> templateVariables = new HashMap<>();
@@ -173,7 +179,7 @@ public class NotificationService
 
     @Override
     public void handleTaxInvoiceProcessed(TaxInvoiceProcessedEvent event) {
-        log.info("Processing TaxInvoiceProcessedEvent: documentId={}, documentNumber={}",
+        log.info("Processing TaxInvoiceProcessedEvent: invoiceId={}, invoiceNumber={}",
             event.getDocumentId(), event.getDocumentNumber());
 
         Map<String, Object> templateVariables = new HashMap<>();
@@ -201,12 +207,13 @@ public class NotificationService
 
     @Override
     public void handleInvoicePdfGenerated(InvoicePdfGeneratedEvent event) {
-        log.info("Processing InvoicePdfGeneratedEvent: documentId={}, documentNumber={}",
+        log.info("Processing InvoicePdfGeneratedEvent: invoiceId={}, invoiceNumber={}",
             event.getDocumentId(), event.getDocumentNumber());
 
         Map<String, Object> templateVariables = new HashMap<>();
         templateVariables.put("documentId", event.getDocumentId());
         templateVariables.put("documentNumber", event.getDocumentNumber());
+        templateVariables.put("documentId", event.getDocumentId());
         templateVariables.put("documentUrl", event.getDocumentUrl());
         templateVariables.put("fileSize", formatFileSize(event.getFileSize()));
         templateVariables.put("generatedAt", formatInstant(event.getOccurredAt()));
@@ -233,12 +240,13 @@ public class NotificationService
 
     @Override
     public void handleTaxInvoicePdfGenerated(TaxInvoicePdfGeneratedEvent event) {
-        log.info("Processing TaxInvoicePdfGeneratedEvent: documentId={}, documentNumber={}",
+        log.info("Processing TaxInvoicePdfGeneratedEvent: taxInvoiceId={}, taxInvoiceNumber={}",
             event.getDocumentId(), event.getDocumentNumber());
 
         Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put("taxInvoiceId", event.getDocumentId());
+        templateVariables.put("taxInvoiceNumber", event.getDocumentNumber());
         templateVariables.put("documentId", event.getDocumentId());
-        templateVariables.put("documentNumber", event.getDocumentNumber());
         templateVariables.put("documentUrl", event.getDocumentUrl());
         templateVariables.put("fileSize", formatFileSize(event.getFileSize()));
         templateVariables.put("generatedAt", formatInstant(event.getOccurredAt()));
@@ -264,7 +272,7 @@ public class NotificationService
 
     @Override
     public void handlePdfSigned(PdfSignedEvent event) {
-        log.info("Processing PdfSignedEvent: documentId={}, documentNumber={}, documentType={}",
+        log.info("Processing PdfSignedEvent: invoiceId={}, invoiceNumber={}, documentType={}",
             event.getDocumentId(), event.getDocumentNumber(), event.getDocumentType());
 
         Map<String, Object> templateVariables = new HashMap<>();
@@ -299,7 +307,7 @@ public class NotificationService
 
     @Override
     public void handleXmlSigned(XmlSignedEvent event) {
-        log.info("Processing XmlSignedEvent: documentId={}, documentNumber={}, documentType={}",
+        log.info("Processing XmlSignedEvent: invoiceId={}, invoiceNumber={}, documentType={}",
             event.getDocumentId(), event.getDocumentNumber(), event.getDocumentType());
 
         Map<String, Object> templateVariables = new HashMap<>();
@@ -332,6 +340,7 @@ public class NotificationService
 
         Map<String, Object> templateVariables = new HashMap<>();
         templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("documentId", event.getDocumentId() != null ? event.getDocumentId() : "N/A");
         templateVariables.put("documentNumber", event.getDocumentNumber() != null ? event.getDocumentNumber() : "N/A");
         templateVariables.put("documentType", event.getDocumentType());
         templateVariables.put("ebmsMessageId", event.getEbmsMessageId());
@@ -361,13 +370,6 @@ public class NotificationService
     // ── DocumentReceivedEventUseCase ─────────────────────────────────────────────────────
 
     @Override
-    public void handleDocumentCounting(DocumentReceivedCountingEvent event) {
-        log.info("Processing DocumentReceivedCountingEvent: documentId={}, correlationId={}",
-            event.getDocumentId(), event.getCorrelationId());
-        // Log only. Future: persist to database for total received count statistics.
-    }
-
-    @Override
     public void handleDocumentReceived(DocumentReceivedEvent event) {
         log.info("Processing DocumentReceivedEvent (statistics): documentId={}, documentType={}, correlationId={}",
             event.getDocumentId(), event.getDocumentType(), event.getCorrelationId());
@@ -378,7 +380,7 @@ public class NotificationService
 
     @Override
     public void handleSagaStarted(SagaStartedEvent event) {
-        log.info("Saga started: sagaId={}, documentType={}, documentNumber={}",
+        log.info("Saga started: sagaId={}, documentType={}, invoiceNumber={}",
             event.getSagaId(), event.getDocumentType(), event.getDocumentNumber());
         // Log only — no notification created.
     }
@@ -451,6 +453,40 @@ public class NotificationService
         notification.addMetadata("failedStep", event.getFailedStep());
 
         dispatcherService.dispatchAsync(notification);
+    }
+
+    // ── DocumentIntakeStatUseCase ──────────────────────────────────────────────────────────
+
+    @Override
+    public void handleIntakeStat(DocumentReceivedTraceEvent event) {
+        log.info("Persisting intake stat: documentId={}, status={}, documentType={}",
+            event.getDocumentId(), event.getStatus(), event.getDocumentType());
+
+        DocumentIntakeStat stat = DocumentIntakeStat.builder()
+            .id(UUID.randomUUID())
+            .documentId(event.getDocumentId())
+            .documentType(event.getDocumentType())
+            .documentNumber(event.getDocumentNumber())
+            .status(event.getStatus())
+            .source(event.getSource())
+            .correlationId(event.getCorrelationId())
+            .occurredAt(event.getOccurredAt() != null ? event.getOccurredAt() : Instant.now())
+            .build();
+
+        documentIntakeStatRepository.save(stat);
+    }
+
+    @Override
+    public DocumentIntakeStatsResponse getIntakeStats() {
+        return new DocumentIntakeStatsResponse(
+            documentIntakeStatRepository.countByStatus(),
+            documentIntakeStatRepository.countByDocumentType()
+        );
+    }
+
+    @Override
+    public List<DocumentIntakeStat> getStatsByDocumentId(String documentId) {
+        return documentIntakeStatRepository.findByDocumentId(documentId);
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────────────────

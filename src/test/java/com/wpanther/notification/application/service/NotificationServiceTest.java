@@ -2,11 +2,14 @@ package com.wpanther.notification.application.service;
 
 import com.wpanther.notification.application.port.in.event.InvoicePdfGeneratedEvent;
 import com.wpanther.notification.application.port.in.event.TaxInvoicePdfGeneratedEvent;
+import com.wpanther.notification.application.port.in.event.DocumentReceivedTraceEvent;
 import com.wpanther.notification.domain.model.Notification;
 import com.wpanther.notification.domain.model.NotificationChannel;
 import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.model.NotificationType;
+import com.wpanther.notification.domain.model.DocumentIntakeStat;
 import com.wpanther.notification.domain.repository.NotificationRepository;
+import com.wpanther.notification.domain.repository.DocumentIntakeStatRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,6 +45,9 @@ class NotificationServiceTest {
 
     @Mock
     private NotificationDispatcherService dispatcherService;
+
+    @Mock
+    private DocumentIntakeStatRepository documentIntakeStatRepository;
 
     @InjectMocks
     private NotificationService notificationService;
@@ -113,13 +119,13 @@ class NotificationServiceTest {
     }
 
     @Test
-    @DisplayName("findByInvoiceId delegates to repository with limit")
-    void testFindByInvoiceId_delegatesToRepository() {
-        when(repository.findByInvoiceId("INV-001", 50)).thenReturn(List.of(testNotification));
+    @DisplayName("findByDocumentId delegates to repository with limit")
+    void testFindByDocumentId_delegatesToRepository() {
+        when(repository.findByDocumentId("INV-001", 50)).thenReturn(List.of(testNotification));
 
-        List<Notification> result = notificationService.findByInvoiceId("INV-001", 50);
+        List<Notification> result = notificationService.findByDocumentId("INV-001", 50);
 
-        verify(repository).findByInvoiceId("INV-001", 50);
+        verify(repository).findByDocumentId("INV-001", 50);
         assertThat(result).containsExactly(testNotification);
     }
 
@@ -140,9 +146,7 @@ class NotificationServiceTest {
     @DisplayName("handleInvoicePdfGenerated creates PDF_GENERATED notification and dispatches async")
     void testHandleInvoicePdfGenerated_dispatchesAsync() {
         InvoicePdfGeneratedEvent event = new InvoicePdfGeneratedEvent(
-            UUID.randomUUID(), Instant.now(), "pdf.generated.invoice", 1,
-            "saga-1", "corr-1", "invoice-pdf-generation-service", "PDF_GENERATED", null,
-            "INV-001", "INV-2025-001", "doc-001", "http://example.com/doc", 102400L, true, false);
+            "INV-2025-001", "doc-001", "http://example.com/doc", 102400L, true, false, "corr-1");
 
         ReflectionTestUtils.setField(notificationService, "defaultRecipient", "admin@example.com");
 
@@ -162,9 +166,7 @@ class NotificationServiceTest {
     @DisplayName("handleTaxInvoicePdfGenerated creates TAX_INVOICE_PDF_GENERATED notification and dispatches async")
     void testHandleTaxInvoicePdfGenerated_dispatchesAsync() {
         TaxInvoicePdfGeneratedEvent event = new TaxInvoicePdfGeneratedEvent(
-            UUID.randomUUID(), Instant.now(), "pdf.generated.tax-invoice", 1,
-            "saga-1", "corr-1", "taxinvoice-pdf-generation-service", "PDF_GENERATED", null,
-            "doc-001", "TAX-001", "TAXINV-2025-001", "http://example.com/taxdoc", 204800L, true);
+            "saga-1", "doc-001", "TAXINV-2025-001", "http://example.com/taxdoc", 204800L, true, "corr-1");
 
         ReflectionTestUtils.setField(notificationService, "defaultRecipient", "admin@example.com");
 
@@ -176,7 +178,7 @@ class NotificationServiceTest {
         assertThat(notification.getType()).isEqualTo(NotificationType.TAX_INVOICE_PDF_GENERATED);
         assertThat(notification.getChannel()).isEqualTo(NotificationChannel.EMAIL);
         assertThat(notification.getTemplateName()).isEqualTo("taxinvoice-pdf-generated");
-        assertThat(notification.getInvoiceNumber()).isEqualTo("TAXINV-2025-001");
+        assertThat(notification.getDocumentNumber()).isEqualTo("TAXINV-2025-001");
     }
 
     // ── prepareAndDispatchRetry tests ─────────────────────────────────────────────────────
@@ -236,6 +238,45 @@ class NotificationServiceTest {
             .hasMessageContaining("Cannot retry notification");
 
         verify(dispatcherService, never()).dispatchAsync(any());
+    }
+
+    // ── DocumentIntakeStatUseCase: handleIntakeStat ────────────────────────────────────────
+
+    @Test
+    @DisplayName("handleIntakeStat should map event fields to DocumentIntakeStat and save")
+    void handleIntakeStat_shouldMapAndSave() {
+        DocumentReceivedTraceEvent event = new DocumentReceivedTraceEvent(
+            UUID.randomUUID(),
+            Instant.now(),
+            "DOCUMENT_RECEIVED_TRACE",
+            1,
+            "doc-001",
+            "corr-001",
+            "document-intake-service",
+            "RECEIVED",
+            null,
+            "doc-001",
+            "TAX_INVOICE",
+            "TIV-2024-001",
+            "RECEIVED"
+        );
+
+        ArgumentCaptor<DocumentIntakeStat> captor = ArgumentCaptor.forClass(DocumentIntakeStat.class);
+        when(documentIntakeStatRepository.save(any(DocumentIntakeStat.class)))
+            .thenAnswer(inv -> inv.getArgument(0));
+
+        notificationService.handleIntakeStat(event);
+
+        verify(documentIntakeStatRepository).save(captor.capture());
+        DocumentIntakeStat saved = captor.getValue();
+        assertThat(saved.getDocumentId()).isEqualTo("doc-001");
+        assertThat(saved.getDocumentType()).isEqualTo("TAX_INVOICE");
+        assertThat(saved.getDocumentNumber()).isEqualTo("TIV-2024-001");
+        assertThat(saved.getStatus()).isEqualTo("RECEIVED");
+        assertThat(saved.getSource()).isEqualTo("document-intake-service");
+        assertThat(saved.getCorrelationId()).isEqualTo("corr-001");
+        assertThat(saved.getOccurredAt()).isNotNull();
+        assertThat(saved.getId()).isNotNull();
     }
 
 }

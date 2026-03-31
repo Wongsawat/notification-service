@@ -103,7 +103,6 @@ kafka:
     ebms-sent: ebms.sent
     notification-dlq: notification.dlq
     # Document-type-specific topics for statistics (after validation)
-    document-received: document.received
     tax-invoice-received: document.received.tax-invoice
     invoice-received: document.received.invoice
     receipt-received: document.received.receipt
@@ -116,6 +115,7 @@ kafka:
     saga-lifecycle-step-completed: saga.lifecycle.step-completed
     saga-lifecycle-completed: saga.lifecycle.completed
     saga-lifecycle-failed: saga.lifecycle.failed
+    trace-document-received: trace.document.received
 
 # Application configuration
 app:

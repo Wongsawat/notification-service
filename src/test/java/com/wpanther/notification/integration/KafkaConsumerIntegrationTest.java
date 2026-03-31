@@ -28,34 +28,34 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
     @DisplayName("Should consume InvoiceProcessedEvent and create notification")
     void shouldConsumeInvoiceProcessedEvent() {
         // Given
-        String invoiceId = "INV-" + UUID.randomUUID();
-        String invoiceNumber = "T0001-" + System.currentTimeMillis();
+        String documentId = "INV-" + UUID.randomUUID();
+        String documentNumber = "T0001-" + System.currentTimeMillis();
         String correlationId = UUID.randomUUID().toString();
 
         InvoiceProcessedEvent event = new InvoiceProcessedEvent(
-            invoiceId, invoiceNumber, new BigDecimal("15000.50"), "THB", correlationId
+            documentId, documentNumber, new BigDecimal("15000.50"), "THB", correlationId
         );
 
         // When
-        sendEvent("invoice.processed", invoiceId, event);
+        sendEvent("invoice.processed", documentId, event);
 
         // Then — await SENT status (full async flow completion)
-        Map<String, Object> notification = awaitNotificationByInvoiceId(invoiceId);
+        Map<String, Object> notification = awaitNotificationByDocumentId(documentId);
 
         assertThat(notification.get("type")).isEqualTo("INVOICE_PROCESSED");
         assertThat(notification.get("channel")).isEqualTo("EMAIL");
         assertThat(notification.get("status")).isEqualTo("SENT");
         assertThat(notification.get("recipient")).isEqualTo("test-integration@example.com");
         assertThat(notification.get("template_name")).isEqualTo("invoice-processed");
-        assertThat(notification.get("invoice_id")).isEqualTo(invoiceId);
-        assertThat(notification.get("invoice_number")).isEqualTo(invoiceNumber);
+        assertThat(notification.get("document_id")).isEqualTo(documentId);
+        assertThat(notification.get("document_number")).isEqualTo(documentNumber);
         assertThat(notification.get("correlation_id")).isEqualTo(correlationId);
-        assertThat((String) notification.get("subject")).contains(invoiceNumber);
+        assertThat((String) notification.get("subject")).contains(documentNumber);
 
         // template_variables stored as JSON TEXT — verify key values present
         String templateVars = (String) notification.get("template_variables");
-        assertThat(templateVars).contains(invoiceId);
-        assertThat(templateVars).contains(invoiceNumber);
+        assertThat(templateVars).contains(documentId);
+        assertThat(templateVars).contains(documentNumber);
         assertThat(templateVars).contains("THB");
     }
 
@@ -63,33 +63,33 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
     @DisplayName("Should consume TaxInvoiceProcessedEvent and create notification")
     void shouldConsumeTaxInvoiceProcessedEvent() {
         // Given
-        String invoiceId = "TINV-" + UUID.randomUUID();
-        String invoiceNumber = "TI0001-" + System.currentTimeMillis();
+        String documentId = "TINV-" + UUID.randomUUID();
+        String documentNumber = "TI0001-" + System.currentTimeMillis();
         String correlationId = UUID.randomUUID().toString();
 
         TaxInvoiceProcessedEvent event = new TaxInvoiceProcessedEvent(
-            invoiceId, invoiceNumber, new BigDecimal("25000.00"), "THB", correlationId
+            documentId, documentNumber, new BigDecimal("25000.00"), "THB", correlationId
         );
 
         // When
-        sendEvent("taxinvoice.processed", invoiceId, event);
+        sendEvent("taxinvoice.processed", documentId, event);
 
         // Then
-        Map<String, Object> notification = awaitNotificationByInvoiceId(invoiceId);
+        Map<String, Object> notification = awaitNotificationByDocumentId(documentId);
 
         assertThat(notification.get("type")).isEqualTo("TAXINVOICE_PROCESSED");
         assertThat(notification.get("channel")).isEqualTo("EMAIL");
         assertThat(notification.get("status")).isEqualTo("SENT");
         assertThat(notification.get("recipient")).isEqualTo("test-integration@example.com");
         assertThat(notification.get("template_name")).isEqualTo("taxinvoice-processed");
-        assertThat(notification.get("invoice_id")).isEqualTo(invoiceId);
-        assertThat(notification.get("invoice_number")).isEqualTo(invoiceNumber);
+        assertThat(notification.get("document_id")).isEqualTo(documentId);
+        assertThat(notification.get("document_number")).isEqualTo(documentNumber);
         assertThat(notification.get("correlation_id")).isEqualTo(correlationId);
-        assertThat((String) notification.get("subject")).contains(invoiceNumber);
+        assertThat((String) notification.get("subject")).contains(documentNumber);
 
         String templateVars = (String) notification.get("template_variables");
-        assertThat(templateVars).contains(invoiceId);
-        assertThat(templateVars).contains(invoiceNumber);
+        assertThat(templateVars).contains(documentId);
+        assertThat(templateVars).contains(documentNumber);
         assertThat(templateVars).contains("THB");
     }
 
@@ -97,41 +97,39 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
     @DisplayName("Should consume InvoicePdfGeneratedEvent and create notification")
     void shouldConsumeInvoicePdfGeneratedEvent() {
         // Given
-        String invoiceId = "INV-" + UUID.randomUUID();
-        String invoiceNumber = "T0001-" + System.currentTimeMillis();
         String documentId = "DOC-" + UUID.randomUUID();
+        String documentNumber = "T0001-" + System.currentTimeMillis();
         String documentUrl = "http://localhost:8084/api/v1/documents/" + documentId;
         String correlationId = UUID.randomUUID().toString();
         long fileSize = 125000; // 125 KB
 
         InvoicePdfGeneratedEvent event = new InvoicePdfGeneratedEvent(
-            invoiceId, invoiceNumber, documentId, documentUrl, fileSize,
+            documentId, documentNumber, documentUrl, fileSize,
             true,  // xmlEmbedded
             false, // digitallySigned
             correlationId
         );
 
         // When
-        sendEvent("pdf.generated.invoice", invoiceId, event);
+        sendEvent("pdf.generated.invoice", documentId, event);
 
         // Then
-        Map<String, Object> notification = awaitNotificationByInvoiceId(invoiceId);
+        Map<String, Object> notification = awaitNotificationByDocumentId(documentId);
 
         assertThat(notification.get("type")).isEqualTo("PDF_GENERATED");
         assertThat(notification.get("channel")).isEqualTo("EMAIL");
         assertThat(notification.get("status")).isEqualTo("SENT");
         assertThat(notification.get("recipient")).isEqualTo("test-integration@example.com");
         assertThat(notification.get("template_name")).isEqualTo("pdf-generated");
-        assertThat(notification.get("invoice_id")).isEqualTo(invoiceId);
-        assertThat(notification.get("invoice_number")).isEqualTo(invoiceNumber);
+        assertThat(notification.get("document_id")).isEqualTo(documentId);
+        assertThat(notification.get("document_number")).isEqualTo(documentNumber);
         assertThat(notification.get("correlation_id")).isEqualTo(correlationId);
-        assertThat((String) notification.get("subject")).contains(invoiceNumber);
+        assertThat((String) notification.get("subject")).contains(documentNumber);
         assertThat((String) notification.get("subject")).contains("PDF Invoice Ready");
 
         String templateVars = (String) notification.get("template_variables");
-        assertThat(templateVars).contains(invoiceId);
-        assertThat(templateVars).contains(invoiceNumber);
         assertThat(templateVars).contains(documentId);
+        assertThat(templateVars).contains(documentNumber);
         assertThat(templateVars).contains(documentUrl);
         // File size is formatted (e.g., "125 KB")
         assertThat(templateVars).contains("KB");
@@ -144,8 +142,8 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
     @DisplayName("Should consume PdfSignedEvent and create notification")
     void shouldConsumePdfSignedEvent() {
         // Given
-        String invoiceId = "INV-" + UUID.randomUUID();
-        String invoiceNumber = "T0001-" + System.currentTimeMillis();
+        String documentId = "DOC-" + UUID.randomUUID();
+        String documentNumber = "T0001-" + System.currentTimeMillis();
         String correlationId = UUID.randomUUID().toString();
         String documentType = "INVOICE";
         String signedDocumentId = "SIGNED-DOC-" + UUID.randomUUID();
@@ -157,31 +155,31 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
         Instant signatureTimestamp = Instant.now();
 
         PdfSignedEvent event = new PdfSignedEvent(
-            invoiceId, correlationId, invoiceId, invoiceNumber, documentType,
+            documentId, correlationId, documentId, documentNumber, documentType,
             signedDocumentId, signedPdfUrl, signedPdfSize, transactionId,
             certificate, signatureLevel, signatureTimestamp
         );
 
         // When
-        sendEvent("pdf.signed", invoiceId, event);
+        sendEvent("pdf.signed", documentId, event);
 
         // Then
-        Map<String, Object> notification = awaitNotificationByInvoiceId(invoiceId);
+        Map<String, Object> notification = awaitNotificationByDocumentId(documentId);
 
         assertThat(notification.get("type")).isEqualTo("PDF_SIGNED");
         assertThat(notification.get("channel")).isEqualTo("EMAIL");
         assertThat(notification.get("status")).isEqualTo("SENT");
         assertThat(notification.get("recipient")).isEqualTo("test-integration@example.com");
         assertThat(notification.get("template_name")).isEqualTo("pdf-signed");
-        assertThat(notification.get("invoice_id")).isEqualTo(invoiceId);
-        assertThat(notification.get("invoice_number")).isEqualTo(invoiceNumber);
+        assertThat(notification.get("document_id")).isEqualTo(documentId);
+        assertThat(notification.get("document_number")).isEqualTo(documentNumber);
         assertThat(notification.get("correlation_id")).isEqualTo(correlationId);
-        assertThat((String) notification.get("subject")).contains(invoiceNumber);
+        assertThat((String) notification.get("subject")).contains(documentNumber);
         assertThat((String) notification.get("subject")).contains("PDF Invoice Signed");
 
         String templateVars = (String) notification.get("template_variables");
-        assertThat(templateVars).contains(invoiceId);
-        assertThat(templateVars).contains(invoiceNumber);
+        assertThat(templateVars).contains(documentId);
+        assertThat(templateVars).contains(documentNumber);
         assertThat(templateVars).contains(documentType);
         assertThat(templateVars).contains(signedDocumentId);
         assertThat(templateVars).contains(signedPdfUrl);
@@ -198,22 +196,21 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
     void shouldConsumeEbmsSentEvent() {
         // Given
         String documentId = "DOC-" + UUID.randomUUID();
-        String invoiceId = "INV-" + UUID.randomUUID();
-        String invoiceNumber = "T0001-" + System.currentTimeMillis();
+        String documentNumber = "T0001-" + System.currentTimeMillis();
         String documentType = "INVOICE";
         String ebmsMessageId = "EBMS-" + UUID.randomUUID();
         Instant sentAt = Instant.now();
         String correlationId = UUID.randomUUID().toString();
 
         EbmsSentEvent event = new EbmsSentEvent(
-            documentId, invoiceId, invoiceNumber, documentType,
+            documentId, documentNumber, documentType,
             ebmsMessageId, sentAt, correlationId
         );
 
         // When
         sendEvent("ebms.sent", documentId, event);
 
-        // Then - use correlationId for lookup since ebms events may not always have invoiceId
+        // Then - use correlationId for lookup since ebms events may not always have documentId
         Map<String, Object> notification = awaitNotificationByCorrelationId(correlationId);
 
         assertThat(notification.get("type")).isEqualTo("EBMS_SENT");
@@ -221,16 +218,15 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
         assertThat(notification.get("status")).isEqualTo("SENT");
         assertThat(notification.get("recipient")).isEqualTo("test-integration@example.com");
         assertThat(notification.get("template_name")).isEqualTo("ebms-sent");
-        assertThat(notification.get("invoice_id")).isEqualTo(invoiceId);
-        assertThat(notification.get("invoice_number")).isEqualTo(invoiceNumber);
+        assertThat(notification.get("document_id")).isEqualTo(documentId);
+        assertThat(notification.get("document_number")).isEqualTo(documentNumber);
         assertThat(notification.get("correlation_id")).isEqualTo(correlationId);
         assertThat((String) notification.get("subject")).contains("Document Submitted to TRD");
-        assertThat((String) notification.get("subject")).contains(invoiceNumber);
+        assertThat((String) notification.get("subject")).contains(documentNumber);
 
         String templateVars = (String) notification.get("template_variables");
         assertThat(templateVars).contains(documentId);
-        assertThat(templateVars).contains(invoiceId);
-        assertThat(templateVars).contains(invoiceNumber);
+        assertThat(templateVars).contains(documentNumber);
         assertThat(templateVars).contains(documentType);
         assertThat(templateVars).contains(ebmsMessageId);
         assertThat(templateVars).contains(correlationId);
@@ -244,38 +240,38 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
         String correlationId = UUID.randomUUID().toString();
         String documentType = "INVOICE";
         String documentId = "DOC-" + UUID.randomUUID();
-        String invoiceNumber = "T0001-" + System.currentTimeMillis();
+        String documentNumber = "T0001-" + System.currentTimeMillis();
         Integer stepsExecuted = 7;
         Instant startedAt = Instant.now().minusSeconds(120); // 2 minutes ago
         Instant completedAt = Instant.now();
         Long durationMs = 120000L; // 2 minutes
 
         SagaCompletedEvent event = new SagaCompletedEvent(
-            sagaId, correlationId, documentType, documentId, invoiceNumber,
+            sagaId, correlationId, documentType, documentId, documentNumber,
             stepsExecuted, startedAt, completedAt, durationMs
         );
 
         // When
         sendEvent("saga.lifecycle.completed", documentId, event);
 
-        // Then - handler sets invoiceId to documentId, so use documentId for lookup
-        Map<String, Object> notification = awaitNotificationByInvoiceId(documentId);
+        // Then - handler sets documentId, so use documentId for lookup
+        Map<String, Object> notification = awaitNotificationByDocumentId(documentId);
 
         assertThat(notification.get("type")).isEqualTo("SAGA_COMPLETED");
         assertThat(notification.get("channel")).isEqualTo("EMAIL");
         assertThat(notification.get("status")).isEqualTo("SENT");
         assertThat(notification.get("recipient")).isEqualTo("test-integration@example.com");
         assertThat(notification.get("template_name")).isEqualTo("saga-completed");
-        assertThat(notification.get("invoice_id")).isEqualTo(documentId);
-        assertThat(notification.get("invoice_number")).isEqualTo(invoiceNumber);
+        assertThat(notification.get("document_id")).isEqualTo(documentId);
+        assertThat(notification.get("document_number")).isEqualTo(documentNumber);
         assertThat(notification.get("correlation_id")).isEqualTo(correlationId);
         assertThat((String) notification.get("subject")).contains("Saga Completed");
-        assertThat((String) notification.get("subject")).contains(invoiceNumber);
+        assertThat((String) notification.get("subject")).contains(documentNumber);
 
         String templateVars = (String) notification.get("template_variables");
         assertThat(templateVars).contains(sagaId);
         assertThat(templateVars).contains(documentId);
-        assertThat(templateVars).contains(invoiceNumber);
+        assertThat(templateVars).contains(documentNumber);
         assertThat(templateVars).contains(documentType);
         assertThat(templateVars).contains(stepsExecuted.toString());
         assertThat(templateVars).contains(durationMs.toString());
@@ -291,7 +287,7 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
         String correlationId = UUID.randomUUID().toString();
         String documentType = "INVOICE";
         String documentId = "DOC-" + UUID.randomUUID();
-        String invoiceNumber = "T0001-" + System.currentTimeMillis();
+        String documentNumber = "T0001-" + System.currentTimeMillis();
         String failedStep = "xml-signing";
         String errorMessage = "Failed to sign XML document: Connection timeout";
         Integer retryCount = 2;
@@ -301,7 +297,7 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
         Long durationMs = 60000L; // 1 minute
 
         SagaFailedEvent event = new SagaFailedEvent(
-            sagaId, correlationId, documentType, documentId, invoiceNumber,
+            sagaId, correlationId, documentType, documentId, documentNumber,
             failedStep, errorMessage, retryCount, compensationInitiated,
             startedAt, failedAt, durationMs
         );
@@ -309,24 +305,24 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
         // When
         sendEvent("saga.lifecycle.failed", documentId, event);
 
-        // Then - handler sets invoiceId to documentId, so use documentId for lookup
-        Map<String, Object> notification = awaitNotificationByInvoiceId(documentId);
+        // Then - handler sets documentId, so use documentId for lookup
+        Map<String, Object> notification = awaitNotificationByDocumentId(documentId);
 
         assertThat(notification.get("type")).isEqualTo("SAGA_FAILED");
         assertThat(notification.get("channel")).isEqualTo("EMAIL");
         assertThat(notification.get("status")).isEqualTo("SENT");
         assertThat(notification.get("recipient")).isEqualTo("test-integration@example.com");
         assertThat(notification.get("template_name")).isEqualTo("saga-failed");
-        assertThat(notification.get("invoice_id")).isEqualTo(documentId);
-        assertThat(notification.get("invoice_number")).isEqualTo(invoiceNumber);
+        assertThat(notification.get("document_id")).isEqualTo(documentId);
+        assertThat(notification.get("document_number")).isEqualTo(documentNumber);
         assertThat(notification.get("correlation_id")).isEqualTo(correlationId);
         assertThat((String) notification.get("subject")).contains("URGENT: Saga Failed");
-        assertThat((String) notification.get("subject")).contains(invoiceNumber);
+        assertThat((String) notification.get("subject")).contains(documentNumber);
 
         String templateVars = (String) notification.get("template_variables");
         assertThat(templateVars).contains(sagaId);
         assertThat(templateVars).contains(documentId);
-        assertThat(templateVars).contains(invoiceNumber);
+        assertThat(templateVars).contains(documentNumber);
         assertThat(templateVars).contains(documentType);
         assertThat(templateVars).contains(failedStep);
         assertThat(templateVars).contains(errorMessage);

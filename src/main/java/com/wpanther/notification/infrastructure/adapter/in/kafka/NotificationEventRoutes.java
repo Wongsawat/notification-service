@@ -1,7 +1,7 @@
 package com.wpanther.notification.infrastructure.adapter.in.kafka;
 
-import com.wpanther.notification.application.port.in.event.DocumentReceivedCountingEvent;
 import com.wpanther.notification.application.port.in.event.DocumentReceivedEvent;
+import com.wpanther.notification.application.port.in.event.DocumentReceivedTraceEvent;
 import com.wpanther.notification.application.port.in.event.EbmsSentEvent;
 import com.wpanther.notification.application.port.in.event.InvoiceProcessedEvent;
 import com.wpanther.notification.application.port.in.event.InvoicePdfGeneratedEvent;
@@ -14,6 +14,7 @@ import com.wpanther.notification.application.port.in.event.saga.SagaFailedEvent;
 import com.wpanther.notification.application.port.in.event.saga.SagaStartedEvent;
 import com.wpanther.notification.application.port.in.event.saga.SagaStepCompletedEvent;
 import com.wpanther.notification.application.usecase.DocumentReceivedEventUseCase;
+import com.wpanther.notification.application.usecase.DocumentIntakeStatUseCase;
 import com.wpanther.notification.application.usecase.ProcessingEventUseCase;
 import com.wpanther.notification.application.usecase.SagaEventUseCase;
 import com.wpanther.notification.infrastructure.config.KafkaTopicsConfig;
@@ -37,6 +38,7 @@ public class NotificationEventRoutes extends RouteBuilder {
     private final ProcessingEventUseCase processingEventUseCase;
     private final DocumentReceivedEventUseCase documentReceivedEventUseCase;
     private final SagaEventUseCase sagaEventUseCase;
+    private final DocumentIntakeStatUseCase documentIntakeStatUseCase;
     private final boolean notificationEnabled;
     private final String consumerGroup;
     private final String kafkaBrokers;
@@ -50,6 +52,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             ProcessingEventUseCase processingEventUseCase,
             DocumentReceivedEventUseCase documentReceivedEventUseCase,
             SagaEventUseCase sagaEventUseCase,
+            DocumentIntakeStatUseCase documentIntakeStatUseCase,
             @Value("${app.notification.enabled:true}") boolean notificationEnabled,
             @Value("${spring.kafka.consumer.group-id}") String consumerGroup,
             @Value("${spring.kafka.bootstrap-servers}") String kafkaBrokers,
@@ -61,6 +64,7 @@ public class NotificationEventRoutes extends RouteBuilder {
         this.processingEventUseCase = processingEventUseCase;
         this.documentReceivedEventUseCase = documentReceivedEventUseCase;
         this.sagaEventUseCase = sagaEventUseCase;
+        this.documentIntakeStatUseCase = documentIntakeStatUseCase;
         this.notificationEnabled = notificationEnabled;
         this.consumerGroup = consumerGroup;
         this.kafkaBrokers = kafkaBrokers;
@@ -198,20 +202,6 @@ public class NotificationEventRoutes extends RouteBuilder {
             .unmarshal().json(JsonLibrary.Jackson, XmlSignedEvent.class)
             .process(this::handleXmlSigned)
             .log("Created notification for XML signed: ${header.documentNumber}");
-
-        // Route 7: Document Received Counting Events (before validation - all documents)
-        // This lightweight event tracks ALL received documents regardless of validation outcome
-        from("kafka:" + topics.documentReceived() + kafkaOptions)
-            .routeId("notification-document-counting")
-            .log("Received DocumentReceivedCountingEvent from Kafka")
-            .choice()
-                .when(exchange -> !notificationEnabled)
-                    .log("Notifications disabled, skipping counting event")
-                    .stop()
-            .end()
-            .unmarshal().json(JsonLibrary.Jackson, DocumentReceivedCountingEvent.class)
-            .process(this::handleDocumentReceivedCounting)
-            .log("Processed document counting event: documentId=${header.documentId}");
 
         // Route 8: Tax Invoice Document Received Events (after validation)
         // Statistics event for validated tax invoice documents
@@ -358,6 +348,19 @@ public class NotificationEventRoutes extends RouteBuilder {
             .unmarshal().json(JsonLibrary.Jackson, SagaFailedEvent.class)
             .process(this::handleSagaFailed)
             .log("Created notification for saga failed: sagaId=${header.sagaId}");
+
+        // Route 19: Document Intake Trace Events (all statuses: RECEIVED, VALIDATED, FORWARDED, INVALID)
+        from("kafka:" + topics.traceDocumentReceived() + kafkaOptions)
+            .routeId("notification-trace-document-received")
+            .log("Received DocumentReceivedTraceEvent from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping trace event")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, DocumentReceivedTraceEvent.class)
+            .process(this::handleIntakeStat)
+            .log("Persisted intake stat: documentId=${header.documentId}, status=${header.status}");
     }
 
     private void handleInvoiceProcessed(Exchange exchange) {
@@ -403,12 +406,6 @@ public class NotificationEventRoutes extends RouteBuilder {
             event.getDocumentNumber() != null ? event.getDocumentNumber() : event.getDocumentId());
     }
 
-    private void handleDocumentReceivedCounting(Exchange exchange) {
-        DocumentReceivedCountingEvent event = exchange.getIn().getBody(DocumentReceivedCountingEvent.class);
-        documentReceivedEventUseCase.handleDocumentCounting(event);
-        exchange.getIn().setHeader("documentId", event.getDocumentId());
-    }
-
     private void handleDocumentReceivedStats(Exchange exchange) {
         DocumentReceivedEvent event = exchange.getIn().getBody(DocumentReceivedEvent.class);
         documentReceivedEventUseCase.handleDocumentReceived(event);
@@ -437,5 +434,12 @@ public class NotificationEventRoutes extends RouteBuilder {
         SagaFailedEvent event = exchange.getIn().getBody(SagaFailedEvent.class);
         sagaEventUseCase.handleSagaFailed(event);
         exchange.getIn().setHeader("sagaId", event.getSagaId());
+    }
+
+    private void handleIntakeStat(Exchange exchange) {
+        DocumentReceivedTraceEvent event = exchange.getIn().getBody(DocumentReceivedTraceEvent.class);
+        documentIntakeStatUseCase.handleIntakeStat(event);
+        exchange.getIn().setHeader("documentId", event.getDocumentId());
+        exchange.getIn().setHeader("status", event.getStatus());
     }
 }

@@ -82,8 +82,8 @@ class WebhookNotificationSenderAdapterTest {
                 .recipient(webhookUrl)
                 .subject("Test Subject")
                 .body("Test Body")
-                .invoiceId("INV-123")
-                .invoiceNumber("INV-001")
+                .documentId("INV-123")
+                .documentNumber("INV-001")
                 .correlationId("CORR-456")
                 .createdAt(Instant.now())
                 .metadata(new HashMap<>())
@@ -114,7 +114,7 @@ class WebhookNotificationSenderAdapterTest {
             metadata.put("key1", "value1");
 
             Map<String, Object> templateVars = new HashMap<>();
-            templateVars.put("invoiceNumber", "INV-001");
+            templateVars.put("documentNumber", "INV-001");
 
             Notification notification = Notification.builder()
                 .id(java.util.UUID.randomUUID())
@@ -123,8 +123,8 @@ class WebhookNotificationSenderAdapterTest {
                 .recipient(webhookUrl)
                 .subject("Test Subject")
                 .body("Test Body")
-                .invoiceId("INV-123")
-                .invoiceNumber("INV-001")
+                .documentId("INV-123")
+                .documentNumber("INV-001")
                 .correlationId("CORR-456")
                 .createdAt(Instant.now())
                 .metadata(metadata)
@@ -145,8 +145,8 @@ class WebhookNotificationSenderAdapterTest {
                        map.containsKey("type") &&
                        map.containsKey("subject") &&
                        map.containsKey("body") &&
-                       map.containsKey("invoiceId") &&
-                       map.containsKey("invoiceNumber") &&
+                       map.containsKey("documentId") &&
+                       map.containsKey("documentNumber") &&
                        map.containsKey("correlationId") &&
                        map.containsKey("timestamp") &&
                        map.containsKey("metadata") &&
@@ -239,7 +239,7 @@ class WebhookNotificationSenderAdapterTest {
             // Arrange
             String webhookUrl = "https://example.com/webhook";
             Map<String, Object> templateVars = new HashMap<>();
-            templateVars.put("invoiceNumber", "INV-001");
+            templateVars.put("documentNumber", "INV-001");
             templateVars.put("totalAmount", "1000.00");
 
             Notification notification = Notification.builder()
@@ -266,7 +266,7 @@ class WebhookNotificationSenderAdapterTest {
                 Map<String, Object> map = (Map<String, Object>) payload;
                 @SuppressWarnings("unchecked")
                 Map<String, Object> data = (Map<String, Object>) map.get("data");
-                return data != null && "INV-001".equals(data.get("invoiceNumber"));
+                return data != null && "INV-001".equals(data.get("documentNumber"));
             }));
         }
 

@@ -15,11 +15,11 @@ import java.util.UUID;
 @Getter
 public class InvoiceProcessedEvent extends TraceEvent {
 
-    @JsonProperty("invoiceId")
-    private final String invoiceId;
+    @JsonProperty("documentId")
+    private final String documentId;
 
-    @JsonProperty("invoiceNumber")
-    private final String invoiceNumber;
+    @JsonProperty("documentNumber")
+    private final String documentNumber;
 
     @JsonProperty("totalAmount")
     private final BigDecimal totalAmount;
@@ -31,12 +31,12 @@ public class InvoiceProcessedEvent extends TraceEvent {
      * Constructor for creating new events.
      * Generates eventId, occurredAt, eventType, and version automatically.
      */
-    public InvoiceProcessedEvent(String invoiceId, String invoiceNumber,
+    public InvoiceProcessedEvent(String documentId, String documentNumber,
                                   BigDecimal totalAmount, String currency,
                                   String correlationId) {
-        super(invoiceId, correlationId, "invoice-processing-service", "INVOICE_PROCESSED", null);
-        this.invoiceId = invoiceId;
-        this.invoiceNumber = invoiceNumber;
+        super(documentId, correlationId, "invoice-processing-service", "INVOICE_PROCESSED", null);
+        this.documentId = documentId;
+        this.documentNumber = documentNumber;
         this.totalAmount = totalAmount;
         this.currency = currency;
     }
@@ -57,14 +57,14 @@ public class InvoiceProcessedEvent extends TraceEvent {
         @JsonProperty("source") String source,
         @JsonProperty("traceType") String traceType,
         @JsonProperty("context") String context,
-        @JsonProperty("invoiceId") String invoiceId,
-        @JsonProperty("invoiceNumber") String invoiceNumber,
+        @JsonProperty("documentId") String documentId,
+        @JsonProperty("documentNumber") String documentNumber,
         @JsonProperty("totalAmount") BigDecimal totalAmount,
         @JsonProperty("currency") String currency
     ) {
         super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
-        this.invoiceId = invoiceId;
-        this.invoiceNumber = invoiceNumber;
+        this.documentId = documentId;
+        this.documentNumber = documentNumber;
         this.totalAmount = totalAmount;
         this.currency = currency;
     }

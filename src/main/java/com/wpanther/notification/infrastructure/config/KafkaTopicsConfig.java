@@ -16,7 +16,6 @@ public record KafkaTopicsConfig(
     String xmlSigned,
     String ebmsSent,
     String notificationDlq,
-    String documentReceived,
     String taxInvoiceReceived,
     String invoiceReceived,
     String receiptReceived,
@@ -26,5 +25,6 @@ public record KafkaTopicsConfig(
     String sagaLifecycleStarted,
     String sagaLifecycleStepCompleted,
     String sagaLifecycleCompleted,
-    String sagaLifecycleFailed
+    String sagaLifecycleFailed,
+    String traceDocumentReceived
 ) {}

@@ -29,12 +29,12 @@
 
             <div class="invoice-details">
                 <div class="detail-row">
-                    <span class="label">Invoice Number:</span>
-                    <span th:text="${invoiceNumber}">TINV-2025-001</span>
+                    <span class="label">Document Number:</span>
+                    <span th:text="${documentNumber}">TINV-2025-001</span>
                 </div>
                 <div class="detail-row">
-                    <span class="label">Invoice ID:</span>
-                    <span th:text="${invoiceId}">uuid-here</span>
+                    <span class="label">Document ID:</span>
+                    <span th:text="${documentId}">uuid-here</span>
                 </div>
                 <div class="detail-row" th:if="${totalAmount}">
                     <span class="label">Total Amount:</span>

@@ -1,6 +1,7 @@
 package com.wpanther.notification.infrastructure.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wpanther.notification.application.usecase.DocumentIntakeStatUseCase;
 import com.wpanther.notification.application.usecase.QueryNotificationUseCase;
 import com.wpanther.notification.application.usecase.RetryNotificationUseCase;
 import com.wpanther.notification.application.usecase.SendNotificationUseCase;
@@ -38,6 +39,9 @@ class GlobalExceptionHandlerTest {
 
     @MockBean
     private RetryNotificationUseCase retryNotificationUseCase;
+
+    @MockBean
+    private DocumentIntakeStatUseCase documentIntakeStatUseCase;
 
     @Autowired
     private ObjectMapper objectMapper;

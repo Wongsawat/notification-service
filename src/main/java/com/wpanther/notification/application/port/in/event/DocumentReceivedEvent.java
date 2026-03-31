@@ -22,8 +22,8 @@ public class DocumentReceivedEvent extends TraceEvent {
     @JsonProperty("documentId")
     private final String documentId;
 
-    @JsonProperty("invoiceNumber")
-    private final String invoiceNumber;
+    @JsonProperty("documentNumber")
+    private final String documentNumber;
 
     @JsonProperty("xmlContent")
     private final String xmlContent;
@@ -35,11 +35,11 @@ public class DocumentReceivedEvent extends TraceEvent {
      * Constructor for creating new events.
      * Generates eventId, occurredAt, eventType, and version automatically.
      */
-    public DocumentReceivedEvent(String documentId, String invoiceNumber, String xmlContent,
+    public DocumentReceivedEvent(String documentId, String documentNumber, String xmlContent,
                                   String correlationId, String documentType) {
         super(documentId, correlationId, "document-intake-service", "DOCUMENT_RECEIVED", null);
         this.documentId = documentId;
-        this.invoiceNumber = invoiceNumber;
+        this.documentNumber = documentNumber;
         this.xmlContent = xmlContent;
         this.documentType = documentType;
     }
@@ -60,13 +60,13 @@ public class DocumentReceivedEvent extends TraceEvent {
         @JsonProperty("traceType") String traceType,
         @JsonProperty("context") String context,
         @JsonProperty("documentId") String documentId,
-        @JsonProperty("invoiceNumber") String invoiceNumber,
+        @JsonProperty("documentNumber") String documentNumber,
         @JsonProperty("xmlContent") String xmlContent,
         @JsonProperty("documentType") String documentType
     ) {
         super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.documentId = documentId;
-        this.invoiceNumber = invoiceNumber;
+        this.documentNumber = documentNumber;
         this.xmlContent = xmlContent;
         this.documentType = documentType;
     }

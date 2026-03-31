@@ -140,7 +140,7 @@ class TemplateEngineTest {
         @DisplayName("xml-signed template exists and renders invoice number")
         void testXmlSignedTemplateRendersInvoiceNumber() {
             Map<String, Object> variables = new HashMap<>();
-            variables.put("invoiceNumber", "INV-2025-001");
+            variables.put("documentNumber", "INV-2025-001");
             variables.put("documentType", "TAX_INVOICE");
             variables.put("signedAt", "2025-01-15 10:30:00");
 
@@ -151,10 +151,10 @@ class TemplateEngineTest {
         }
 
         @Test
-        @DisplayName("xml-signed template renders without invoiceId field")
+        @DisplayName("xml-signed template renders without documentId field")
         void testXmlSignedTemplateRendersBasicStructure() {
             Map<String, Object> variables = new HashMap<>();
-            variables.put("invoiceNumber", "INV-TEST-999");
+            variables.put("documentNumber", "INV-TEST-999");
             variables.put("documentType", "INVOICE");
             variables.put("signedAt", "2025-06-01 09:00:00");
 

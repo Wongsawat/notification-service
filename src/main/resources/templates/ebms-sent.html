@@ -40,13 +40,13 @@
                     <span class="label">Document Type:</span>
                     <span th:text="${documentType}">TAX_INVOICE</span>
                 </div>
-                <div class="detail-row" th:if="${invoiceId != null and invoiceId != 'N/A'}">
-                    <span class="label">Invoice ID:</span>
-                    <span th:text="${invoiceId}">invoice-uuid</span>
+                <div class="detail-row" th:if="${documentId != null and documentId != 'N/A'}">
+                    <span class="label">Document ID:</span>
+                    <span th:text="${documentId}">invoice-uuid</span>
                 </div>
-                <div class="detail-row" th:if="${invoiceNumber != null and invoiceNumber != 'N/A'}">
-                    <span class="label">Invoice Number:</span>
-                    <span th:text="${invoiceNumber}">INV-2025-001</span>
+                <div class="detail-row" th:if="${documentNumber != null and documentNumber != 'N/A'}">
+                    <span class="label">Document Number:</span>
+                    <span th:text="${documentNumber}">INV-2025-001</span>
                 </div>
                 <div class="detail-row">
                     <span class="label">Submitted At:</span>
