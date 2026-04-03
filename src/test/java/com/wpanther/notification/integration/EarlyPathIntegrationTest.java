@@ -165,7 +165,7 @@ class EarlyPathIntegrationTest extends AbstractKafkaConsumerTest {
         void shouldLogSagaStarted() {
             // Given
             String sagaId        = "SAGA-" + UUID.randomUUID();
-            String correlationId = UUID.randomUUID().toString();
+            String correlationId = UUID.randomUUID().toString(); // required by event constructor; log-only route, no notification to assert
 
             SagaStartedEvent event = new SagaStartedEvent(
                 sagaId, correlationId, "TAX_INVOICE",
@@ -185,7 +185,7 @@ class EarlyPathIntegrationTest extends AbstractKafkaConsumerTest {
         void shouldLogSagaStepCompleted() {
             // Given
             String sagaId        = "SAGA-" + UUID.randomUUID();
-            String correlationId = UUID.randomUUID().toString();
+            String correlationId = UUID.randomUUID().toString(); // required by event constructor; log-only route, no notification to assert
 
             SagaStepCompletedEvent event = new SagaStepCompletedEvent(
                 sagaId, correlationId, "TAX_INVOICE",
@@ -228,6 +228,12 @@ class EarlyPathIntegrationTest extends AbstractKafkaConsumerTest {
             assertThat(notification.get("channel")).isEqualTo("EMAIL");
             assertThat(notification.get("status")).isEqualTo("SENT");
             assertThat(notification.get("template_name")).isEqualTo("saga-completed");
+            assertThat(notification.get("recipient")).isEqualTo("test-integration@example.com");
+            assertThat(notification.get("document_id")).isEqualTo(documentId);
+            assertThat(notification.get("document_number")).isEqualTo(documentNumber);
+            assertThat(notification.get("correlation_id")).isEqualTo(correlationId);
+            assertThat((String) notification.get("subject")).contains("Saga Completed");
+            assertThat((String) notification.get("subject")).contains(documentNumber);
 
             String templateVars = (String) notification.get("template_variables");
             assertThat(templateVars).contains(sagaId);
@@ -236,6 +242,7 @@ class EarlyPathIntegrationTest extends AbstractKafkaConsumerTest {
             assertThat(templateVars).contains(documentType);
             assertThat(templateVars).contains(stepsExecuted.toString());
             assertThat(templateVars).contains(durationMs.toString());
+            assertThat(templateVars).contains("durationSec");
         }
 
         @Test
@@ -271,7 +278,12 @@ class EarlyPathIntegrationTest extends AbstractKafkaConsumerTest {
             assertThat(notification.get("channel")).isEqualTo("EMAIL");
             assertThat(notification.get("status")).isEqualTo("SENT");
             assertThat(notification.get("template_name")).isEqualTo("saga-failed");
-            assertThat((String) notification.get("subject")).contains("URGENT");
+            assertThat(notification.get("recipient")).isEqualTo("test-integration@example.com");
+            assertThat(notification.get("document_id")).isEqualTo(documentId);
+            assertThat(notification.get("document_number")).isEqualTo(documentNumber);
+            assertThat(notification.get("correlation_id")).isEqualTo(correlationId);
+            assertThat((String) notification.get("subject")).contains("URGENT: Saga Failed");
+            assertThat((String) notification.get("subject")).contains(documentNumber);
 
             String templateVars = (String) notification.get("template_variables");
             assertThat(templateVars).contains(sagaId);
@@ -280,6 +292,7 @@ class EarlyPathIntegrationTest extends AbstractKafkaConsumerTest {
             assertThat(templateVars).contains(errorMessage);
             assertThat(templateVars).contains(retryCount.toString());
             assertThat(templateVars).contains("true");  // compensationInitiated
+            assertThat(templateVars).contains("failedAt");
         }
     }
 }
