@@ -33,7 +33,7 @@ public class SagaStepCompletedEvent extends TraceEvent {
      */
     public SagaStepCompletedEvent(String sagaId, String correlationId, String documentType,
                                    String completedStep, String nextStep) {
-        super(sagaId, correlationId, "orchestrator-service", "SAGA_STEP_COMPLETED", null);
+        super(sagaId, correlationId, "orchestrator", "STEP_COMPLETED", null);
         this.documentType = documentType;
         this.completedStep = completedStep;
         this.nextStep = nextStep;

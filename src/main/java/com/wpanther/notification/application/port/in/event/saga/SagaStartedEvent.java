@@ -36,7 +36,7 @@ public class SagaStartedEvent extends TraceEvent {
      */
     public SagaStartedEvent(String sagaId, String correlationId, String documentType,
                             String documentId, String currentStep, String documentNumber) {
-        super(sagaId, correlationId, "orchestrator-service", "SAGA_STARTED", null);
+        super(sagaId, correlationId, "orchestrator", "SAGA_STARTED", null);
         this.documentType = documentType;
         this.documentId = documentId;
         this.currentStep = currentStep;
