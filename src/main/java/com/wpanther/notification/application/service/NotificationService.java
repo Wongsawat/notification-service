@@ -1,7 +1,6 @@
 package com.wpanther.notification.application.service;
 
 import com.wpanther.notification.application.usecase.DocumentIntakeStatUseCase;
-import com.wpanther.notification.application.usecase.DocumentReceivedEventUseCase;
 import com.wpanther.notification.application.usecase.ProcessingEventUseCase;
 import com.wpanther.notification.application.usecase.QueryNotificationUseCase;
 import com.wpanther.notification.application.usecase.RetryNotificationUseCase;
@@ -15,7 +14,6 @@ import com.wpanther.notification.domain.model.NotificationStatus;
 import com.wpanther.notification.domain.model.NotificationType;
 import com.wpanther.notification.domain.model.DocumentIntakeStat;
 import com.wpanther.notification.application.dto.DocumentIntakeStatsResponse;
-import com.wpanther.notification.application.port.in.event.DocumentReceivedEvent;
 import com.wpanther.notification.application.port.in.event.DocumentReceivedTraceEvent;
 import com.wpanther.notification.application.port.in.event.EbmsSentEvent;
 import com.wpanther.notification.application.port.in.event.InvoiceProcessedEvent;
@@ -63,7 +61,6 @@ public class NotificationService
                    QueryNotificationUseCase,
                    RetryNotificationUseCase,
                    ProcessingEventUseCase,
-                   DocumentReceivedEventUseCase,
                    SagaEventUseCase,
                    DocumentIntakeStatUseCase {
 
@@ -365,15 +362,6 @@ public class NotificationService
         notification.addMetadata("documentType", event.getDocumentType());
 
         dispatcherService.dispatchAsync(notification);
-    }
-
-    // ── DocumentReceivedEventUseCase ─────────────────────────────────────────────────────
-
-    @Override
-    public void handleDocumentReceived(DocumentReceivedEvent event) {
-        log.info("Processing DocumentReceivedEvent (statistics): documentId={}, documentType={}, correlationId={}",
-            event.getDocumentId(), event.getDocumentType(), event.getCorrelationId());
-        // Log only. Future: persist to database for type-specific statistics.
     }
 
     // ── SagaEventUseCase ─────────────────────────────────────────────────────────────────

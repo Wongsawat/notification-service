@@ -1,5 +1,6 @@
 package com.wpanther.notification.application.port.in.event;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.wpanther.saga.domain.model.TraceEvent;
@@ -16,9 +17,11 @@ import java.util.UUID;
 public class TaxInvoiceProcessedEvent extends TraceEvent {
 
     @JsonProperty("documentId")
+    @JsonAlias("invoiceId")
     private final String documentId;
 
     @JsonProperty("documentNumber")
+    @JsonAlias("invoiceNumber")
     private final String documentNumber;
 
     @JsonProperty("total")

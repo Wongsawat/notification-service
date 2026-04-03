@@ -105,14 +105,6 @@ kafka:
     xml-signed: xml.signed
     ebms-sent: ebms.sent
     notification-dlq: notification.dlq
-    # Document-type-specific topics for statistics (after validation)
-    tax-invoice-received: document.received.tax-invoice
-    invoice-received: document.received.invoice
-    receipt-received: document.received.receipt
-    debit-credit-note-received: document.received.debit-credit-note
-    cancellation-received: document.received.cancellation
-    abbreviated-received: document.received.abbreviated
-
     # Saga lifecycle topics from orchestrator-service
     saga-lifecycle-started: saga.lifecycle.started
     saga-lifecycle-step-completed: saga.lifecycle.step-completed

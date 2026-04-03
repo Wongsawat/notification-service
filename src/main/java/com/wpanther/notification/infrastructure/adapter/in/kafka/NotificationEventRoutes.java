@@ -1,6 +1,5 @@
 package com.wpanther.notification.infrastructure.adapter.in.kafka;
 
-import com.wpanther.notification.application.port.in.event.DocumentReceivedEvent;
 import com.wpanther.notification.application.port.in.event.DocumentReceivedTraceEvent;
 import com.wpanther.notification.application.port.in.event.EbmsSentEvent;
 import com.wpanther.notification.application.port.in.event.InvoiceProcessedEvent;
@@ -13,7 +12,6 @@ import com.wpanther.notification.application.port.in.event.saga.SagaCompletedEve
 import com.wpanther.notification.application.port.in.event.saga.SagaFailedEvent;
 import com.wpanther.notification.application.port.in.event.saga.SagaStartedEvent;
 import com.wpanther.notification.application.port.in.event.saga.SagaStepCompletedEvent;
-import com.wpanther.notification.application.usecase.DocumentReceivedEventUseCase;
 import com.wpanther.notification.application.usecase.DocumentIntakeStatUseCase;
 import com.wpanther.notification.application.usecase.ProcessingEventUseCase;
 import com.wpanther.notification.application.usecase.SagaEventUseCase;
@@ -36,7 +34,6 @@ import org.springframework.stereotype.Component;
 public class NotificationEventRoutes extends RouteBuilder {
 
     private final ProcessingEventUseCase processingEventUseCase;
-    private final DocumentReceivedEventUseCase documentReceivedEventUseCase;
     private final SagaEventUseCase sagaEventUseCase;
     private final DocumentIntakeStatUseCase documentIntakeStatUseCase;
     private final boolean notificationEnabled;
@@ -50,7 +47,6 @@ public class NotificationEventRoutes extends RouteBuilder {
 
     public NotificationEventRoutes(
             ProcessingEventUseCase processingEventUseCase,
-            DocumentReceivedEventUseCase documentReceivedEventUseCase,
             SagaEventUseCase sagaEventUseCase,
             DocumentIntakeStatUseCase documentIntakeStatUseCase,
             @Value("${app.notification.enabled:true}") boolean notificationEnabled,
@@ -62,7 +58,6 @@ public class NotificationEventRoutes extends RouteBuilder {
             @Value("${app.notification.dlq-back-off-multiplier:2}") double dlqBackOffMultiplier,
             @Value("${app.notification.dlq-max-redelivery-delay-ms:30000}") long dlqMaxRedeliveryDelayMs) {
         this.processingEventUseCase = processingEventUseCase;
-        this.documentReceivedEventUseCase = documentReceivedEventUseCase;
         this.sagaEventUseCase = sagaEventUseCase;
         this.documentIntakeStatUseCase = documentIntakeStatUseCase;
         this.notificationEnabled = notificationEnabled;
@@ -203,88 +198,7 @@ public class NotificationEventRoutes extends RouteBuilder {
             .process(this::handleXmlSigned)
             .log("Created notification for XML signed: ${header.documentNumber}");
 
-        // Route 8: Tax Invoice Document Received Events (after validation)
-        // Statistics event for validated tax invoice documents
-        from("kafka:" + topics.taxInvoiceReceived() + kafkaOptions)
-            .routeId("notification-tax-invoice-received")
-            .log("Received DocumentReceivedEvent (TAX_INVOICE) from Kafka")
-            .choice()
-                .when(exchange -> !notificationEnabled)
-                    .log("Notifications disabled, skipping statistics event")
-                    .stop()
-            .end()
-            .unmarshal().json(JsonLibrary.Jackson, DocumentReceivedEvent.class)
-            .process(this::handleDocumentReceivedStats)
-            .log("Processed tax invoice statistics event");
-
-        // Route 9: Invoice Document Received Events (after validation)
-        // Statistics event for validated invoice documents
-        from("kafka:" + topics.invoiceReceived() + kafkaOptions)
-            .routeId("notification-invoice-received")
-            .log("Received DocumentReceivedEvent (INVOICE) from Kafka")
-            .choice()
-                .when(exchange -> !notificationEnabled)
-                    .log("Notifications disabled, skipping statistics event")
-                    .stop()
-            .end()
-            .unmarshal().json(JsonLibrary.Jackson, DocumentReceivedEvent.class)
-            .process(this::handleDocumentReceivedStats)
-            .log("Processed invoice statistics event");
-
-        // Additional routes for other document types follow the same pattern
-        // Route 10: Receipt Document Received Events (after validation)
-        from("kafka:" + topics.receiptReceived() + kafkaOptions)
-            .routeId("notification-receipt-received")
-            .log("Received DocumentReceivedEvent (RECEIPT) from Kafka")
-            .choice()
-                .when(exchange -> !notificationEnabled)
-                    .log("Notifications disabled, skipping statistics event")
-                    .stop()
-            .end()
-            .unmarshal().json(JsonLibrary.Jackson, DocumentReceivedEvent.class)
-            .process(this::handleDocumentReceivedStats)
-            .log("Processed receipt statistics event");
-
-        // Route 11: Debit/Credit Note Document Received Events (after validation)
-        from("kafka:" + topics.debitCreditNoteReceived() + kafkaOptions)
-            .routeId("notification-debit-credit-note-received")
-            .log("Received DocumentReceivedEvent (DEBIT_CREDIT_NOTE) from Kafka")
-            .choice()
-                .when(exchange -> !notificationEnabled)
-                    .log("Notifications disabled, skipping statistics event")
-                    .stop()
-            .end()
-            .unmarshal().json(JsonLibrary.Jackson, DocumentReceivedEvent.class)
-            .process(this::handleDocumentReceivedStats)
-            .log("Processed debit/credit note statistics event");
-
-        // Route 12: Cancellation Note Document Received Events (after validation)
-        from("kafka:" + topics.cancellationReceived() + kafkaOptions)
-            .routeId("notification-cancellation-received")
-            .log("Received DocumentReceivedEvent (CANCELLATION) from Kafka")
-            .choice()
-                .when(exchange -> !notificationEnabled)
-                    .log("Notifications disabled, skipping statistics event")
-                    .stop()
-            .end()
-            .unmarshal().json(JsonLibrary.Jackson, DocumentReceivedEvent.class)
-            .process(this::handleDocumentReceivedStats)
-            .log("Processed cancellation note statistics event");
-
-        // Route 13: Abbreviated Tax Invoice Document Received Events (after validation)
-        from("kafka:" + topics.abbreviatedReceived() + kafkaOptions)
-            .routeId("notification-abbreviated-received")
-            .log("Received DocumentReceivedEvent (ABBREVIATED) from Kafka")
-            .choice()
-                .when(exchange -> !notificationEnabled)
-                    .log("Notifications disabled, skipping statistics event")
-                    .stop()
-            .end()
-            .unmarshal().json(JsonLibrary.Jackson, DocumentReceivedEvent.class)
-            .process(this::handleDocumentReceivedStats)
-            .log("Processed abbreviated tax invoice statistics event");
-
-        // Route 14: ebMS Sent Events
+        // Route 8: ebMS Sent Events
         from("kafka:" + topics.ebmsSent() + kafkaOptions)
             .routeId("notification-ebms-sent")
             .log("Received EbmsSentEvent from Kafka")
@@ -404,12 +318,6 @@ public class NotificationEventRoutes extends RouteBuilder {
         processingEventUseCase.handleEbmsSent(event);
         exchange.getIn().setHeader("documentNumber",
             event.getDocumentNumber() != null ? event.getDocumentNumber() : event.getDocumentId());
-    }
-
-    private void handleDocumentReceivedStats(Exchange exchange) {
-        DocumentReceivedEvent event = exchange.getIn().getBody(DocumentReceivedEvent.class);
-        documentReceivedEventUseCase.handleDocumentReceived(event);
-        exchange.getIn().setHeader("documentId", event.getDocumentId());
     }
 
     private void handleSagaStarted(Exchange exchange) {
