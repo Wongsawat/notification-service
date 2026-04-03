@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -31,15 +32,19 @@ class EarlyPathIntegrationTest extends AbstractKafkaConsumerTest {
     // Helper: wait for a row in document_intake_stats, then return it
     // -----------------------------------------------------------------------
     private Map<String, Object> awaitIntakeStatByDocumentId(String documentId) {
+        AtomicReference<Map<String, Object>> result = new AtomicReference<>();
         await().atMost(30, TimeUnit.SECONDS)
                .pollInterval(1, TimeUnit.SECONDS)
                .until(() -> {
                    List<Map<String, Object>> rows = testJdbcTemplate.queryForList(
                        "SELECT * FROM document_intake_stats WHERE document_id = ?", documentId);
-                   return !rows.isEmpty();
+                   if (!rows.isEmpty()) {
+                       result.set(rows.get(0));
+                       return true;
+                   }
+                   return false;
                });
-        return testJdbcTemplate.queryForList(
-            "SELECT * FROM document_intake_stats WHERE document_id = ?", documentId).get(0);
+        return result.get();
     }
 
     // -----------------------------------------------------------------------
@@ -93,6 +98,7 @@ class EarlyPathIntegrationTest extends AbstractKafkaConsumerTest {
             assertThat(row.get("document_number")).isEqualTo(documentNumber);
             assertThat(row.get("status")).isEqualTo("RECEIVED");
             assertThat(row.get("occurred_at")).isNotNull();
+            assertThat(row.get("correlation_id")).isEqualTo(correlationId);
         }
 
         @Test
@@ -113,9 +119,11 @@ class EarlyPathIntegrationTest extends AbstractKafkaConsumerTest {
             Map<String, Object> row = awaitIntakeStatByDocumentId(documentId);
 
             assertThat(row.get("document_id")).isEqualTo(documentId);
+            assertThat(row.get("document_type")).isEqualTo("TAX_INVOICE");
             assertThat(row.get("document_number")).isEqualTo(documentNumber);
             assertThat(row.get("status")).isEqualTo("VALIDATED");
             assertThat(row.get("occurred_at")).isNotNull();
+            assertThat(row.get("correlation_id")).isEqualTo(correlationId);
         }
 
         @Test
@@ -136,9 +144,11 @@ class EarlyPathIntegrationTest extends AbstractKafkaConsumerTest {
             Map<String, Object> row = awaitIntakeStatByDocumentId(documentId);
 
             assertThat(row.get("document_id")).isEqualTo(documentId);
+            assertThat(row.get("document_type")).isEqualTo("TAX_INVOICE");
             assertThat(row.get("document_number")).isEqualTo(documentNumber);
             assertThat(row.get("status")).isEqualTo("FORWARDED");
             assertThat(row.get("occurred_at")).isNotNull();
+            assertThat(row.get("correlation_id")).isEqualTo(correlationId);
         }
     }
     // (OrchestratorLifecycleEvents group will be added in the next task)
