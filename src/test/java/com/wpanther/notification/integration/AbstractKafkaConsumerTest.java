@@ -70,8 +70,7 @@ public abstract class AbstractKafkaConsumerTest {
 
         when(webhookNotificationSenderAdapter.supports(any())).thenReturn(false);
 
-        // Clean database (order matters for FK constraints)
-        testJdbcTemplate.execute("DELETE FROM outbox_events");
+        // Clean database
         testJdbcTemplate.execute("DELETE FROM notifications");
     }
 
