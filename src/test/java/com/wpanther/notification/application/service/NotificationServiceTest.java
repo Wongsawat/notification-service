@@ -146,7 +146,7 @@ class NotificationServiceTest {
     @DisplayName("handleInvoicePdfGenerated creates PDF_GENERATED notification and dispatches async")
     void testHandleInvoicePdfGenerated_dispatchesAsync() {
         InvoicePdfGeneratedEvent event = new InvoicePdfGeneratedEvent(
-            "INV-2025-001", "doc-001", "http://example.com/doc", 102400L, true, false, "corr-1");
+            "doc-001", "INV-2025-001", "http://example.com/doc", 102400L, true, false, "corr-1");
 
         ReflectionTestUtils.setField(notificationService, "defaultRecipient", "admin@example.com");
 

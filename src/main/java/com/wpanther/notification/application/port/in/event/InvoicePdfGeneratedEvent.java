@@ -33,12 +33,12 @@ public class InvoicePdfGeneratedEvent extends TraceEvent {
     @JsonProperty("digitallySigned")
     private final boolean digitallySigned;
 
-    public InvoicePdfGeneratedEvent(String documentNumber, String documentId,
+    public InvoicePdfGeneratedEvent(String documentId, String documentNumber,
                                     String documentUrl, long fileSize, boolean xmlEmbedded,
                                     boolean digitallySigned, String correlationId) {
         super(documentId, correlationId, "pdf-generation-service", "PDF_GENERATED", null);
-        this.documentNumber = documentNumber;
         this.documentId = documentId;
+        this.documentNumber = documentNumber;
         this.documentUrl = documentUrl;
         this.fileSize = fileSize;
         this.xmlEmbedded = xmlEmbedded;
