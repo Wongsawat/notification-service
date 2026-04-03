@@ -104,7 +104,7 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
         long fileSize = 125000; // 125 KB
 
         InvoicePdfGeneratedEvent event = new InvoicePdfGeneratedEvent(
-            documentId, documentNumber, documentUrl, fileSize,
+            documentNumber, documentId, documentUrl, fileSize,
             true,  // xmlEmbedded
             false, // digitallySigned
             correlationId
