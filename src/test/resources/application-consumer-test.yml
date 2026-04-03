@@ -79,6 +79,7 @@ kafka:
     saga-lifecycle-step-completed: saga.lifecycle.step-completed
     saga-lifecycle-completed: saga.lifecycle.completed
     saga-lifecycle-failed: saga.lifecycle.failed
+    trace-document-received: trace.document.received
 
 # Application config
 app:
