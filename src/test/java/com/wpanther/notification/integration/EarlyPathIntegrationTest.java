@@ -1,6 +1,10 @@
 package com.wpanther.notification.integration;
 
 import com.wpanther.notification.application.port.in.event.DocumentReceivedTraceEvent;
+import com.wpanther.notification.application.port.in.event.saga.SagaCompletedEvent;
+import com.wpanther.notification.application.port.in.event.saga.SagaFailedEvent;
+import com.wpanther.notification.application.port.in.event.saga.SagaStartedEvent;
+import com.wpanther.notification.application.port.in.event.saga.SagaStepCompletedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -151,5 +155,131 @@ class EarlyPathIntegrationTest extends AbstractKafkaConsumerTest {
             assertThat(row.get("correlation_id")).isEqualTo(correlationId);
         }
     }
-    // (OrchestratorLifecycleEvents group will be added in the next task)
+    // =======================================================================
+    @Nested
+    @DisplayName("OrchestratorLifecycleEvents")
+    class OrchestratorLifecycleEvents {
+
+        @Test
+        @DisplayName("Should log SagaStartedEvent without creating a notification")
+        void shouldLogSagaStarted() {
+            // Given
+            String sagaId        = "SAGA-" + UUID.randomUUID();
+            String correlationId = UUID.randomUUID().toString();
+
+            SagaStartedEvent event = new SagaStartedEvent(
+                sagaId, correlationId, "TAX_INVOICE",
+                "DOC-" + UUID.randomUUID(), "PROCESS_TAX_INVOICE",
+                "TIV-" + System.currentTimeMillis()
+            );
+
+            // When
+            sendEvent("saga.lifecycle.started", sagaId, event);
+
+            // Then — log only; notifications table must stay empty for 15 s
+            assertNoNotificationCreatedAfterWait();
+        }
+
+        @Test
+        @DisplayName("Should log SagaStepCompletedEvent without creating a notification")
+        void shouldLogSagaStepCompleted() {
+            // Given
+            String sagaId        = "SAGA-" + UUID.randomUUID();
+            String correlationId = UUID.randomUUID().toString();
+
+            SagaStepCompletedEvent event = new SagaStepCompletedEvent(
+                sagaId, correlationId, "TAX_INVOICE",
+                "PROCESS_TAX_INVOICE", "SIGN_XML"
+            );
+
+            // When
+            sendEvent("saga.lifecycle.step-completed", sagaId, event);
+
+            // Then — log only; notifications table must stay empty for 15 s
+            assertNoNotificationCreatedAfterWait();
+        }
+
+        @Test
+        @DisplayName("Should create email notification on SagaCompletedEvent")
+        void shouldCreateNotificationOnSagaCompleted() {
+            // Given
+            String sagaId         = "SAGA-" + UUID.randomUUID();
+            String correlationId  = UUID.randomUUID().toString();
+            String documentType   = "TAX_INVOICE";
+            String documentId     = "DOC-" + UUID.randomUUID();
+            String documentNumber = "TIV-COMP-" + System.currentTimeMillis();
+            Integer stepsExecuted = 7;
+            Instant startedAt     = Instant.now().minusSeconds(90);
+            Instant completedAt   = Instant.now();
+            Long durationMs       = 90000L;
+
+            SagaCompletedEvent event = new SagaCompletedEvent(
+                sagaId, correlationId, documentType, documentId, documentNumber,
+                stepsExecuted, startedAt, completedAt, durationMs
+            );
+
+            // When
+            sendEvent("saga.lifecycle.completed", documentId, event);
+
+            // Then — notification must reach SENT status
+            Map<String, Object> notification = awaitNotificationByDocumentId(documentId);
+
+            assertThat(notification.get("type")).isEqualTo("SAGA_COMPLETED");
+            assertThat(notification.get("channel")).isEqualTo("EMAIL");
+            assertThat(notification.get("status")).isEqualTo("SENT");
+            assertThat(notification.get("template_name")).isEqualTo("saga-completed");
+
+            String templateVars = (String) notification.get("template_variables");
+            assertThat(templateVars).contains(sagaId);
+            assertThat(templateVars).contains(documentId);
+            assertThat(templateVars).contains(documentNumber);
+            assertThat(templateVars).contains(documentType);
+            assertThat(templateVars).contains(stepsExecuted.toString());
+            assertThat(templateVars).contains(durationMs.toString());
+        }
+
+        @Test
+        @DisplayName("Should create urgent email notification on SagaFailedEvent")
+        void shouldCreateUrgentNotificationOnSagaFailed() {
+            // Given
+            String sagaId         = "SAGA-" + UUID.randomUUID();
+            String correlationId  = UUID.randomUUID().toString();
+            String documentType   = "TAX_INVOICE";
+            String documentId     = "DOC-" + UUID.randomUUID();
+            String documentNumber = "TIV-FAIL-" + System.currentTimeMillis();
+            String failedStep     = "SIGN_XML";
+            String errorMessage   = "Connection timeout to signing service";
+            Integer retryCount    = 3;
+            Boolean compensationInitiated = true;
+            Instant startedAt     = Instant.now().minusSeconds(45);
+            Instant failedAt      = Instant.now();
+            Long durationMs       = 45000L;
+
+            SagaFailedEvent event = new SagaFailedEvent(
+                sagaId, correlationId, documentType, documentId, documentNumber,
+                failedStep, errorMessage, retryCount, compensationInitiated,
+                startedAt, failedAt, durationMs
+            );
+
+            // When
+            sendEvent("saga.lifecycle.failed", documentId, event);
+
+            // Then — notification must reach SENT status
+            Map<String, Object> notification = awaitNotificationByDocumentId(documentId);
+
+            assertThat(notification.get("type")).isEqualTo("SAGA_FAILED");
+            assertThat(notification.get("channel")).isEqualTo("EMAIL");
+            assertThat(notification.get("status")).isEqualTo("SENT");
+            assertThat(notification.get("template_name")).isEqualTo("saga-failed");
+            assertThat((String) notification.get("subject")).contains("URGENT");
+
+            String templateVars = (String) notification.get("template_variables");
+            assertThat(templateVars).contains(sagaId);
+            assertThat(templateVars).contains(documentId);
+            assertThat(templateVars).contains(failedStep);
+            assertThat(templateVars).contains(errorMessage);
+            assertThat(templateVars).contains(retryCount.toString());
+            assertThat(templateVars).contains("true");  // compensationInitiated
+        }
+    }
 }
