@@ -80,6 +80,15 @@ kafka:
     saga-lifecycle-completed: saga.lifecycle.completed
     saga-lifecycle-failed: saga.lifecycle.failed
     trace-document-received: trace.document.received
+    receipt-processed: receipt.processed
+    cancellation-note-processed: cancellationnote.processed
+    debit-credit-note-processed: debitcreditnote.processed
+    abbreviated-tax-invoice-processed: abbreviated.taxinvoice.processed
+    pdf-generated-receipt: pdf.generated.receipt
+    pdf-generated-cancellation-note: pdf.generated.cancellation-note
+    pdf-generated-debit-credit-note: pdf.generated.debit-credit-note
+    pdf-generated-abbreviated-tax-invoice: pdf.generated.abbreviated-tax-invoice
+    document-archived: document.archived
 
 # Application config
 app:
