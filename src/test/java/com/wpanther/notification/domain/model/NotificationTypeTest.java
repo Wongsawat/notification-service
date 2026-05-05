@@ -9,9 +9,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class NotificationTypeTest {
 
     @Test
-    @DisplayName("Should have exactly 14 type values")
+    @DisplayName("Should have exactly 23 type values")
     void testEnumCount() {
-        assertThat(NotificationType.values()).hasSize(14);
+        assertThat(NotificationType.values()).hasSize(23);
     }
 
     @Test
@@ -19,6 +19,15 @@ class NotificationTypeTest {
     void testEnumValues() {
         assertThat(NotificationType.values())
             .containsExactlyInAnyOrder(
+                NotificationType.RECEIPT_PROCESSED,
+                NotificationType.CANCELLATION_NOTE_PROCESSED,
+                NotificationType.DEBIT_CREDIT_NOTE_PROCESSED,
+                NotificationType.ABBREVIATED_TAX_INVOICE_PROCESSED,
+                NotificationType.RECEIPT_PDF_GENERATED,
+                NotificationType.CANCELLATION_NOTE_PDF_GENERATED,
+                NotificationType.DEBIT_CREDIT_NOTE_PDF_GENERATED,
+                NotificationType.ABBREVIATED_TAX_INVOICE_PDF_GENERATED,
+                NotificationType.DOCUMENT_ARCHIVED,
                 NotificationType.INVOICE_PROCESSED,
                 NotificationType.TAXINVOICE_PROCESSED,
                 NotificationType.XML_SIGNED,

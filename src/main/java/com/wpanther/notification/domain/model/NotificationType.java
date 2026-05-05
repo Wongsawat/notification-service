@@ -4,6 +4,16 @@ package com.wpanther.notification.domain.model;
  * Types of notifications in the invoice processing lifecycle
  */
 public enum NotificationType {
+    RECEIPT_PROCESSED,
+    CANCELLATION_NOTE_PROCESSED,
+    DEBIT_CREDIT_NOTE_PROCESSED,
+    ABBREVIATED_TAX_INVOICE_PROCESSED,
+    RECEIPT_PDF_GENERATED,
+    CANCELLATION_NOTE_PDF_GENERATED,
+    DEBIT_CREDIT_NOTE_PDF_GENERATED,
+    ABBREVIATED_TAX_INVOICE_PDF_GENERATED,
+    DOCUMENT_ARCHIVED,
+
     INVOICE_PROCESSED,          // Invoice processing completed
     TAXINVOICE_PROCESSED,       // Tax invoice processing completed
     XML_SIGNED,                 // XML document signed
