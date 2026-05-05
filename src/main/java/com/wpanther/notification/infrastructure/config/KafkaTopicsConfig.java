@@ -20,5 +20,15 @@ public record KafkaTopicsConfig(
     String sagaLifecycleStepCompleted,
     String sagaLifecycleCompleted,
     String sagaLifecycleFailed,
-    String traceDocumentReceived
+    String traceDocumentReceived,
+    // --- 9 new fields below ---
+    String receiptProcessed,
+    String cancellationNoteProcessed,
+    String debitCreditNoteProcessed,
+    String abbreviatedTaxInvoiceProcessed,
+    String pdfGeneratedReceipt,
+    String pdfGeneratedCancellationNote,
+    String pdfGeneratedDebitCreditNote,
+    String pdfGeneratedAbbreviatedTaxInvoice,
+    String documentArchived
 ) {}
