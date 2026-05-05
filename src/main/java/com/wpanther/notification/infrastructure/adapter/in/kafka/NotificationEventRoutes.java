@@ -12,6 +12,15 @@ import com.wpanther.notification.application.port.in.event.saga.SagaCompletedEve
 import com.wpanther.notification.application.port.in.event.saga.SagaFailedEvent;
 import com.wpanther.notification.application.port.in.event.saga.SagaStartedEvent;
 import com.wpanther.notification.application.port.in.event.saga.SagaStepCompletedEvent;
+import com.wpanther.notification.application.port.in.event.ReceiptProcessedEvent;
+import com.wpanther.notification.application.port.in.event.CancellationNoteProcessedEvent;
+import com.wpanther.notification.application.port.in.event.DebitCreditNoteProcessedEvent;
+import com.wpanther.notification.application.port.in.event.AbbreviatedTaxInvoiceProcessedEvent;
+import com.wpanther.notification.application.port.in.event.ReceiptPdfGeneratedEvent;
+import com.wpanther.notification.application.port.in.event.CancellationNotePdfGeneratedEvent;
+import com.wpanther.notification.application.port.in.event.DebitCreditNotePdfGeneratedEvent;
+import com.wpanther.notification.application.port.in.event.AbbreviatedTaxInvoicePdfGeneratedEvent;
+import com.wpanther.notification.application.port.in.event.DocumentArchivedEvent;
 import com.wpanther.notification.application.usecase.DocumentIntakeStatUseCase;
 import com.wpanther.notification.application.usecase.ProcessingEventUseCase;
 import com.wpanther.notification.application.usecase.SagaEventUseCase;
@@ -275,6 +284,123 @@ public class NotificationEventRoutes extends RouteBuilder {
             .unmarshal().json(JsonLibrary.Jackson, DocumentReceivedTraceEvent.class)
             .process(this::handleIntakeStat)
             .log("Persisted intake stat: documentId=${header.documentId}, status=${header.status}");
+
+        // Route 20: Receipt Processed Events
+        from("kafka:" + topics.receiptProcessed() + kafkaOptions)
+            .routeId("notification-receipt-processed")
+            .log("Received ReceiptProcessedEvent from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping message")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, ReceiptProcessedEvent.class)
+            .process(this::handleReceiptProcessed)
+            .log("Created notification for receipt processed: ${header.documentNumber}");
+
+        // Route 21: Cancellation Note Processed Events
+        from("kafka:" + topics.cancellationNoteProcessed() + kafkaOptions)
+            .routeId("notification-cancellation-note-processed")
+            .log("Received CancellationNoteProcessedEvent from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping message")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, CancellationNoteProcessedEvent.class)
+            .process(this::handleCancellationNoteProcessed)
+            .log("Created notification for cancellation note processed: ${header.documentNumber}");
+
+        // Route 22: Debit/Credit Note Processed Events
+        from("kafka:" + topics.debitCreditNoteProcessed() + kafkaOptions)
+            .routeId("notification-debit-credit-note-processed")
+            .log("Received DebitCreditNoteProcessedEvent from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping message")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, DebitCreditNoteProcessedEvent.class)
+            .process(this::handleDebitCreditNoteProcessed)
+            .log("Created notification for debit/credit note processed: ${header.documentNumber}");
+
+        // Route 23: Abbreviated Tax Invoice Processed Events
+        from("kafka:" + topics.abbreviatedTaxInvoiceProcessed() + kafkaOptions)
+            .routeId("notification-abbreviated-tax-invoice-processed")
+            .log("Received AbbreviatedTaxInvoiceProcessedEvent from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping message")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, AbbreviatedTaxInvoiceProcessedEvent.class)
+            .process(this::handleAbbreviatedTaxInvoiceProcessed)
+            .log("Created notification for abbreviated tax invoice processed: ${header.documentNumber}");
+
+        // Route 24: Receipt PDF Generated Events
+        from("kafka:" + topics.pdfGeneratedReceipt() + kafkaOptions)
+            .routeId("notification-receipt-pdf-generated")
+            .log("Received ReceiptPdfGeneratedEvent from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping message")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, ReceiptPdfGeneratedEvent.class)
+            .process(this::handleReceiptPdfGenerated)
+            .log("Created notification for receipt PDF generated: ${header.documentNumber}");
+
+        // Route 25: Cancellation Note PDF Generated Events
+        from("kafka:" + topics.pdfGeneratedCancellationNote() + kafkaOptions)
+            .routeId("notification-cancellation-note-pdf-generated")
+            .log("Received CancellationNotePdfGeneratedEvent from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping message")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, CancellationNotePdfGeneratedEvent.class)
+            .process(this::handleCancellationNotePdfGenerated)
+            .log("Created notification for cancellation note PDF generated: ${header.documentNumber}");
+
+        // Route 26: Debit/Credit Note PDF Generated Events
+        from("kafka:" + topics.pdfGeneratedDebitCreditNote() + kafkaOptions)
+            .routeId("notification-debit-credit-note-pdf-generated")
+            .log("Received DebitCreditNotePdfGeneratedEvent from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping message")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, DebitCreditNotePdfGeneratedEvent.class)
+            .process(this::handleDebitCreditNotePdfGenerated)
+            .log("Created notification for debit/credit note PDF generated: ${header.documentNumber}");
+
+        // Route 27: Abbreviated Tax Invoice PDF Generated Events
+        from("kafka:" + topics.pdfGeneratedAbbreviatedTaxInvoice() + kafkaOptions)
+            .routeId("notification-abbreviated-tax-invoice-pdf-generated")
+            .log("Received AbbreviatedTaxInvoicePdfGeneratedEvent from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping message")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, AbbreviatedTaxInvoicePdfGeneratedEvent.class)
+            .process(this::handleAbbreviatedTaxInvoicePdfGenerated)
+            .log("Created notification for abbreviated tax invoice PDF generated: ${header.documentNumber}");
+
+        // Route 28: Document Archived Events
+        from("kafka:" + topics.documentArchived() + kafkaOptions)
+            .routeId("notification-document-archived")
+            .log("Received DocumentArchivedEvent from Kafka")
+            .choice()
+                .when(exchange -> !notificationEnabled)
+                    .log("Notifications disabled, skipping message")
+                    .stop()
+            .end()
+            .unmarshal().json(JsonLibrary.Jackson, DocumentArchivedEvent.class)
+            .process(this::handleDocumentArchived)
+            .log("Created notification for document archived: ${header.documentNumber}");
     }
 
     private void handleInvoiceProcessed(Exchange exchange) {
@@ -349,5 +475,59 @@ public class NotificationEventRoutes extends RouteBuilder {
         documentIntakeStatUseCase.handleIntakeStat(event);
         exchange.getIn().setHeader("documentId", event.getDocumentId());
         exchange.getIn().setHeader("status", event.getStatus());
+    }
+
+    private void handleReceiptProcessed(Exchange exchange) {
+        ReceiptProcessedEvent event = exchange.getIn().getBody(ReceiptProcessedEvent.class);
+        processingEventUseCase.handleReceiptProcessed(event);
+        exchange.getIn().setHeader("documentNumber", event.getDocumentNumber());
+    }
+
+    private void handleCancellationNoteProcessed(Exchange exchange) {
+        CancellationNoteProcessedEvent event = exchange.getIn().getBody(CancellationNoteProcessedEvent.class);
+        processingEventUseCase.handleCancellationNoteProcessed(event);
+        exchange.getIn().setHeader("documentNumber", event.getDocumentNumber());
+    }
+
+    private void handleDebitCreditNoteProcessed(Exchange exchange) {
+        DebitCreditNoteProcessedEvent event = exchange.getIn().getBody(DebitCreditNoteProcessedEvent.class);
+        processingEventUseCase.handleDebitCreditNoteProcessed(event);
+        exchange.getIn().setHeader("documentNumber", event.getDocumentNumber());
+    }
+
+    private void handleAbbreviatedTaxInvoiceProcessed(Exchange exchange) {
+        AbbreviatedTaxInvoiceProcessedEvent event = exchange.getIn().getBody(AbbreviatedTaxInvoiceProcessedEvent.class);
+        processingEventUseCase.handleAbbreviatedTaxInvoiceProcessed(event);
+        exchange.getIn().setHeader("documentNumber", event.getDocumentNumber());
+    }
+
+    private void handleReceiptPdfGenerated(Exchange exchange) {
+        ReceiptPdfGeneratedEvent event = exchange.getIn().getBody(ReceiptPdfGeneratedEvent.class);
+        processingEventUseCase.handleReceiptPdfGenerated(event);
+        exchange.getIn().setHeader("documentNumber", event.getDocumentNumber());
+    }
+
+    private void handleCancellationNotePdfGenerated(Exchange exchange) {
+        CancellationNotePdfGeneratedEvent event = exchange.getIn().getBody(CancellationNotePdfGeneratedEvent.class);
+        processingEventUseCase.handleCancellationNotePdfGenerated(event);
+        exchange.getIn().setHeader("documentNumber", event.getDocumentNumber());
+    }
+
+    private void handleDebitCreditNotePdfGenerated(Exchange exchange) {
+        DebitCreditNotePdfGeneratedEvent event = exchange.getIn().getBody(DebitCreditNotePdfGeneratedEvent.class);
+        processingEventUseCase.handleDebitCreditNotePdfGenerated(event);
+        exchange.getIn().setHeader("documentNumber", event.getDocumentNumber());
+    }
+
+    private void handleAbbreviatedTaxInvoicePdfGenerated(Exchange exchange) {
+        AbbreviatedTaxInvoicePdfGeneratedEvent event = exchange.getIn().getBody(AbbreviatedTaxInvoicePdfGeneratedEvent.class);
+        processingEventUseCase.handleAbbreviatedTaxInvoicePdfGenerated(event);
+        exchange.getIn().setHeader("documentNumber", event.getDocumentNumber());
+    }
+
+    private void handleDocumentArchived(Exchange exchange) {
+        DocumentArchivedEvent event = exchange.getIn().getBody(DocumentArchivedEvent.class);
+        processingEventUseCase.handleDocumentArchived(event);
+        exchange.getIn().setHeader("documentNumber", event.getDocumentNumber());
     }
 }
