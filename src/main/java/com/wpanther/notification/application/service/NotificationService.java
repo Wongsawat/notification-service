@@ -21,6 +21,15 @@ import com.wpanther.notification.application.port.in.event.InvoicePdfGeneratedEv
 import com.wpanther.notification.application.port.in.event.PdfSignedEvent;
 import com.wpanther.notification.application.port.in.event.TaxInvoicePdfGeneratedEvent;
 import com.wpanther.notification.application.port.in.event.TaxInvoiceProcessedEvent;
+import com.wpanther.notification.application.port.in.event.AbbreviatedTaxInvoicePdfGeneratedEvent;
+import com.wpanther.notification.application.port.in.event.AbbreviatedTaxInvoiceProcessedEvent;
+import com.wpanther.notification.application.port.in.event.CancellationNotePdfGeneratedEvent;
+import com.wpanther.notification.application.port.in.event.CancellationNoteProcessedEvent;
+import com.wpanther.notification.application.port.in.event.DebitCreditNotePdfGeneratedEvent;
+import com.wpanther.notification.application.port.in.event.DebitCreditNoteProcessedEvent;
+import com.wpanther.notification.application.port.in.event.DocumentArchivedEvent;
+import com.wpanther.notification.application.port.in.event.ReceiptPdfGeneratedEvent;
+import com.wpanther.notification.application.port.in.event.ReceiptProcessedEvent;
 import com.wpanther.notification.application.port.in.event.XmlSignedEvent;
 import com.wpanther.notification.application.port.in.event.saga.SagaCompletedEvent;
 import com.wpanther.notification.application.port.in.event.saga.SagaFailedEvent;
@@ -360,6 +369,271 @@ public class NotificationService
         notification.setCorrelationId(event.getCorrelationId());
         notification.addMetadata("ebmsMessageId", event.getEbmsMessageId());
         notification.addMetadata("documentType", event.getDocumentType());
+
+        dispatcherService.dispatchAsync(notification);
+    }
+
+    @Override
+    public void handleReceiptProcessed(ReceiptProcessedEvent event) {
+        log.info("Processing ReceiptProcessedEvent: documentId={}, documentNumber={}",
+            event.getDocumentId(), event.getDocumentNumber());
+
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("documentNumber", event.getDocumentNumber());
+        templateVariables.put("totalAmount", String.format("%,.2f", event.getTotalAmount()));
+        templateVariables.put("currency", event.getCurrency());
+        templateVariables.put("processedAt", formatInstant(event.getOccurredAt()));
+
+        Notification notification = Notification.createFromTemplate(
+            NotificationType.RECEIPT_PROCESSED,
+            NotificationChannel.EMAIL,
+            defaultRecipient,
+            "receipt-processed",
+            templateVariables
+        );
+
+        notification.setSubject("Receipt Processed: " + event.getDocumentNumber());
+        notification.setDocumentId(event.getDocumentId());
+        notification.setDocumentNumber(event.getDocumentNumber());
+        notification.setCorrelationId(event.getCorrelationId());
+
+        dispatcherService.dispatchAsync(notification);
+    }
+
+    @Override
+    public void handleCancellationNoteProcessed(CancellationNoteProcessedEvent event) {
+        log.info("Processing CancellationNoteProcessedEvent: documentId={}, documentNumber={}",
+            event.getDocumentId(), event.getDocumentNumber());
+
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("documentNumber", event.getDocumentNumber());
+        templateVariables.put("total", String.format("%,.2f", event.getTotal()));
+        templateVariables.put("currency", event.getCurrency());
+        templateVariables.put("processedAt", formatInstant(event.getOccurredAt()));
+
+        Notification notification = Notification.createFromTemplate(
+            NotificationType.CANCELLATION_NOTE_PROCESSED,
+            NotificationChannel.EMAIL,
+            defaultRecipient,
+            "cancellation-note-processed",
+            templateVariables
+        );
+
+        notification.setSubject("Cancellation Note Processed: " + event.getDocumentNumber());
+        notification.setDocumentId(event.getDocumentId());
+        notification.setDocumentNumber(event.getDocumentNumber());
+        notification.setCorrelationId(event.getCorrelationId());
+
+        dispatcherService.dispatchAsync(notification);
+    }
+
+    @Override
+    public void handleDebitCreditNoteProcessed(DebitCreditNoteProcessedEvent event) {
+        log.info("Processing DebitCreditNoteProcessedEvent: documentId={}, documentNumber={}",
+            event.getDocumentId(), event.getDocumentNumber());
+
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("documentNumber", event.getDocumentNumber());
+        templateVariables.put("amount", String.format("%,.2f", event.getAmount()));
+        templateVariables.put("currency", event.getCurrency());
+        templateVariables.put("processedAt", formatInstant(event.getOccurredAt()));
+
+        Notification notification = Notification.createFromTemplate(
+            NotificationType.DEBIT_CREDIT_NOTE_PROCESSED,
+            NotificationChannel.EMAIL,
+            defaultRecipient,
+            "debit-credit-note-processed",
+            templateVariables
+        );
+
+        notification.setSubject("Debit/Credit Note Processed: " + event.getDocumentNumber());
+        notification.setDocumentId(event.getDocumentId());
+        notification.setDocumentNumber(event.getDocumentNumber());
+        notification.setCorrelationId(event.getCorrelationId());
+
+        dispatcherService.dispatchAsync(notification);
+    }
+
+    @Override
+    public void handleAbbreviatedTaxInvoiceProcessed(AbbreviatedTaxInvoiceProcessedEvent event) {
+        log.info("Processing AbbreviatedTaxInvoiceProcessedEvent: documentId={}, documentNumber={}",
+            event.getDocumentId(), event.getDocumentNumber());
+
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("documentNumber", event.getDocumentNumber());
+        templateVariables.put("total", String.format("%,.2f", event.getTotal()));
+        templateVariables.put("currency", event.getCurrency());
+        templateVariables.put("processedAt", formatInstant(event.getOccurredAt()));
+
+        Notification notification = Notification.createFromTemplate(
+            NotificationType.ABBREVIATED_TAX_INVOICE_PROCESSED,
+            NotificationChannel.EMAIL,
+            defaultRecipient,
+            "abbreviated-tax-invoice-processed",
+            templateVariables
+        );
+
+        notification.setSubject("Abbreviated Tax Invoice Processed: " + event.getDocumentNumber());
+        notification.setDocumentId(event.getDocumentId());
+        notification.setDocumentNumber(event.getDocumentNumber());
+        notification.setCorrelationId(event.getCorrelationId());
+
+        dispatcherService.dispatchAsync(notification);
+    }
+
+    @Override
+    public void handleReceiptPdfGenerated(ReceiptPdfGeneratedEvent event) {
+        log.info("Processing ReceiptPdfGeneratedEvent: documentId={}, documentNumber={}",
+            event.getDocumentId(), event.getDocumentNumber());
+
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("documentNumber", event.getDocumentNumber());
+        templateVariables.put("documentUrl", event.getDocumentUrl());
+        templateVariables.put("fileSize", formatFileSize(event.getFileSize()));
+        templateVariables.put("generatedAt", formatInstant(event.getOccurredAt()));
+        templateVariables.put("xmlEmbedded", event.isXmlEmbedded());
+
+        Notification notification = Notification.createFromTemplate(
+            NotificationType.RECEIPT_PDF_GENERATED,
+            NotificationChannel.EMAIL,
+            defaultRecipient,
+            "receipt-pdf-generated",
+            templateVariables
+        );
+
+        notification.setSubject("Receipt PDF Ready: " + event.getDocumentNumber());
+        notification.setDocumentId(event.getDocumentId());
+        notification.setDocumentNumber(event.getDocumentNumber());
+        notification.setCorrelationId(event.getCorrelationId());
+        notification.addMetadata("documentUrl", event.getDocumentUrl());
+
+        dispatcherService.dispatchAsync(notification);
+    }
+
+    @Override
+    public void handleCancellationNotePdfGenerated(CancellationNotePdfGeneratedEvent event) {
+        log.info("Processing CancellationNotePdfGeneratedEvent: documentId={}, documentNumber={}",
+            event.getDocumentId(), event.getDocumentNumber());
+
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("documentNumber", event.getDocumentNumber());
+        templateVariables.put("documentUrl", event.getDocumentUrl());
+        templateVariables.put("fileSize", formatFileSize(event.getFileSize()));
+        templateVariables.put("generatedAt", formatInstant(event.getOccurredAt()));
+        templateVariables.put("xmlEmbedded", event.isXmlEmbedded());
+
+        Notification notification = Notification.createFromTemplate(
+            NotificationType.CANCELLATION_NOTE_PDF_GENERATED,
+            NotificationChannel.EMAIL,
+            defaultRecipient,
+            "cancellation-note-pdf-generated",
+            templateVariables
+        );
+
+        notification.setSubject("Cancellation Note PDF Ready: " + event.getDocumentNumber());
+        notification.setDocumentId(event.getDocumentId());
+        notification.setDocumentNumber(event.getDocumentNumber());
+        notification.setCorrelationId(event.getCorrelationId());
+        notification.addMetadata("documentUrl", event.getDocumentUrl());
+
+        dispatcherService.dispatchAsync(notification);
+    }
+
+    @Override
+    public void handleDebitCreditNotePdfGenerated(DebitCreditNotePdfGeneratedEvent event) {
+        log.info("Processing DebitCreditNotePdfGeneratedEvent: documentId={}, documentNumber={}",
+            event.getDocumentId(), event.getDocumentNumber());
+
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("documentNumber", event.getDocumentNumber());
+        templateVariables.put("documentUrl", event.getDocumentUrl());
+        templateVariables.put("fileSize", formatFileSize(event.getFileSize()));
+        templateVariables.put("generatedAt", formatInstant(event.getOccurredAt()));
+        templateVariables.put("xmlEmbedded", event.isXmlEmbedded());
+
+        Notification notification = Notification.createFromTemplate(
+            NotificationType.DEBIT_CREDIT_NOTE_PDF_GENERATED,
+            NotificationChannel.EMAIL,
+            defaultRecipient,
+            "debit-credit-note-pdf-generated",
+            templateVariables
+        );
+
+        notification.setSubject("Debit/Credit Note PDF Ready: " + event.getDocumentNumber());
+        notification.setDocumentId(event.getDocumentId());
+        notification.setDocumentNumber(event.getDocumentNumber());
+        notification.setCorrelationId(event.getCorrelationId());
+        notification.addMetadata("documentUrl", event.getDocumentUrl());
+
+        dispatcherService.dispatchAsync(notification);
+    }
+
+    @Override
+    public void handleAbbreviatedTaxInvoicePdfGenerated(AbbreviatedTaxInvoicePdfGeneratedEvent event) {
+        log.info("Processing AbbreviatedTaxInvoicePdfGeneratedEvent: documentId={}, documentNumber={}",
+            event.getDocumentId(), event.getDocumentNumber());
+
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("documentNumber", event.getDocumentNumber());
+        templateVariables.put("documentUrl", event.getDocumentUrl());
+        templateVariables.put("fileSize", formatFileSize(event.getFileSize()));
+        templateVariables.put("generatedAt", formatInstant(event.getOccurredAt()));
+        templateVariables.put("xmlEmbedded", event.isXmlEmbedded());
+
+        Notification notification = Notification.createFromTemplate(
+            NotificationType.ABBREVIATED_TAX_INVOICE_PDF_GENERATED,
+            NotificationChannel.EMAIL,
+            defaultRecipient,
+            "abbreviated-tax-invoice-pdf-generated",
+            templateVariables
+        );
+
+        notification.setSubject("Abbreviated Tax Invoice PDF Ready: " + event.getDocumentNumber());
+        notification.setDocumentId(event.getDocumentId());
+        notification.setDocumentNumber(event.getDocumentNumber());
+        notification.setCorrelationId(event.getCorrelationId());
+        notification.addMetadata("documentUrl", event.getDocumentUrl());
+
+        dispatcherService.dispatchAsync(notification);
+    }
+
+    @Override
+    public void handleDocumentArchived(DocumentArchivedEvent event) {
+        log.info("Processing DocumentArchivedEvent: documentId={}, documentNumber={}, artifactType={}",
+            event.getDocumentId(), event.getDocumentNumber(), event.getArtifactType());
+
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put("documentId", event.getDocumentId());
+        templateVariables.put("documentNumber", event.getDocumentNumber());
+        templateVariables.put("documentType", event.getDocumentType());
+        templateVariables.put("artifactType", event.getArtifactType());
+        templateVariables.put("fileName", event.getFileName());
+        templateVariables.put("fileSize", formatFileSize(event.getFileSize()));
+        templateVariables.put("storedUrl", event.getStoredUrl());
+        templateVariables.put("archivedAt", formatInstant(event.getArchivedAt()));
+
+        Notification notification = Notification.createFromTemplate(
+            NotificationType.DOCUMENT_ARCHIVED,
+            NotificationChannel.EMAIL,
+            defaultRecipient,
+            "document-archived",
+            templateVariables
+        );
+
+        notification.setSubject("Document Archived: " + event.getDocumentNumber());
+        notification.setDocumentId(event.getDocumentId());
+        notification.setDocumentNumber(event.getDocumentNumber());
+        notification.setCorrelationId(event.getCorrelationId());
+        notification.addMetadata("artifactType", event.getArtifactType());
+        notification.addMetadata("storedUrl", event.getStoredUrl());
 
         dispatcherService.dispatchAsync(notification);
     }
