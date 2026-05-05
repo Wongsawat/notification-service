@@ -612,7 +612,7 @@ public class NotificationService
 
         Map<String, Object> templateVariables = new HashMap<>();
         templateVariables.put("documentId", event.getDocumentId());
-        templateVariables.put("documentNumber", event.getDocumentNumber());
+        templateVariables.put("documentNumber", event.getDocumentNumber() != null ? event.getDocumentNumber() : "N/A");
         templateVariables.put("documentType", event.getDocumentType());
         templateVariables.put("artifactType", event.getArtifactType());
         templateVariables.put("fileName", event.getFileName());
@@ -628,7 +628,8 @@ public class NotificationService
             templateVariables
         );
 
-        notification.setSubject("Document Archived: " + event.getDocumentNumber());
+        String displayNumber = event.getDocumentNumber() != null ? event.getDocumentNumber() : event.getDocumentId();
+        notification.setSubject("Document Archived: " + displayNumber);
         notification.setDocumentId(event.getDocumentId());
         notification.setDocumentNumber(event.getDocumentNumber());
         notification.setCorrelationId(event.getCorrelationId());
