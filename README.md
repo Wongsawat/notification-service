@@ -333,7 +333,7 @@ All Kafka consumption is defined in `NotificationEventRoutes.java` with **18 tot
   "invoiceId": "uuid",
   "invoiceNumber": "INV-2026-001",
   "documentId": "doc-uuid",
-  "documentUrl": "http://storage:8084/api/v1/documents/doc-uuid",
+  "documentUrl": "http://storage:8098/api/v1/documents/doc-uuid",
   "fileSize": 125000,
   "xmlEmbedded": true,
   "digitallySigned": false,
@@ -373,7 +373,7 @@ All Kafka consumption is defined in `NotificationEventRoutes.java` with **18 tot
   "invoiceNumber": "INV-2026-001",
   "documentType": "INVOICE",
   "signedDocumentId": "doc-signed-uuid",
-  "signedPdfUrl": "http://storage:8084/api/v1/documents/doc-signed-uuid",
+  "signedPdfUrl": "http://storage:8098/api/v1/documents/doc-signed-uuid",
   "signedPdfSize": 130000,
   "transactionId": "txn-uuid",
   "certificate": "base64-cert",
@@ -696,7 +696,7 @@ mvn spring-boot:run
 ```bash
 docker build -t notification-service:latest .
 
-docker run -p 8085:8085 \
+docker run -p 8099:8099 \
   -e DB_HOST=postgres \
   -e KAFKA_BROKERS=kafka:29092 \
   -e MAIL_HOST=smtp.gmail.com \
@@ -791,7 +791,7 @@ Set notification channel to `WEBHOOK` and provide webhook URL as recipient:
 
 ### Health Check
 ```bash
-curl http://localhost:8085/actuator/health
+curl http://localhost:8099/actuator/health
 ```
 
 ## Testing
@@ -838,7 +838,7 @@ All tests validate:
 
 ### Manual Testing - Send Test Email
 ```bash
-curl -X POST http://localhost:8085/api/v1/notifications \
+curl -X POST http://localhost:8099/api/v1/notifications \
   -H "Content-Type: application/json" \
   -d '{
     "type": "INVOICE_PROCESSED",
@@ -903,7 +903,7 @@ grep "processing-interval" src/main/resources/application.yml
 **Manual trigger:**
 ```bash
 # Trigger pending notifications manually
-curl -X POST http://localhost:8085/api/v1/notifications/{id}/retry
+curl -X POST http://localhost:8099/api/v1/notifications/{id}/retry
 ```
 
 ### Kafka Events Not Consumed
@@ -935,7 +935,7 @@ Java 8 date/time type `java.time.Instant` not supported by default
 **Check Camel Routes:**
 ```bash
 # Verify all 18 routes are running
-curl http://localhost:8085/actuator/camel/routes | jq '.[] | select(.routeId | startswith("notification-saga"))'
+curl http://localhost:8099/actuator/camel/routes | jq '.[] | select(.routeId | startswith("notification-saga"))'
 
 # Expected: 4 saga routes in "Started" state
 ```
